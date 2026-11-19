@@ -10,4 +10,4 @@ export function SpareRack(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.spare_rack.footprint} {...props} />;
 }
 
-if (META.spare_rack) useGLTF.preload(URL);
+useGLTF.preload(URL);

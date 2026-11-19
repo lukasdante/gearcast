@@ -11,4 +11,4 @@ export function Clarifier(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.clarifier.footprint} scalable water={WATER} waterRange={META.clarifier.water} {...props} />;
 }
 
-if (META.clarifier) useGLTF.preload(URL);
+useGLTF.preload(URL);

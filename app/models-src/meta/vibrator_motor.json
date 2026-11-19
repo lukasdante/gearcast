@@ -1,0 +1,10 @@
+{
+ "kind": "vibrator_motor",
+ "footprint": [
+  0.34,
+  0.46
+ ],
+ "height": 0.329,
+ "ports": [],
+ "tris": 4936
+}

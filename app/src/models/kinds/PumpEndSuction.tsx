@@ -10,4 +10,4 @@ export function PumpEndSuction(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.pump_end_suction.footprint} {...props} />;
 }
 
-if (META.pump_end_suction) useGLTF.preload(URL);
+useGLTF.preload(URL);

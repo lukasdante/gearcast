@@ -43,7 +43,7 @@ function Gallery() {
   const kinds = focus ? ASSET_KINDS.filter(k => k.kind === focus) : ASSET_KINDS;
   const items = useMemo(() => (focus ? kinds.map(k => ({ k, x: 0, z: 0 })) : layout(kinds)), [focus, kinds]);
   const span = focus ? Math.max(...kinds[0].footprint, kinds[0].height) : 30;
-  const cam: [number, number, number] = focus ? [span * 1.5, span * 1.0, span * 1.8] : [12, 16, 22];
+  const cam: [number, number, number] = focus ? [span * 1.5, span * 1.0, span * 1.8] : [15, 21, 30];
 
   return (
     <>

@@ -10,4 +10,4 @@ export function CustomBox(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.custom_box.footprint} scalable {...props} />;
 }
 
-if (META.custom_box) useGLTF.preload(URL);
+useGLTF.preload(URL);

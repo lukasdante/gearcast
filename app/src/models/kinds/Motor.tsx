@@ -10,4 +10,4 @@ export function Motor(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.motor.footprint} {...props} />;
 }
 
-if (META.motor) useGLTF.preload(URL);
+useGLTF.preload(URL);

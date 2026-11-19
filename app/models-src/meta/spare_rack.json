@@ -1,0 +1,10 @@
+{
+ "kind": "spare_rack",
+ "footprint": [
+  4.198,
+  1.57
+ ],
+ "height": 2.625,
+ "ports": [],
+ "tris": 8792
+}

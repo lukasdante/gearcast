@@ -188,7 +188,7 @@ export function GlbAsset({ url, footprint, scalable, waterRange, water, state, s
         r.mat.color.copy(accent).multiplyScalar(0.6);
         r.mat.emissive.copy(accent);
         r.mat.emissiveIntensity = state === 'stored' ? 0 : state === 'fault' ? 0.5 + 1.2 * pulse : 1.1;
-      } else if (r.role === 'body') {
+      } else if (r.role === 'body' || r.role === 'shake') {
         if (state === 'fault') {
           r.mat.emissive.set(FAULT_RED);
           r.mat.emissiveIntensity = 0.05 + 0.2 * pulse;

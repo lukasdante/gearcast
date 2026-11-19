@@ -10,4 +10,4 @@ export function Building(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.building.footprint} scalable {...props} />;
 }
 
-if (META.building) useGLTF.preload(URL);
+useGLTF.preload(URL);

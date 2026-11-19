@@ -10,4 +10,4 @@ export function VibratingScreen(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.vibrating_screen.footprint} {...props} />;
 }
 
-if (META.vibrating_screen) useGLTF.preload(URL);
+useGLTF.preload(URL);

@@ -6,7 +6,6 @@
 import type { ComponentType } from 'react';
 import type { AssetKindDef, AssetModelProps } from './types';
 import { META } from './kinds/meta';
-import { PlaceholderBox } from './PlaceholderBox';
 import { PumpEndSuction } from './kinds/PumpEndSuction';
 import { PumpSubmersible } from './kinds/PumpSubmersible';
 import { Motor } from './kinds/Motor';
@@ -25,10 +24,6 @@ import { CustomBox } from './kinds/CustomBox';
 const def = (kind: string, label: string, category: AssetKindDef['category'],
   Component: ComponentType<AssetModelProps>, matches?: string[]): AssetKindDef => {
   const m = META[kind];
-  if (!m) { // not built yet: keep the app usable with a placeholder
-    return { kind, label, category, footprint: [1, 1], height: 0.8, matchesAssetTypes: matches, Component: PlaceholderBox,
-      ports: [{ id: 'in', position: [-0.5, 0.4, 0], direction: [-1, 0, 0] }, { id: 'out', position: [0.5, 0.4, 0], direction: [1, 0, 0] }] };
-  }
   return { kind, label, category, footprint: m.footprint, height: m.height, ports: m.ports,
     matchesAssetTypes: matches, Component };
 };

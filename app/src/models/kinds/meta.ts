@@ -11,6 +11,185 @@ export interface KindMeta {
 }
 
 export const META: Record<string, KindMeta> = {
+  "bio_reactor": {
+    "footprint": [
+      8.55,
+      7.0
+    ],
+    "height": 4.112,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -4.25,
+          2.491,
+          -1.8
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          4.25,
+          1.191,
+          -1.8
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 7494,
+    "water": {
+      "min": 0.6,
+      "max": 2.75
+    }
+  },
+  "building": {
+    "footprint": [
+      9.425,
+      6.568
+    ],
+    "height": 6.1,
+    "ports": [
+      {
+        "id": "out",
+        "position": [
+          4.688,
+          0.6,
+          -1.384
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 7048
+  },
+  "clarifier": {
+    "footprint": [
+      7.8,
+      7.531
+    ],
+    "height": 3.627,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -3.9,
+          1.089,
+          0.395
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          3.9,
+          0.539,
+          0.395
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 11256,
+    "water": {
+      "min": 1.6,
+      "max": 1.88
+    }
+  },
+  "custom_box": {
+    "footprint": [
+      1.16,
+      0.904
+    ],
+    "height": 1.07,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -0.58,
+          0.42,
+          -0.0
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          0.58,
+          0.42,
+          -0.0
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 1928
+  },
+  "discharge": {
+    "footprint": [
+      3.898,
+      2.193
+    ],
+    "height": 1.129,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -1.924,
+          0.464,
+          -0.002
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          1.626,
+          0.054,
+          -0.002
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 3770,
+    "water": {
+      "min": 0.035,
+      "max": 0.06
+    }
+  },
   "motor": {
     "footprint": [
       0.631,
@@ -55,5 +234,215 @@ export const META: Record<string, KindMeta> = {
       }
     ],
     "tris": 13266
+  },
+  "pump_submersible": {
+    "footprint": [
+      0.688,
+      0.415
+    ],
+    "height": 1.373,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -0.321,
+          0.07,
+          -0.042
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          0.108,
+          0.544,
+          0.098
+        ],
+        "direction": [
+          0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 12548
+  },
+  "separator": {
+    "footprint": [
+      4.7,
+      2.962
+    ],
+    "height": 2.032,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -2.35,
+          1.65,
+          0.369
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          2.35,
+          1.5,
+          0.369
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 5090,
+    "water": {
+      "min": 1.15,
+      "max": 1.83
+    }
+  },
+  "spare_rack": {
+    "footprint": [
+      4.198,
+      1.57
+    ],
+    "height": 2.625,
+    "ports": [],
+    "tris": 8792
+  },
+  "sump": {
+    "footprint": [
+      5.2,
+      4.0
+    ],
+    "height": 3.4,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -2.575,
+          0.75,
+          -0.0
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          2.6,
+          1.65,
+          -0.0
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 8302,
+    "water": {
+      "min": 0.15,
+      "max": 1.08
+    }
+  },
+  "tank": {
+    "footprint": [
+      5.6,
+      6.95
+    ],
+    "height": 5.341,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -2.8,
+          3.65,
+          -0.795
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          2.8,
+          0.65,
+          -0.795
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 12680,
+    "water": {
+      "min": 0.45,
+      "max": 3.9000000000000004
+    }
+  },
+  "vibrating_screen": {
+    "footprint": [
+      2.954,
+      1.495
+    ],
+    "height": 1.787,
+    "ports": [
+      {
+        "id": "in",
+        "position": [
+          -1.465,
+          1.281,
+          -0.062
+        ],
+        "direction": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      },
+      {
+        "id": "out",
+        "position": [
+          1.124,
+          0.2,
+          -0.062
+        ],
+        "direction": [
+          1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ],
+    "tris": 13720
+  },
+  "vibrator_motor": {
+    "footprint": [
+      0.34,
+      0.46
+    ],
+    "height": 0.329,
+    "ports": [],
+    "tris": 4936
   }
 };

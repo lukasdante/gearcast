@@ -11,4 +11,4 @@ export function Separator(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.separator.footprint} scalable water={WATER} waterRange={META.separator.water} {...props} />;
 }
 
-if (META.separator) useGLTF.preload(URL);
+useGLTF.preload(URL);

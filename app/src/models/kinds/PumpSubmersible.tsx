@@ -10,4 +10,4 @@ export function PumpSubmersible(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.pump_submersible.footprint} {...props} />;
 }
 
-if (META.pump_submersible) useGLTF.preload(URL);
+useGLTF.preload(URL);

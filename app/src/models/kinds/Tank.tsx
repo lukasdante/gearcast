@@ -11,4 +11,4 @@ export function Tank(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.tank.footprint} scalable water={WATER} waterRange={META.tank.water} {...props} />;
 }
 
-if (META.tank) useGLTF.preload(URL);
+useGLTF.preload(URL);

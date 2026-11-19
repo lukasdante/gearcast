@@ -63,6 +63,8 @@ PALETTE = {
     'carton':    ('#9c8261', 0.00, 0.90, False),
     'liquor':    ('#4a3e2c', 0.05, 0.20, False),
     'grating':   ('#6c747a', 0.60, 0.55, False),
+    'rack':      ('#b8642c', 0.30, 0.50, False),
+    'upright':   ('#3f5f86', 0.35, 0.45, False),
 }
 
 PORTS = []
@@ -226,11 +228,11 @@ def lathe(profile, loc=(0, 0, 0), axis='Z', mat='steel', steps=32, name='lathe')
     return _finish(o, name, mat)
 
 
-def curve_tube(points, r, mat='rubber', name='tube', res=8, closed=False):
+def curve_tube(points, r, mat='rubber', name='tube', res=8, closed=False, bevel_res=2):
     cu = bpy.data.curves.new(name, 'CURVE')
     cu.dimensions = '3D'
     cu.bevel_depth = r
-    cu.bevel_resolution = 2
+    cu.bevel_resolution = bevel_res
     cu.resolution_u = res
     sp = cu.splines.new('BEZIER')
     sp.bezier_points.add(len(points) - 1)
@@ -376,7 +378,7 @@ def array(o, count, offset, name=None):
     m.count = count
     m.use_relative_offset = False
     m.use_constant_offset = True
-    m.constant_offset_displacement = offset
+    m.constant_offset_displace = offset
     apply_mods(o)
     if name:
         o.name = name
@@ -387,6 +389,72 @@ def set_mat(o, mat):
     o.data.materials.clear()
     o.data.materials.append(M(mat))
     return o
+
+
+def rod(p0, p1, r, mat='steel', verts=10, name='rod'):
+    """Cylinder between two 3D points."""
+    a, b = Vector(p0), Vector(p1)
+    d = b - a
+    o = cyl(r, d.length, (0, 0, 0), 'Z', mat, verts=verts, name=name)
+    o.rotation_euler = (0, 0, 0)
+    o.rotation_mode = 'QUATERNION'
+    o.rotation_quaternion = d.to_track_quat('Z', 'Y')
+    o.location = (a + b) / 2
+    apply_xf(o, location=True)
+    o.rotation_mode = 'XYZ'
+    return o
+
+
+def handrail(p0, p1, posts=3, name='rail', toe=True, h=1.0, mat='safety', r=0.021):
+    """Industrial handrail between base points p0 -> p1: top + knee rail, posts, optional toe board."""
+    a, b = Vector(p0), Vector(p1)
+    parts = [rod(a + Vector((0, 0, zz)), b + Vector((0, 0, zz)), r, mat) for zz in (h, h / 2)]
+    for i in range(posts):
+        t = i / (posts - 1)
+        p = a.lerp(b, t)
+        parts.append(rod(p, p + Vector((0, 0, h)), r, mat))
+    if toe:
+        d = b - a
+        tb = box(d.length, 0.006, 0.10, (0, 0, 0), mat)
+        tb.rotation_euler = (0, 0, math.atan2(d.y, d.x))
+        tb.location = (a + b) / 2 + Vector((0, 0, 0.05))
+        apply_xf(tb, location=True)
+        parts.append(tb)
+    return join(parts, name)
+
+
+def pipe_path(points, r, bend=0.25, mat='galv', name='pipe', sides=16, seg=5):
+    """Pipe along a polyline with rounded bends (radius ~bend), as a closed-ring loft (no curve smoothing)."""
+    P = [Vector(p) for p in points]
+    path = [P[0]]
+    for i in range(1, len(P) - 1):
+        a, p, b = P[i - 1], P[i], P[i + 1]
+        da, db = (p - a).normalized(), (b - p).normalized()
+        k = min(bend, (p - a).length / 2, (b - p).length / 2)
+        p0, p1 = p - da * k, p + db * k
+        for j in range(seg + 1):
+            t = j / seg
+            path.append(p0 * (1 - t) ** 2 + p * 2 * t * (1 - t) + p1 * t * t)
+    path.append(P[-1])
+    rings = []
+    prev_n = None
+    for i, c in enumerate(path):
+        if i == 0:
+            tdir = (path[1] - path[0]).normalized()
+        elif i == len(path) - 1:
+            tdir = (path[-1] - path[-2]).normalized()
+        else:
+            tdir = (path[i + 1] - path[i - 1]).normalized()
+        if prev_n is None:
+            ref = Vector((0, 0, 1)) if abs(tdir.z) < 0.9 else Vector((1, 0, 0))
+            n = tdir.cross(ref).normalized()
+        else:
+            n = (prev_n - tdir * prev_n.dot(tdir)).normalized()
+        prev_n = n
+        bnm = tdir.cross(n)
+        rings.append([tuple(c + (n * math.cos(a) + bnm * math.sin(a)) * r)
+                      for a in [2 * PI * k / sides for k in range(sides)]])
+    return loft(rings, name, mat)
 
 
 def port(pid, loc, direction):

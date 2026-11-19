@@ -10,4 +10,4 @@ export function VibratorMotor(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.vibrator_motor.footprint} {...props} />;
 }
 
-if (META.vibrator_motor) useGLTF.preload(URL);
+useGLTF.preload(URL);

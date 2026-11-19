@@ -11,4 +11,4 @@ export function Discharge(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.discharge.footprint} water={WATER} waterRange={META.discharge.water} {...props} />;
 }
 
-if (META.discharge) useGLTF.preload(URL);
+useGLTF.preload(URL);

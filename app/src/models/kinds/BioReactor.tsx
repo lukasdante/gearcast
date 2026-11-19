@@ -11,4 +11,4 @@ export function BioReactor(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.bio_reactor.footprint} scalable water={WATER} waterRange={META.bio_reactor.water} {...props} />;
 }
 
-if (META.bio_reactor) useGLTF.preload(URL);
+useGLTF.preload(URL);

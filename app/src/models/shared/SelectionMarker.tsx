@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { SELECT_CYAN, HOVER_TINT } from './palette';
 
@@ -33,6 +33,7 @@ export function SelectionMarker({ footprint, selected, hovered, ghost }: {
     g.rotateX(-Math.PI / 2);
     return g;
   }, [fx, fz]);
+  useEffect(() => () => geo.dispose(), [geo]);
   if (!selected && !hovered && !ghost) return null;
   return (
     <mesh geometry={geo} position={[0, 0.012, 0]} renderOrder={5}>

@@ -11,4 +11,4 @@ export function Sump(props: AssetModelProps) {
   return <GlbAsset url={URL} footprint={META.sump.footprint} scalable water={WATER} waterRange={META.sump.water} {...props} />;
 }
 
-if (META.sump) useGLTF.preload(URL);
+useGLTF.preload(URL);
