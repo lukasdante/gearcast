@@ -16,7 +16,8 @@ interface Draft {
     repair_or_replace: { recommendation: string; confidence: number }; standby: string; spare?: string; failure_event?: { event_id: string } | null };
   llm_used: boolean; [k: string]: unknown;
 }
-interface Row { report_id: string; asset_id: string; date: string; severity?: string; failure_mode?: string | null; status?: string; summary?: string | null; source: 'history' | 'submitted'; shut_down?: boolean }
+interface Row { report_id: string; asset_id: string; date: string; severity?: string; failure_mode?: string | null; status?: string; summary?: string | null; source: 'history' | 'submitted'; shut_down?: boolean; procedure_used?: string | null; repair_cost_php?: number | null; production_loss_php?: number | null }
+const shortDate = (d: string) => { if (!d) return '—'; const [y, m, dd] = d.slice(0, 10).split('-'); return `${m}/${dd}/${y.slice(2)}`; };
 
 const ASSETS = PLANT.equipment.filter(a => !a.asset_id.startsWith('SP-')).map(a => a.asset_id).concat(PLANT.equipment.filter(a => a.asset_id.startsWith('SP-')).map(a => a.asset_id));
 const DETECTED = ['', 'Trip', 'Noise', 'Leak observed', 'Flow drop', 'Rounds reading', 'Inspection'];
@@ -35,6 +36,8 @@ export function Incidents() {
   const [mode, setMode] = useState<'list' | 'new'>('list');
   const [selected, setSelected] = useState<Row | null>(null);
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const match = (r: Row) => { const t = q.trim().toLowerCase(); return !t || [r.report_id, r.asset_id, r.severity, r.failure_mode, r.procedure_used, r.status, r.summary].some(v => String(v ?? '').toLowerCase().includes(t)); };
   const [form, setForm] = useState(blankForm());
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState<'' | 'draft' | 'docx' | 'submit' | 'pdf'>('');
@@ -117,11 +120,32 @@ export function Incidents() {
 
       {mode === 'list' && (
         <div className="ir-layout">
-          <div className="card ir-list">
-            {rows.submitted.length > 0 && <div className="list-cap">Submitted in GearCast</div>}
-            {rows.submitted.map(r => <IrRow key={r.report_id} r={r} active={selected?.report_id === r.report_id} onClick={() => { setSelected(r); setOpen(true); }} />)}
-            <div className="list-cap">History · {rows.history.length} reports</div>
-            {rows.history.map(r => <IrRow key={r.report_id} r={r} active={selected?.report_id === r.report_id} onClick={() => { setSelected(r); setOpen(true); }} />)}
+          <div className="card pm-table-card">
+            <div className="pm-table-head">
+              <b>Incident reports</b>
+              <input className="sp-search pm-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search report, asset, failure, procedure…" aria-label="Search incidents" />
+              <span className="muted small">{[...rows.submitted, ...rows.history].filter(match).length} reports</span>
+            </div>
+            <div className="table-wrap">
+              <table className="ir-table">
+                <thead><tr><th>Report</th><th>Date</th><th>Asset</th><th>Severity</th><th>Failure</th><th>Procedure</th><th className="num">Repair (PHP)</th><th className="num">Loss (PHP)</th><th>Status</th></tr></thead>
+                <tbody>
+                  {[...rows.submitted, ...rows.history].filter(match).map(r => (
+                    <tr key={r.report_id} className={selected?.report_id === r.report_id ? 'active' : ''} onClick={() => { setSelected(r); setOpen(true); }}>
+                      <td className="mono">{r.report_id}{r.source === 'submitted' && <span className="badge new">new</span>}</td>
+                      <td className="mono">{shortDate(r.date)}</td>
+                      <td className="mono tag">{r.asset_id}</td>
+                      <td>{r.severity ? <span className={`sev sev-${String(r.severity).toLowerCase().replace(' ', '-')}`}>{r.severity}</span> : '—'}</td>
+                      <td className="ir-fail">{r.failure_mode || '—'}</td>
+                      <td className="mono">{r.procedure_used || '—'}</td>
+                      <td className="num mono">{r.repair_cost_php != null ? Math.round(r.repair_cost_php).toLocaleString('en-US') : '—'}</td>
+                      <td className="num mono">{r.production_loss_php != null ? Math.round(r.production_loss_php).toLocaleString('en-US') : '—'}</td>
+                      <td className="small">{r.shut_down ? <span className="badge warn">Shut down</span> : r.status || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           {selected && (
             <aside className={`rr-drawer${open ? ' open' : ''}`} aria-hidden={!open}>
@@ -227,14 +251,3 @@ export function Incidents() {
   );
 }
 
-function IrRow({ r, active, onClick }: { r: Row; active: boolean; onClick: () => void }) {
-  return (
-    <button type="button" className={`ir-row${active ? ' active' : ''}`} onClick={onClick}>
-      <span className="mono ir-id">{r.report_id}</span>
-      <span className="mono tag">{r.asset_id}</span>
-      <span className="ir-mode">{r.failure_mode || (r.severity === 'Near miss' ? 'Near miss' : '—')}</span>
-      {r.source === 'submitted' && <span className="badge new">new</span>}
-      {r.severity && <span className={`sev sev-${String(r.severity).toLowerCase().replace(' ', '-')}`}>{r.severity}</span>}
-    </button>
-  );
-}

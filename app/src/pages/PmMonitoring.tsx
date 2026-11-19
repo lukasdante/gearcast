@@ -45,6 +45,7 @@ function buildRows(): Row[] {
 export function PmMonitoring() {
   const rows = useMemo(buildRows, []);
   const [band, setBand] = useState<Band | null>(null);
+  const [q, setQ] = useState('');
   const [day, setDay] = useState<string | null>(null);
   const [month, setMonth] = useState(() => new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
   const [assign, setAssign] = useState<Record<string, string>>(() => { try { return JSON.parse(localStorage.getItem(AKEY) || '{}'); } catch { return {}; } });
@@ -60,7 +61,9 @@ export function PmMonitoring() {
     for (const r of rows) (m.get(r.due) ?? m.set(r.due, []).get(r.due)!).push(r);
     return m;
   }, [rows]);
-  const shown = rows.filter(r => (!band || r.band === band) && (!day || r.due === day));
+  const ql = q.trim().toLowerCase();
+  const shown = rows.filter(r => (!band || r.band === band) && (!day || r.due === day)
+    && (!ql || [r.task_id, r.task, r.asset_id, r.role, r.procs.join(' '), assign[r.id]].some(v => String(v ?? '').toLowerCase().includes(ql))));
 
   // Month grid, weeks starting Monday.
   const first = new Date(month);
@@ -114,6 +117,7 @@ export function PmMonitoring() {
       <div className="card pm-table-card">
         <div className="pm-table-head">
           <b>{day ? `Due ${fmt(day)}` : band ? BANDS.find(b => b.id === band)!.label : 'All PM tasks'}</b>
+          <input className="sp-search pm-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search task, asset, procedure, role or assignee…" aria-label="Search PM tasks" />
           <span className="muted small">{shown.length} tasks</span>
           {(band || day) && <button type="button" className="btn ghost sm" onClick={() => { setBand(null); setDay(null); }}>Clear filter</button>}
         </div>

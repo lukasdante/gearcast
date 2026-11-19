@@ -54,7 +54,7 @@ const Empty = ({ children }: { children: ReactNode }) => <p className="muted sma
 
 // ---------------------------------------------------------------- hero
 
-function Hero({ id, kind }: { id: string; kind: string }) {
+export function Hero({ id, kind }: { id: string; kind: string }) {
   const [broken, setBroken] = useState<string | null>(null);
   const [showFig, setShowFig] = useState(false);
   const src = thumbUrl(kind);
@@ -116,7 +116,7 @@ function Actions({ id, v }: { id: string; v: AssetView }) {
   );
 }
 
-function OverviewTab({ id, v }: { id: string; v: AssetView }) {
+export function OverviewTab({ id, v }: { id: string; v: AssetView }) {
   const ctx = useStatusCtx();
   const appended = useStatusStore(s => s.appended);
   const a = assetById.get(id)!;
@@ -244,7 +244,7 @@ function TrendChart({ title, unit, series, days, limits = [], events = [] }: {
   );
 }
 
-function ReadingsTab({ id }: { id: string }) {
+export function ReadingsTab({ id }: { id: string }) {
   const [days, setDays] = useState(30);
   const checks = checksFor(id, days).filter(c => c.running);
   const rounds = roundsFor(id, days);
@@ -307,7 +307,7 @@ function ProcedureModal({ p, assetId, onClose }: { p: Procedure; assetId: string
   );
 }
 
-function MaintenanceTab({ id }: { id: string }) {
+export function MaintenanceTab({ id }: { id: string }) {
   const pm = pmFor(id);
   const wos = workOrdersFor(id).slice(0, 8);
   const procs = proceduresFor(id);
@@ -362,7 +362,7 @@ function MaintenanceTab({ id }: { id: string }) {
 
 // ---------------------------------------------------------------- history tab
 
-function HistoryTab({ id }: { id: string }) {
+export function HistoryTab({ id }: { id: string }) {
   const appended = useStatusStore(s => s.appended);
   const hist = historyFor(id, appended).slice(0, 10);
   const fails = failuresFor(id);
@@ -412,7 +412,7 @@ function HistoryTab({ id }: { id: string }) {
 
 // ---------------------------------------------------------------- parts tab
 
-function PartsTab({ id }: { id: string }) {
+export function PartsTab({ id }: { id: string }) {
   const parts = partsFor(id);
   const below = parts.filter(p => p.below_min || p.qty_on_hand < p.min_qty).length;
   return (
