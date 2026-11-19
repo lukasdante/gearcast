@@ -1,0 +1,28 @@
+[project]
+name = "gearcast-backend"
+version = "0.1.0"
+description = "GearCast backend: AI assistant, troubleshooter, incident reports, repair-or-replace"
+authors = [
+    { name = "lukasdante", email = "johnlouis.dante@gmail.com" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.165.0",
+    "fastembed==0.9.1",
+    "numpy==2.5.5",
+    "openai==3.56.0",
+    "openpyxl==3.1.5",
+    "pypdf==7.1.1",
+    "python-docx==1.2.0",
+    "python-dotenv==1.2.4",
+    "python-multipart==0.0.34",
+    "rank-bm25==0.2.2",
+    "uvicorn[standard]==0.54.0",
+]
+
+[project.scripts]
+gearcast-backend = "gearcast_backend:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

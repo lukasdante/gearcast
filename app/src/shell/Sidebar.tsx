@@ -7,7 +7,10 @@ const NAV: { route: Route; label: string; icon: string; soon?: boolean }[] = [
   { route: 'assets', label: 'Assets', icon: 'assets' },
   { route: 'pm', label: 'PM Monitoring', icon: 'pm' },
   { route: 'spares', label: 'Spare Readiness', icon: 'spares' },
+  { route: 'troubleshoot', label: 'Troubleshoot', icon: 'wrench' },
   { route: 'incidents', label: 'Incidents', icon: 'incidents' },
+  { route: 'rr', label: 'Repair / Replace', icon: 'scale' },
+  { route: 'knowledge', label: 'Knowledge base', icon: 'book' },
 ];
 
 export function Sidebar({ route }: { route: Route }) {

@@ -1,8 +1,8 @@
 /** Minimal hash routing: #/overview, #/assets, ... */
 import { useSyncExternalStore } from 'react';
 
-export type Route = 'dashboard' | 'overview' | 'assets' | 'pm' | 'spares' | 'incidents';
-const ROUTES: Route[] = ['dashboard', 'overview', 'assets', 'pm', 'spares', 'incidents'];
+export type Route = 'dashboard' | 'overview' | 'assets' | 'pm' | 'spares' | 'incidents' | 'troubleshoot' | 'rr' | 'knowledge';
+const ROUTES: Route[] = ['dashboard', 'overview', 'assets', 'pm', 'spares', 'incidents', 'troubleshoot', 'rr', 'knowledge'];
 
 const read = (): Route => {
   const r = window.location.hash.replace(/^#\/?/, '') as Route;

@@ -23,6 +23,14 @@ const P: Record<string, string> = {
   check: 'M5 12l5 5 9-10',
   bolt: 'M13 3L5 14h6l-1 7 8-11h-6z',
   swap: 'M7 7h12l-3-3M17 17H5l3 3',
+  wrench: 'M14.5 6.5a4 4 0 005 5L13 18a2 2 0 01-3-3l6.5-6.5a4 4 0 01-2-2zM5 19l3-3',
+  scale: 'M12 4v16M7 20h10M5 8h14M5 8l-3 6a3 3 0 006 0zM19 8l-3 6a3 3 0 006 0z',
+  book: 'M5 4h10a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h10',
+  print: 'M7 9V4h10v5M7 17H5v-7h14v7h-2M8 14h8v6H8z',
+  download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  upload: 'M12 20V9M7 14l5-5 5 5M5 4h14',
+  file: 'M6 3h8l4 4v14H6zM14 3v4h4',
+  spark: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',
 };
 
 export function Icon({ name, size = 16, stroke = 1.7 }: { name: keyof typeof P | string; size?: number; stroke?: number }) {
