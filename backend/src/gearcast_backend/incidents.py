@@ -332,6 +332,8 @@ def submit(draft: dict) -> dict:
                "fields_by_no": {str(x["field_no"]): x for x in draft.get("fields", [])}}
         rows.append(rec)
         _save(rows)
+    from . import pdf  # PDF is produced once, at submission; downloads serve the stored file.
+    pdf.store(rid, pdf.draft_pdf(rec))
     return {"report_id": rid, "shut_down": bool(draft.get("shut_down")), "asset_id": draft.get("asset_id"),
             "status_change": ({"asset_id": draft.get("asset_id"), "new_status": "Shut Down",
                                "reason": f"Shut down per incident report {rid}"} if draft.get("shut_down") else None)}

@@ -113,7 +113,8 @@ export const OFFSET_DAYS = dayIndex(NOW_DATE) - dayIndex(DATA_CUTOFF);
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})((?:[ T]\d{2}:\d{2}(?::\d{2})?)?.*)$/;
 export function shiftDateStr(v: string, days = OFFSET_DAYS): string {
-  const m = v.length <= 25 ? v.match(DATE_RE) : null;
+  if (v.length > 25) return v.replace(/(?<![\w-])20\d\d-\d\d-\d\d(?![\w-])/g, x => shiftDateStr(x, days)); // dates inside free text
+  const m = v.match(DATE_RE);
   if (!m) return v;
   const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days));
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}${m[4]}`;

@@ -20,11 +20,15 @@ AS_OF_DATE = AS_OF[:10]
 _DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})((?:[ T]\d{2}:\d{2}(?::\d{2})?)?.*)$")
 
 
+_EMBED_RE = re.compile(r"(?<![\w-])20\d\d-\d\d-\d\d(?![\w-])")
+
+
 def shift_date_str(v: str, days: int = OFFSET_DAYS) -> str:
     """'YYYY-MM-DD[ HH:MM[:SS]]' shifted by `days`, keeping the original format; other strings unchanged."""
     m = _DATE_RE.match(v)
     if not m or len(v) > 25:
-        return v
+        # free text (report narratives, remarks): shift every embedded ISO date too
+        return _EMBED_RE.sub(lambda e: shift_date_str(e[0], days), v) if len(v) > 25 else v
     try:
         d = date(int(m[1]), int(m[2]), int(m[3])) + timedelta(days=days)
     except ValueError:

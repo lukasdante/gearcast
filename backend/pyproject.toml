@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv==1.2.4",
     "python-multipart==0.0.34",
     "rank-bm25==0.2.2",
+    "reportlab==4.2.5",
     "uvicorn[standard]==0.54.0",
 ]
 

@@ -12,6 +12,16 @@ const GROUPS = [
   { name: 'Vibrator motors', assets: ['VM-101A', 'VM-101B'], kind: 'vibrator_motor', spare: 'SP-VM01' },
 ];
 const short = (d: string | null) => { if (!d) return '—'; const [y, m, dd] = d.slice(0, 10).split('-'); return `${m}/${dd}/${y.slice(2)}`; };
+/** 'P-101A; P-101B; SP-P01' -> ['P-101A/B', 'SP-P01'] */
+const fitsShort = (v: string) => {
+  const out: string[] = [];
+  for (const t of v.split(';').map(x => x.trim()).filter(Boolean)) {
+    const m = t.match(/^(.*\d)([A-Z])$/), prev = out[out.length - 1];
+    if (m && prev && prev.startsWith(m[1]) && /^.*\d[A-Z](\/[A-Z])*$/.test(prev)) out[out.length - 1] = `${prev}/${m[2]}`;
+    else out.push(t);
+  }
+  return out;
+};
 const fits = (p: { fits_assets: string }) => p.fits_assets.split(';').map(s => s.trim());
 const stockTone = (p: { qty_on_hand: number; min_qty: number }) => (p.qty_on_hand <= 0 ? 'bad' : p.qty_on_hand < p.min_qty ? 'warn' : 'ok');
 
@@ -74,14 +84,15 @@ export function SpareReadiness() {
           <span className="muted small">{rows.length} of {parts.length} parts</span>
         </div>
         <div className="table-wrap">
-          <table>
-            <thead><tr><th>Part</th><th>Name</th><th>Fits</th><th>Category</th><th>On hand</th><th>Min</th><th>Reorder</th><th>Lead time</th><th>Location</th><th>Critical</th></tr></thead>
+          <table className="sp-table">
+            <colgroup><col style={{ width: 84 }} /><col /><col style={{ width: 150 }} /><col style={{ width: 100 }} /><col style={{ width: 84 }} /><col style={{ width: 52 }} /><col style={{ width: 68 }} /><col style={{ width: 72 }} /><col style={{ width: 108 }} /><col style={{ width: 92 }} /></colgroup>
+            <thead><tr><th>Part</th><th>Name</th><th>Fits</th><th>Category</th><th>On hand</th><th>Min</th><th>Reorder</th><th>Lead</th><th>Location</th><th>Critical</th></tr></thead>
             <tbody>
               {rows.map(p => (
                 <tr key={p.part_id}>
                   <td className="mono">{p.part_id}</td>
                   <td>{p.part_name}{p.part_number && <div className="muted small">{p.part_number}</div>}</td>
-                  <td className="mono small">{p.fits_assets.replace(/;\s*/g, ', ')}</td>
+                  <td><span className="sp-fits">{fitsShort(p.fits_assets).map(f => <span key={f} className="sp-fit">{f}</span>)}</span></td>
                   <td className="small">{p.category}</td>
                   <td><span className={`sp-qty ${stockTone(p)}`}>{p.qty_on_hand} <small>{p.unit}</small></span></td>
                   <td className="mono">{p.min_qty}</td>

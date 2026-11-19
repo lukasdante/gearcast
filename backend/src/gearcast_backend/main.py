@@ -8,13 +8,13 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import incidents, rr, tools
+from . import incidents, pdf, rr, tools
 from .chat import run_chat
 from .config import DEEPSEEK_API_KEY
 from .data import StatusCtx
 from .llm import MODEL
 from .rag import KB
-from .render import docx_to_pdf, history_docx, render_docx, soffice_bin
+from .render import render_docx, soffice_bin
 from .troubleshoot import troubleshoot
 
 app = FastAPI(title="GearCast API", version="0.1.0")
@@ -23,6 +23,7 @@ app = FastAPI(title="GearCast API", version="0.1.0")
 @app.on_event("startup")
 def _startup() -> None:
     threading.Thread(target=KB.load_or_build, daemon=True).start()
+    threading.Thread(target=_prebuild_history_pdfs, daemon=True).start()
 
 
 class Sim(BaseModel):
@@ -142,10 +143,7 @@ def incident_render(draft: dict, format: str = "docx"):
     data = render_docx(draft)
     name = draft.get("report_id", "IR-draft")
     if format == "pdf":
-        pdf = docx_to_pdf(data)
-        if not pdf:
-            raise HTTPException(501, "PDF export needs LibreOffice (soffice) on the server – use DOCX or Print")
-        return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'})
+        return Response(pdf.draft_pdf(draft), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'})
     return Response(data, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     headers={"Content-Disposition": f'attachment; filename="{name}.docx"'})
 
@@ -172,14 +170,23 @@ def incident_get(report_id: str):
 
 @app.get("/api/incidents/{report_id}/pdf")
 def incident_pdf(report_id: str):
-    r = incidents.get_report(report_id)
-    if not r:
-        raise HTTPException(404, "not found")
-    data = history_docx(r["history"]) if "history" in r else render_docx(r)
-    pdf = docx_to_pdf(data)
-    if not pdf:
-        raise HTTPException(501, "PDF export needs LibreOffice (soffice) on the server")
-    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{report_id}.pdf"'})
+    path = pdf.pdf_path(report_id)
+    if not path.exists():  # produced at submission / startup; build once if missing (e.g. older records)
+        r = incidents.get_report(report_id)
+        if not r:
+            raise HTTPException(404, "not found")
+        pdf.store(report_id, pdf.history_pdf(r["history"]) if "history" in r else pdf.draft_pdf(r))
+    return Response(path.read_bytes(), media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{report_id}.pdf"'})
+
+
+def _prebuild_history_pdfs() -> None:
+    from .data import DATA
+    for h in DATA.incident_reports:
+        p = pdf.pdf_path(h["report_id"])
+        if not p.exists():
+            pdf.store(h["report_id"], pdf.history_pdf(h))
+
 
 
 # ------------------------------------------------------------------ repair or replace

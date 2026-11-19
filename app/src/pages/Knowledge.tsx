@@ -18,6 +18,8 @@ export function Knowledge() {
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<Hit[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState('');
+  const [drag, setDrag] = useState(false);
 
   const refresh = () => getJSON<Docs>('/api/knowledge/docs').then(setDocs).catch(() => setErr('Backend offline – start it on :8000'));
   useEffect(() => { refresh(); }, []);
@@ -31,7 +33,7 @@ export function Knowledge() {
     if (asset) fd.append('asset_id', asset);
     if (model) fd.append('equipment_model', model);
     setBusy(true); setErr(null);
-    try { await upload('/api/knowledge/upload', fd); if (fileRef.current) fileRef.current.value = ''; refresh(); } catch (e2) { setErr(e2 instanceof Error ? e2.message : 'Upload failed'); } finally { setBusy(false); }
+    try { await upload('/api/knowledge/upload', fd); if (fileRef.current) fileRef.current.value = ''; setFileName(''); refresh(); } catch (e2) { setErr(e2 instanceof Error ? e2.message : 'Upload failed'); } finally { setBusy(false); }
   };
   const search = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +53,14 @@ export function Knowledge() {
         <div className="col">
           <form className="card kb-upload" onSubmit={onUpload}>
             <h4><Icon name="upload" size={14} /> Upload a manual</h4>
-            <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" aria-label="Manual file" />
+            <label className={`kb-drop${fileName ? ' has' : ''}${drag ? ' drag' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
+              onDrop={e => { e.preventDefault(); setDrag(false); if (fileRef.current && e.dataTransfer.files.length) { fileRef.current.files = e.dataTransfer.files; setFileName(e.dataTransfer.files[0].name); } }}>
+              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" aria-label="Manual file" className="kb-file" onChange={e => setFileName(e.target.files?.[0]?.name ?? '')} />
+              <Icon name="file" size={20} />
+              {fileName ? <><b className="kb-fname">{fileName}</b><span className="muted small">Click to choose a different file</span></>
+                : <><b>Drop a manual here or <u>browse</u></b><span className="muted small">PDF, DOCX, TXT or MD</span></>}
+            </label>
             <div className="form-grid">
               <label>Asset tag (optional)<select value={asset} onChange={e => setAsset(e.target.value)}><option value="">—</option>{PLANT.equipment.map(a => <option key={a.asset_id}>{a.asset_id}</option>)}</select></label>
               <label>Equipment model (optional)<input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. Grundfos SL1.50" /></label>

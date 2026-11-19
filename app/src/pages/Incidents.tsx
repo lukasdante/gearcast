@@ -34,6 +34,7 @@ export function Incidents() {
   const [rows, setRows] = useState<{ submitted: Row[]; history: Row[] }>({ submitted: [], history: [] });
   const [mode, setMode] = useState<'list' | 'new'>('list');
   const [selected, setSelected] = useState<Row | null>(null);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blankForm());
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState<'' | 'draft' | 'docx' | 'submit' | 'pdf'>('');
@@ -118,13 +119,14 @@ export function Incidents() {
         <div className="ir-layout">
           <div className="card ir-list">
             {rows.submitted.length > 0 && <div className="list-cap">Submitted in GearCast</div>}
-            {rows.submitted.map(r => <IrRow key={r.report_id} r={r} active={selected?.report_id === r.report_id} onClick={() => setSelected(r)} />)}
+            {rows.submitted.map(r => <IrRow key={r.report_id} r={r} active={selected?.report_id === r.report_id} onClick={() => { setSelected(r); setOpen(true); }} />)}
             <div className="list-cap">History · {rows.history.length} reports</div>
-            {rows.history.map(r => <IrRow key={r.report_id} r={r} active={selected?.report_id === r.report_id} onClick={() => setSelected(r)} />)}
+            {rows.history.map(r => <IrRow key={r.report_id} r={r} active={selected?.report_id === r.report_id} onClick={() => { setSelected(r); setOpen(true); }} />)}
           </div>
-          <div className="card ir-detail">
-            {selected ? (
-              <>
+          {selected && (
+            <aside className={`rr-drawer${open ? ' open' : ''}`} aria-hidden={!open}>
+              <button type="button" className="rr-drawer-close btn ghost sm" onClick={() => setOpen(false)} aria-label="Collapse panel">›</button>
+              <div className="card rr-detail ir-detail">
                 <div className="sym-head"><span className="mono sym-id">{selected.report_id}</span><b>{selected.asset_id}</b>
                   {selected.severity && <span className={`sev sev-${String(selected.severity).toLowerCase().replace(' ', '-')}`}>{selected.severity}</span>}
                   <span className="muted">{fmtDate(selected.date)}</span></div>
@@ -134,9 +136,10 @@ export function Incidents() {
                   <button type="button" className="btn sm" onClick={() => openAsset(selected.asset_id)}><Icon name="plant" size={13} />Open {selected.asset_id}</button>
                   <button type="button" className="btn sm" disabled={busy === 'pdf'} onClick={() => downloadPdf(selected.report_id)}><Icon name="download" size={13} />{busy === 'pdf' ? 'Preparing…' : 'Download PDF'}</button>
                 </div>
-              </>
-            ) : <p className="muted">Select a report to read it.</p>}
-          </div>
+              </div>
+            </aside>
+          )}
+          {selected && !open && <button type="button" className="rr-drawer-tab" onClick={() => setOpen(true)} aria-label="Show report">‹ Report</button>}
         </div>
       )}
 
