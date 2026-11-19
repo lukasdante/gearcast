@@ -90,7 +90,13 @@ def _build(story: list) -> bytes:
 
 
 def draft_pdf(draft: dict) -> bytes:
-    """Full GearCast report: every template field grouped by its section, plus the summary."""
+    """The client's Equipment Incident Report form (Incident_Report_Form_v1.2.docx), filled and rendered to PDF."""
+    from .docx_pdf import docx_bytes_to_pdf
+    from .render import render_docx
+    return docx_bytes_to_pdf(render_docx(draft), f"GearCast · {draft.get('report_id', '')} · generated {datetime.now():%Y-%m-%d %H:%M}")
+
+
+def _legacy_draft_pdf(draft: dict) -> bytes:
     fields = sorted(draft.get("fields", []), key=lambda f: f["field_no"])
     by_no = {f["field_no"]: f.get("value") for f in fields}
     story = _header(draft.get("report_id") or by_no.get(1, ""), by_no.get(5) or draft.get("asset_id", ""), by_no.get(7, ""))
@@ -104,7 +110,32 @@ def draft_pdf(draft: dict) -> bytes:
     return _build(story + _signoff())
 
 
+def history_draft(h: dict) -> dict:
+    """Map a historical incident record onto the 37 template fields so it prints on the same form."""
+    from .data import DATA
+    a = DATA.asset.get(h.get("asset_id"), {}) if isinstance(DATA.asset, dict) else {}
+    sev = str(h.get("severity") or "")
+    vals = {
+        1: h.get("report_id"), 2: str(h.get("incident_date") or ""), 3: sev,
+        5: f"{h.get('asset_id')} – {a.get('description', '')}".strip(" –"), 6: a.get("location_node") or "",
+        7: str(h.get("incident_date") or ""), 11: h.get("technician_inputs") or "Not recorded", 13: "Not recorded",
+        15: h.get("procedure_used") or "", 16: "Not recorded", 17: "Not recorded",
+        18: "None" if not h.get("production_loss_php") else "Curtail", 19: f"{float(h.get('production_loss_php') or 0):,.0f}",
+        20: "Not recorded", 21: "None", 22: h.get("failure_mode") or ("Not applicable – near miss" if sev == "Near miss" else ""),
+        23: "Not recorded", 24: h.get("root_cause") or "", 26: "", 27: h.get("corrective_action") or "",
+        30: h.get("repair_or_replace") or "", 32: h.get("expected_report_text") or "", 36: "No change",
+    }
+    fields = [{"field_no": t["field_no"], "section": t["section"], "field": t["field"], "value": vals.get(t["field_no"], "Not recorded")}
+              for t in DATA.ir_template]
+    return {"report_id": h.get("report_id"), "asset_id": h.get("asset_id"), "fields": fields, "inputs": {},
+            "linked": {}, "tables": {"repair_php": float(h.get("repair_cost_php") or 0)}, "summary": h.get("expected_report_text")}
+
+
 def history_pdf(h: dict) -> bytes:
+    return draft_pdf(history_draft(h))
+
+
+def _legacy_history_pdf(h: dict) -> bytes:
     story = _header(h.get("report_id", ""), h.get("asset_id", ""), h.get("incident_date", ""))
     story += _section("Incident", [("Severity", h.get("severity")), ("Failure mode", h.get("failure_mode")),
                                    ("Root cause", h.get("root_cause")), ("Procedure used", h.get("procedure_used")),
