@@ -80,6 +80,7 @@ export interface PlantData {
   equipmentStatus: EquipmentStatusRow[];
   statusCodes: StatusCode[];
   dutyRotation: DutyRotationRow[];
+  lossScenarios: { scenario_id: string; title: string; asset_group: string; standby_ready: boolean; outage_h: number; response: string | null; total_loss_php: number | null }[];
 }
 export interface OpsData {
   failures: Failure[];
@@ -88,6 +89,9 @@ export interface OpsData {
   pmStatus: PmStatus[];
   spareSummary: SpareSummary[];
   procedureFigures: ProcedureFigure[];
+  procedureKeyPoints: { procedure_id: string; point_order: number; point_type: string; text: string }[];
+  procedureSelfCheck: { procedure_id: string; question_order: number; question: string; answer: string }[];
+  procedureSteps: { procedure_id: string; step_no: number; phase: string; instruction: string; acceptance_criteria: string | null; safety_note: string | null }[];
   dailyChecks: DailyCheck[];
   manualRounds: ManualRound[];
   pmTasks: PmTask[];

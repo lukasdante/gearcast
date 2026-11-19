@@ -4,7 +4,7 @@
  * organised as Overview · Readings · Maintenance · History · Parts.
  */
 import { useState, type ReactNode } from 'react';
-import { PLANT, assetById, type Procedure } from '../data';
+import { OPS, PLANT, assetById, type Procedure } from '../data';
 import { backupInfo, changeoverOffer, isDown, lastChangeover, viewAsset, type AssetView } from '../domain/status';
 import {
   checksFor, dateMs, figureFor, fmtDate, historyFor, incidentsFor, kindForAsset, partsFor, pmFor, proceduresFor,
@@ -54,7 +54,7 @@ const Empty = ({ children }: { children: ReactNode }) => <p className="muted sma
 
 // ---------------------------------------------------------------- hero
 
-export function Hero({ id, kind }: { id: string; kind: string }) {
+export function Hero({ id, kind, onOpen }: { id: string; kind: string; onOpen?: () => void }) {
   const [broken, setBroken] = useState<string | null>(null);
   const [showFig, setShowFig] = useState(false);
   const src = thumbUrl(kind);
@@ -62,7 +62,9 @@ export function Hero({ id, kind }: { id: string; kind: string }) {
   return (
     <div className="insp-hero">
       {src && broken !== src
-        ? <img src={src} alt={`${id} 3D model`} onError={() => setBroken(src)} />
+        ? (onOpen
+          ? <button type="button" className="hero-open" onClick={onOpen} title={`Open ${id} in Assets`}><img src={src} alt={`${id} 3D model`} onError={() => setBroken(src)} /><span className="hero-hint">Open in Assets ›</span></button>
+          : <img src={src} alt={`${id} 3D model`} onError={() => setBroken(src)} />)
         : <span className="hero-fallback"><Icon name="assets" size={40} stroke={1.2} /></span>}
       {fig && <button type="button" className="hero-ref" onClick={() => setShowFig(true)}><Icon name="layers" size={13} />Reference drawing</button>}
       {showFig && fig && (
@@ -191,6 +193,7 @@ export function OverviewTab({ id, v }: { id: string; v: AssetView }) {
           ['Duty pattern', a.default_role],
         ]} />
       </Section>
+      <ShutdownCost id={id} />
     </>
   );
 }
@@ -303,6 +306,7 @@ function ProcedureModal({ p, assetId, onClose }: { p: Procedure; assetId: string
         ['Tools', p.tools], ['PPE', p.ppe], ['Permits', p.permits], ['Parts', p.parts],
         ['Est. time', p.est_time_h != null ? `${p.est_time_h} h` : null], ['Steps', p.step_count], ['Revision', p.revision],
       ]} />
+      <ProcExtras id={p.procedure_id} />
     </Modal>
   );
 }
@@ -445,12 +449,13 @@ function AssetInspector({ id, kind }: { id: string; kind: string }) {
   const v = viewAsset(ctx, id);
   return (
     <>
-      <Hero id={id} kind={kind} />
+      <Hero id={id} kind={kind} onOpen={() => { useIntent.getState().setAsset(id); navigate('assets'); }} />
       <div className="insp-head">
         <div className="insp-title"><span className="mono insp-tag">{id}</span><StatusChip v={v} /><RoleChip v={v} /></div>
         <div className="insp-desc">{a.description}</div>
         {a.location_node && <div className="muted small">{a.location_node} · {areaName(a.location_node)}{a.criticality ? ` · criticality ${a.criticality}` : ''}</div>}
       </div>
+      <QuickTrends id={id} />
       <nav className="insp-tabs" role="tablist">
         {TABS.map(([k, label]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
@@ -522,5 +527,87 @@ export function Inspector({ item, assetId, live }: { item: LayoutItem | null; as
         {assetId ? <AssetInspector key={assetId} id={assetId} kind={kind} /> : item && <AreaInspector item={item} live={live} />}
       </div>
     </aside>
+  );
+}
+
+// ---------------------------------------------------------------- quick trends + procedure extras + shutdown cost
+function Spark({ label, unit, vals, warn }: { label: string; unit: string; vals: number[]; warn?: number }) {
+  if (vals.length < 2) return <div className="qt"><span className="qt-l">{label}</span><span className="muted small">no data</span></div>;
+  const lo = Math.min(...vals, warn ?? Infinity), hi = Math.max(...vals, warn ?? -Infinity), W = 120, H = 30;
+  const y = (v: number) => H - 3 - ((v - lo) / (hi - lo || 1)) * (H - 6);
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * W},${y(v)}`).join(' ');
+  const last = vals[vals.length - 1], over = warn != null && last >= warn;
+  return (
+    <div className="qt">
+      <span className="qt-l">{label}</span>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="qt-svg">
+        {warn != null && <line x1="0" x2={W} y1={y(warn)} y2={y(warn)} className="qt-warn" />}
+        <polyline points={pts} className={`qt-line${over ? ' over' : ''}`} />
+      </svg>
+      <b className={`mono qt-v${over ? ' over' : ''}`}>{last.toFixed(1)}<small> {unit}</small></b>
+    </div>
+  );
+}
+
+function QuickTrends({ id }: { id: string }) {
+  const c = checksFor(id, 30), r = roundsFor(id, 30);
+  const num = (x: unknown) => (x == null || x === '' ? null : Number(x));
+  const series = (rows: Record<string, unknown>[], k: string) => rows.map(x => num(x[k])).filter((x): x is number => x != null && !Number.isNaN(x));
+  const vib = series(c as unknown as Record<string, unknown>[], 'vib_de_mm_s'), temp = series(c as unknown as Record<string, unknown>[], 'temp_de_c');
+  const flow = series(r as unknown as Record<string, unknown>[], 'flow_m3h'), amps = series(r as unknown as Record<string, unknown>[], 'current_a');
+  if (!vib.length && !temp.length && !flow.length && !amps.length) return null;
+  return (
+    <div className="quick-trends">
+      <div className="qt-head"><span>Last 30 days</span></div>
+      {!!vib.length && <Spark label="Vibration DE" unit="mm/s" vals={vib} warn={2.8} />}
+      {!!temp.length && <Spark label="Bearing temp" unit="°C" vals={temp} warn={80} />}
+      {!!flow.length && <Spark label="Flow" unit="m³/h" vals={flow} />}
+      {!!amps.length && <Spark label="Current" unit="A" vals={amps} />}
+    </div>
+  );
+}
+
+function ProcExtras({ id }: { id: string }) {
+  const kp = OPS.procedureKeyPoints.filter(k => k.procedure_id === id).sort((a, b) => a.point_order - b.point_order);
+  const sc = OPS.procedureSelfCheck.filter(k => k.procedure_id === id).sort((a, b) => a.question_order - b.question_order);
+  const steps = OPS.procedureSteps.filter(k => k.procedure_id === id).sort((a, b) => a.step_no - b.step_no);
+  const figs = OPS.procedureFigures.filter(f => (f as unknown as { procedure_id?: string }).procedure_id === id);
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <>
+      {!!kp.length && <div className="proc-kp">{kp.map((k, i) => <div key={i} className={`kp kp-${k.point_type.toLowerCase()}`}><b>{k.point_type}</b> {k.text}</div>)}</div>}
+      {!!steps.length && (
+        <details className="proc-steps"><summary>Procedure steps ({steps.length})</summary>
+          <ol>{steps.map(st => <li key={st.step_no}><span className="muted small">{st.phase}</span> {st.instruction}
+            {st.acceptance_criteria && <div className="muted small">Accept: {st.acceptance_criteria}</div>}
+            {st.safety_note && <div className="step-safety small">{st.safety_note}</div>}</li>)}</ol>
+        </details>
+      )}
+      {!!figs.length && <div className="proc-figs">{figs.map(f => <figure key={f.figure_id}><img src={`/figures/${f.file_name}`} alt={f.title} loading="lazy" /><figcaption>{f.figure_id} · {f.title}</figcaption></figure>)}</div>}
+      {!!sc.length && (
+        <div className="proc-sc"><div className="sec-title">Self-check</div>
+          {sc.map((q, i) => <button key={i} type="button" className="sc-q" onClick={() => setOpen(open === i ? null : i)}>
+            <span>{q.question}</span>{open === i ? <b>{q.answer}</b> : <span className="muted small">Show answer</span>}</button>)}
+        </div>
+      )}
+    </>
+  );
+}
+
+const GROUP_OF = (id: string) => (/^(P-101|M-101)/.test(id) ? 'Transfer pumps' : /^P-201/.test(id) ? 'Sump pumps' : /^(SC-|VM-)/.test(id) ? 'Screens' : null);
+
+export function ShutdownCost({ id }: { id: string }) {
+  const g = GROUP_OF(id);
+  if (!g) return null;
+  const rows = PLANT.lossScenarios.filter(s => s.asset_group === g);
+  if (!rows.length) return null;
+  const php = (n: number | string | null) => (n == null ? '—' : `PHP ${Math.round(Number(n)).toLocaleString('en-US')}`);
+  return (
+    <Section title="Shutdown cost">
+      <p className="muted small">What an outage of the {g.toLowerCase()} costs (plant loss scenarios). Loss stays PHP 0 while the standby can take over.</p>
+      <table className="mini-table"><thead><tr><th>Scenario</th><th>Hours</th><th>Response</th><th className="num">Loss</th></tr></thead>
+        <tbody>{rows.map(s => <tr key={s.scenario_id} className={Number(s.total_loss_php) > 1e6 ? 'hi' : ''}>
+          <td>{s.title}</td><td className="mono">{s.outage_h}</td><td>{s.response ?? '—'}</td><td className="num mono">{php(s.total_loss_php)}</td></tr>)}</tbody></table>
+    </Section>
   );
 }

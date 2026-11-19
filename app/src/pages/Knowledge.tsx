@@ -62,7 +62,10 @@ export function Knowledge() {
                 : <><b>Drop a manual here or <u>browse</u></b><span className="muted small">PDF, DOCX, TXT or MD</span></>}
             </label>
             <div className="form-grid">
-              <label>Asset tag (optional)<select value={asset} onChange={e => setAsset(e.target.value)}><option value="">—</option>{PLANT.equipment.map(a => <option key={a.asset_id}>{a.asset_id}</option>)}</select></label>
+              <label>Asset tag (optional)
+                <input list="kb-assets" value={asset} onChange={e => setAsset(e.target.value.toUpperCase())} placeholder="Pick or type a new tag, e.g. P-301A" />
+                <datalist id="kb-assets">{[...new Set([...PLANT.equipment.map(a => a.asset_id), ...(docs?.uploads ?? []).map(d => d.asset_id).filter((x): x is string => !!x)])].map(a => <option key={a} value={a} />)}</datalist>
+              </label>
               <label>Equipment model (optional)<input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. Grundfos SL1.50" /></label>
             </div>
             <button type="submit" className="btn primary" disabled={busy}>{busy ? 'Indexing…' : 'Upload & index'}</button>

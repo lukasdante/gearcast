@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useIntent } from '../store/intentStore';
 import { PLANT } from '../data';
 import { kindForAsset } from '../domain/assetInfo';
 import { areaName } from '../domain/layout';
@@ -16,6 +17,8 @@ export function Assets() {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(PLANT.equipment[0]?.asset_id ?? '');
   const [tab, setTab] = useState<Tab>('maintenance');
+  const focus = useIntent(s => s.asset);
+  useEffect(() => { if (focus) { setSel(focus.asset_id); setQ(''); useIntent.getState().clear('asset'); } }, [focus?.seq]);
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
     return PLANT.equipment.filter(a => !t || [a.asset_id, a.description, a.asset_type, a.manufacturer, a.model].some(v => String(v ?? '').toLowerCase().includes(t)));

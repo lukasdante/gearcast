@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { NOW_DATE, OPS } from '../data';
 import { thumbUrl } from '../overview/thumbs';
 import { openAsset } from '../shell/TopBar';
@@ -29,19 +31,46 @@ const fits = (p: { fits_assets: string }) => p.fits_assets.split(';').map(s => s
 const stockTone = (p: { qty_on_hand: number; min_qty: number }) => (p.qty_on_hand <= 0 ? 'bad' : p.qty_on_hand < p.min_qty ? 'warn' : 'ok');
 
 type Tone = 'ok' | 'warn' | 'bad';
+
+/** Readiness checks (last checked + frequency) per stored unit / part, kept in this browser. */
+interface CheckRec { last?: string; freq?: number }
+const useChecks = create<{ m: Record<string, CheckRec>; set: (id: string, r: CheckRec) => void }>()(persist(
+  set => ({ m: {}, set: (id, r) => set(st => ({ m: { ...st.m, [id]: { ...st.m[id], ...r } } })) }),
+  { name: 'gearcast.spares.checks.v1' }));
+const DAY = 86400000;
+const dms = (d: string) => new Date(d.slice(0, 10) + 'T12:00:00').getTime();
+const addDays = (d: string, n: number) => new Date(dms(d) + n * DAY).toISOString().slice(0, 10);
+interface Check { last: string | null; freq: number; next: string | null; since: number | null; late: number }
+function checkOf(m: Record<string, CheckRec>, id: string, defLast: string | null, defFreq: number): Check {
+  const r = m[id] ?? {}, last = r.last ?? defLast, freq = r.freq ?? defFreq;
+  const since = last ? Math.round((dms(NOW_DATE) - dms(last)) / DAY) : null;
+  return { last, freq, next: last ? addDays(last, freq) : null, since, late: since == null ? freq : Math.max(0, since - freq) };
+}
+const unitCheck = (m: Record<string, CheckRec>, u: SpareSummary) => {
+  const def = u.last_check_date && u.next_check_due ? Math.max(1, Math.round((dms(u.next_check_due) - dms(u.last_check_date)) / DAY)) : 30;
+  return checkOf(m, u.asset_id, u.last_check_date, def);
+};
+const partCheck = (m: Record<string, CheckRec>, p: SparePart) => checkOf(m, p.part_id, (p as SparePart & { stock_date?: string }).stock_date ?? null, 30);
+/** A missed check lowers readiness: overdue -> at most amber, more than one full interval late -> red. */
+const degrade = (tone: Tone, c: Check): Tone => (c.late > c.freq ? 'bad' : c.late > 0 && tone === 'ok' ? 'warn' : tone);
 const XKEY = 'gearcast.spares.extra.v1';
 const loadExtra = (): SparePart[] => { try { return JSON.parse(localStorage.getItem(XKEY) || '[]'); } catch { return []; } };
 
 /** Stock level vs target (max, else reorder / 2×min): green full = well stocked, amber = at/near minimum, red sliver = below minimum. */
-function partLevel(p: SparePart): { pct: number; tone: Tone; label: string } {
+function partLevel(p: SparePart, c?: Check): { pct: number; tone: Tone; label: string } {
   const target = p.max_qty || Math.max(p.reorder_point ?? 0, p.min_qty * 2, 1);
-  const pct = Math.max(0.06, Math.min(1, p.qty_on_hand / target));
-  const tone: Tone = p.qty_on_hand <= 0 || p.qty_on_hand < p.min_qty ? 'bad' : p.qty_on_hand <= (p.reorder_point ?? p.min_qty) ? 'warn' : 'ok';
-  return { pct, tone, label: tone === 'ok' ? 'Well stocked' : tone === 'warn' ? 'At reorder level' : p.qty_on_hand <= 0 ? 'Out of stock' : 'Below minimum' };
+  let pct = Math.max(0.06, Math.min(1, p.qty_on_hand / target));
+  const stock: Tone = p.qty_on_hand <= 0 || p.qty_on_hand < p.min_qty ? 'bad' : p.qty_on_hand <= (p.reorder_point ?? p.min_qty) ? 'warn' : 'ok';
+  const tone = c ? degrade(stock, c) : stock;
+  if (tone !== stock) pct = Math.min(pct, tone === 'bad' ? 0.2 : 0.6);
+  const label = tone !== stock ? (tone === 'bad' ? 'Stock count long overdue' : 'Stock count overdue')
+    : stock === 'ok' ? 'Well stocked' : stock === 'warn' ? 'At reorder level' : p.qty_on_hand <= 0 ? 'Out of stock' : 'Below minimum';
+  return { pct, tone, label };
 }
-function unitLevel(u: SpareSummary, overdue: boolean): { pct: number; tone: Tone; label: string } {
+function unitLevel(u: SpareSummary, c: Check): { pct: number; tone: Tone; label: string } {
   if (u.readiness_status !== 'Ready') return { pct: 0.2, tone: 'bad', label: u.readiness_status };
-  return overdue ? { pct: 0.6, tone: 'warn', label: 'Ready · check overdue' } : { pct: 1, tone: 'ok', label: 'Ready' };
+  const tone = degrade('ok', c);
+  return tone === 'ok' ? { pct: 1, tone, label: 'Ready' } : tone === 'warn' ? { pct: 0.6, tone, label: 'Ready · check overdue' } : { pct: 0.2, tone, label: 'Check long overdue' };
 }
 function Ring({ pct, tone, size = 18 }: { pct: number; tone: Tone; size?: number }) {
   const r = size / 2 - 2.5, c = 2 * Math.PI * r;
@@ -58,6 +87,7 @@ export function SpareReadiness() {
   const [info, setInfo] = useState<SparePart | null>(null);
   const [unitInfo, setUnitInfo] = useState<SpareSummary | null>(null);
   const [adding, setAdding] = useState(false);
+  const checks = useChecks(st => st.m);
   const [q, setQ] = useState('');
   const [lowOnly, setLowOnly] = useState(false);
   const parts = useMemo(() => [...OPS.spareInventory, ...extra], [extra]);
@@ -83,7 +113,7 @@ export function SpareReadiness() {
       <div className="sp-cards">
         {GROUPS.map(g => {
           const unit = g.spare ? units.get(g.spare) : undefined;
-          const overdue = !!unit?.next_check_due && unit.next_check_due.slice(0, 10) < NOW_DATE;
+          const uc = unit ? unitCheck(checks, unit) : null, ul = unit && uc ? unitLevel(unit, uc) : null;
           const list = parts.filter(p => fits(p).some(a => g.assets.includes(a)));
           const img = thumbUrl(g.kind);
           return (
@@ -92,19 +122,19 @@ export function SpareReadiness() {
               <div className="sp-name"><b>{g.name}</b>
                 <span>{g.assets.map(a => <button key={a} type="button" className="link mono" onClick={() => openAsset(a)}>{a}</button>)}</span>
               </div>
-              <div className={`sp-unit ${unit ? (overdue ? 'warn' : unit.readiness_status === 'Ready' ? 'ok' : 'bad') : 'none'}`}>
+              <div className={`sp-unit ${ul ? ul.tone : 'none'}`}>
                 {unit ? <>
                   <button type="button" className="ring-btn" onClick={() => setUnitInfo(unit)} aria-label={`${unit.asset_id} readiness details`}>
-                    <Ring {...unitLevel(unit, overdue)} size={22} /><span className="mono">{unit.asset_id}</span>
+                    <Ring {...ul!} size={22} /><span className="mono">{unit.asset_id}</span>
                   </button>
-                  <b>{overdue ? 'Check overdue' : unit.readiness_status}</b>
-                  <span className="muted small">checked {short(unit.last_check_date)} · next {short(unit.next_check_due)}</span>
+                  <b>{ul!.label}</b>
+                  <span className="muted small">checked {short(uc!.last)} · next {short(uc!.next)} · every {uc!.freq} d</span>
                 </> : <span className="muted small">No stored standby unit (spare parts only)</span>}
               </div>
               <ul className="sp-parts">
                 {list.map(p => (
-                  <li key={p.part_id} onClick={() => setInfo(p)} title={`${partLevel(p).label} – click for details`}>
-                    <Ring {...partLevel(p)} />
+                  <li key={p.part_id} onClick={() => setInfo(p)} title={`${partLevel(p, partCheck(checks, p)).label} – click for details`}>
+                    <Ring {...partLevel(p, partCheck(checks, p))} />
                     <span className="sp-pname">{p.part_name}</span>
                     <span className={`sp-qty ${stockTone(p)}`}>{p.qty_on_hand}<small>/{p.min_qty} {p.unit}</small></span>
                   </li>
@@ -132,7 +162,7 @@ export function SpareReadiness() {
                   <td>{p.part_name}{p.part_number && <div className="muted small">{p.part_number}</div>}</td>
                   <td><span className="sp-fits">{fitsShort(p.fits_assets).map(f => <span key={f} className="sp-fit">{f}</span>)}</span></td>
                   <td className="small">{p.category}</td>
-                  <td><button type="button" className="ring-btn" onClick={() => setInfo(p)}><Ring {...partLevel(p)} /><span className={`sp-qty ${stockTone(p)}`}>{p.qty_on_hand} <small>{p.unit}</small></span></button></td>
+                  <td><button type="button" className="ring-btn" onClick={() => setInfo(p)}><Ring {...partLevel(p, partCheck(checks, p))} /><span className={`sp-qty ${stockTone(p)}`}>{p.qty_on_hand} <small>{p.unit}</small></span></button></td>
                   <td className="mono">{p.min_qty}</td>
                   <td className="mono">{p.reorder_point ?? '—'}</td>
                   <td className="mono">{p.lead_time_days != null ? `${p.lead_time_days} d` : '—'}</td>
@@ -161,8 +191,31 @@ function KV({ rows }: { rows: [string, React.ReactNode][] }) {
   return <dl className="sp-kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v ?? '—'}</dd></div>)}</dl>;
 }
 
+function CheckBlock({ id, c, what }: { id: string; c: Check; what: string }) {
+  const set = useChecks(st => st.set);
+  const tone = c.late > c.freq ? 'bad' : c.late > 0 ? 'warn' : 'ok';
+  return (
+    <div className={`sp-check ${tone}`}>
+      <div className="sp-check-info">
+        <span className="sec-title">{what}</span>
+        <b>{c.last ? `Last checked ${short(c.last)}` : 'Never checked'}{c.since != null && <span className="muted"> · {c.since === 0 ? 'today' : `${c.since} d ago`}</span>}</b>
+        <span className="muted small">{c.next ? (c.late > 0 ? `Overdue by ${c.late} d (was due ${short(c.next)})` : `Next due ${short(c.next)}`) : 'No schedule'}</span>
+      </div>
+      <label className="sp-freq">Check every
+        <input type="number" min="1" value={c.freq} onChange={e => { const n = Math.max(1, Number(e.target.value) || 1); set(id, { freq: n }); }} /> days
+        <select value="" onChange={e => e.target.value && set(id, { freq: Number(e.target.value) })} aria-label="Preset">
+          <option value="">Preset…</option><option value="7">Weekly</option><option value="14">Every 2 weeks</option><option value="30">Monthly</option><option value="90">Quarterly</option>
+        </select>
+      </label>
+      <button type="button" className="btn primary sm" onClick={() => set(id, { last: NOW_DATE })} disabled={c.since === 0}><Icon name="check" size={13} />{c.since === 0 ? 'Checked today' : 'Mark checked today'}</button>
+    </div>
+  );
+}
+
 function PartModal({ p, onClose }: { p: SparePart; onClose: () => void }) {
-  const lv = partLevel(p);
+  const checks = useChecks(st => st.m);
+  const c = partCheck(checks, p);
+  const lv = partLevel(p, c);
   return (
     <Modal title={p.part_name} onClose={onClose} width={480}>
       <div className="sp-mhead"><Ring {...lv} size={44} /><div><b className={`sp-qty ${lv.tone}`}>{lv.label}</b>
@@ -174,18 +227,21 @@ function PartModal({ p, onClose }: { p: SparePart; onClose: () => void }) {
         ['Unit cost', php(p.unit_cost_php)], ['Stock value', php((p.unit_cost_php ?? 0) * p.qty_on_hand)],
         ['Location', p.storage_location], ['Critical', p.critical ? 'Yes' : 'No'],
       ]} />
-      {lv.tone !== 'ok' && <div className="alert-box warn small">Order {Math.max((p.max_qty || p.reorder_point || p.min_qty) - p.qty_on_hand, 1)} {p.unit} — lead time {p.lead_time_days ?? '?'} days.</div>}
+      <CheckBlock id={p.part_id} c={c} what="Stock count" />
+      {p.qty_on_hand < (p.reorder_point ?? p.min_qty) + 1 && <div className="alert-box warn small">Order {Math.max((p.max_qty || p.reorder_point || p.min_qty) - p.qty_on_hand, 1)} {p.unit} — lead time {p.lead_time_days ?? '?'} days.</div>}
     </Modal>
   );
 }
 
 function UnitModal({ u, onClose }: { u: SpareSummary; onClose: () => void }) {
-  const overdue = !!u.next_check_due && u.next_check_due.slice(0, 10) < NOW_DATE;
-  const lv = unitLevel(u, overdue);
+  const checks = useChecks(st => st.m);
+  const c = unitCheck(checks, u);
+  const lv = unitLevel(u, c);
   return (
     <Modal title={`Stored spare ${u.asset_id}`} onClose={onClose} width={460}>
       <div className="sp-mhead"><Ring {...lv} size={44} /><div><b className={`sp-qty ${lv.tone}`}>{lv.label}</b><div className="muted small">{u.spare_type}</div></div></div>
-      <KV rows={[['Location', u.location], ['Last check', `${short(u.last_check_date)}`], ['Next check due', short(u.next_check_due)], ['Remarks', u.remarks]]} />
+      <KV rows={[['Location', u.location], ['Spare type', u.spare_type], ['Remarks', u.remarks]]} />
+      <CheckBlock id={u.asset_id} c={c} what="Storage readiness check" />
       <div className="q-actions"><button type="button" className="btn sm" onClick={() => { onClose(); openAsset(u.asset_id); }}>Open {u.asset_id}</button></div>
     </Modal>
   );
