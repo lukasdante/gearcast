@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
-import { AS_OF_LABEL, assetById, plantName } from '../data';
+import { assetById, plantName } from '../data';
 import { useStatusCtx, useStatusStore } from '../store/statusStore';
 import { usePlantStore } from '../store/plantStore';
 import { useUi } from '../store/uiStore';
 import { navigate } from '../store/route';
-import { fmtDate } from '../domain/assetInfo';
+import { fmtDate, nowStamp } from '../domain/assetInfo';
+
+/** Live "data as of" clock (the dataset is shifted to today; see data/index.ts). */
+function AsOf() {
+  const [now, setNow] = useState(nowStamp);
+  useEffect(() => { const t = window.setInterval(() => setNow(nowStamp()), 15000); return () => window.clearInterval(t); }, []);
+  return <span className="asof">Data as of <span className="mono">{fmtDate(now, true)}</span></span>;
+}
 
 export function openAsset(assetId: string) {
   const { plants, activeId } = usePlantStore.getState();
@@ -40,7 +47,7 @@ export function TopBar() {
       <div className="topbar-plant">
         <span className="plant-name" title={plantName}>{plantName}</span>
         <span className="sep" />
-        <span className="asof">Data as of <span className="mono">{AS_OF_LABEL}</span></span>
+        <AsOf />
       </div>
       <div className="topbar-right">
         <span className="sim-badge" title="Statuses are recorded / simulated from the workbook, not a live SCADA feed">

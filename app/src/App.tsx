@@ -2,6 +2,7 @@ import './styles/shell.css';
 import { Sidebar } from './shell/Sidebar';
 import { TopBar } from './shell/TopBar';
 import { ChatLauncher } from './shell/ChatLauncher';
+import { DialogHost } from './shell/Modal';
 import { Placeholder } from './pages/Placeholder';
 import { PlantOverview } from './overview/PlantOverview';
 import { useRoute } from './store/route';
@@ -31,6 +32,7 @@ export default function App() {
                   : <Placeholder title={TITLES[route as keyof typeof TITLES][0]} text={TITLES[route as keyof typeof TITLES][1]} />}
       </main>
       <ChatLauncher />
+      <DialogHost />
     </div>
   );
 }

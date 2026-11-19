@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PLANT } from '../data';
 import { del, getJSON, upload } from '../api/client';
+import { dialog } from '../shell/Modal';
 import { Icon } from '../shell/icons';
 import '../styles/pages.css';
 
@@ -67,7 +68,7 @@ export function Knowledge() {
                   <tr key={d.doc_id}>
                     <td><Icon name="file" size={12} /> {d.title} <span className="muted small">{[d.asset_id, d.equipment_model].filter(Boolean).join(' · ')}</span></td>
                     <td className="num mono">{d.chunks} chunks</td>
-                    <td className="num"><button type="button" className="icon-btn" aria-label={`Delete ${d.title}`} onClick={() => del(`/api/knowledge/docs/${d.doc_id}`).then(refresh)}><Icon name="trash" size={14} /></button></td>
+                    <td className="num"><button type="button" className="icon-btn" aria-label={`Delete ${d.title}`} onClick={async () => { if (await dialog.confirm({ title: 'Delete document', danger: true, action: 'Delete document', typeToConfirm: d.title, body: <p>This removes <b>{d.title}</b> from the knowledge base and Caster's search index.</p> })) del(`/api/knowledge/docs/${d.doc_id}`).then(refresh); }}><Icon name="trash" size={14} /></button></td>
                   </tr>
                 ))}
               </tbody>

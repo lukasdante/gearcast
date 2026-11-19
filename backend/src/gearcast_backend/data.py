@@ -5,13 +5,44 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from functools import lru_cache
 
 from .config import DATA_JSON
 
-AS_OF = "2026-10-31 23:59"
+# The bundled dataset was cut off on DATA_CUTOFF. Every date in it is shifted by OFFSET_DAYS at load so the
+# data reads as if it is happening today (same rule as app/src/data/index.ts).
+DATA_CUTOFF = date(2026, 10, 31)
+OFFSET_DAYS = (date.today() - DATA_CUTOFF).days
+AS_OF = datetime.now().strftime("%Y-%m-%d %H:%M")
 AS_OF_DATE = AS_OF[:10]
+
+_DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})((?:[ T]\d{2}:\d{2}(?::\d{2})?)?.*)$")
+
+
+def shift_date_str(v: str, days: int = OFFSET_DAYS) -> str:
+    """'YYYY-MM-DD[ HH:MM[:SS]]' shifted by `days`, keeping the original format; other strings unchanged."""
+    m = _DATE_RE.match(v)
+    if not m or len(v) > 25:
+        return v
+    try:
+        d = date(int(m[1]), int(m[2]), int(m[3])) + timedelta(days=days)
+    except ValueError:
+        return v
+    return d.isoformat() + m[4]
+
+
+def shift_dates(o, days: int = OFFSET_DAYS):
+    """Recursively shift every date / datetime string in a JSON structure."""
+    if not days:
+        return o
+    if isinstance(o, dict):
+        return {k: shift_dates(v, days) for k, v in o.items()}
+    if isinstance(o, list):
+        return [shift_dates(v, days) for v in o]
+    if isinstance(o, str):
+        return shift_date_str(o, days)
+    return o
 
 
 def num(v, default=None):
@@ -25,7 +56,7 @@ def num(v, default=None):
 
 @lru_cache(maxsize=1)
 def _raw() -> dict:
-    return json.loads(DATA_JSON.read_text())
+    return shift_dates(json.loads(DATA_JSON.read_text()))
 
 
 class D:

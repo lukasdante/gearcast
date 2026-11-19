@@ -1,5 +1,5 @@
 import '../styles/overview.css';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Scene } from './Scene';
 import { Inspector } from './Inspector';
 import { Palette, PlantsMenu, Properties, deleteSelection, rotateSelected } from './Builder';
@@ -40,17 +40,53 @@ function SummaryOverlay({ live }: { live: Live }) {
           </div>
         </div>
       )}
-      <div className="legend glass small">
-        <span><i style={{ background: STATUS_COLORS.running }} />In service</span>
-        <span><i style={{ background: STATUS_COLORS.standby }} />Standby</span>
-        <span><i style={{ background: STATUS_COLORS.maintenance }} />Maintenance</span>
-        <span><i style={{ background: STATUS_COLORS.fault }} />Shut down</span>
-        <span><i style={{ background: STATUS_COLORS.stored }} />Storage</span>
-        <span className="legend-sep" />
-        <span><i className="sq down" />Process down</span>
-        <span><i className="sq noflow" />No flow</span>
-        <span><i className="flow" />Flowing</span>
-      </div>
+    </div>
+  );
+}
+
+/** "?" button (bottom-right, beside Caster) opening the map legend. */
+function LegendButton() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); setOpen(false); } };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey, true);
+    return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey, true); };
+  }, [open]);
+  const sw = (c: string) => <i className="sw" style={{ background: c }} />;
+  return (
+    <div className="legend-wrap" ref={ref}>
+      {open && (
+        <div className="legend-pop glass" role="dialog" aria-label="Map legend">
+          <h4>Equipment status</h4>
+          <ul>
+            <li>{sw(STATUS_COLORS.running)}In service / running</li>
+            <li>{sw(STATUS_COLORS.standby)}Standby (available)</li>
+            <li>{sw(STATUS_COLORS.startNeeded)}Standby · start needed</li>
+            <li>{sw(STATUS_COLORS.maintenance)}Under maintenance</li>
+            <li>{sw(STATUS_COLORS.fault)}Shut down / not available</li>
+            <li>{sw(STATUS_COLORS.stopped)}Stopped (parent down)</li>
+            <li>{sw(STATUS_COLORS.stored)}In storage</li>
+          </ul>
+          <h4>Process</h4>
+          <ul>
+            <li><i className="sq down" />Process down (both units unavailable)</li>
+            <li><i className="sq noflow" />No flow (downstream of a stop)</li>
+            <li><i className="flow" />Flowing pipe · grey = idle</li>
+          </ul>
+          <h4>Role chips</h4>
+          <ul className="roles">
+            <li><span className="chip-role k-running">DUTY</span>running unit of the pair</li>
+            <li><span className="chip-role k-standby">STBY</span>installed standby</li>
+            <li><span className="chip-role k-stored">STORED</span>spare in the store</li>
+            <li><span className="chip-role k-stopped">STOPPED</span>follows its parent</li>
+          </ul>
+        </div>
+      )}
+      <button type="button" className={`legend-btn${open ? ' on' : ''}`} onClick={() => setOpen(o => !o)} aria-label="Map legend" aria-expanded={open} title="Legend">?</button>
     </div>
   );
 }
@@ -120,6 +156,7 @@ export function PlantOverview() {
       <Scene doc={doc} live={live} />
       <SummaryOverlay live={live} />
       <Toolbar />
+      <LegendButton />
       {editMode && <Palette />}
       {editMode ? <Properties doc={doc} /> : <Inspector item={item} assetId={assetId} live={live} />}
       {doc.items.length === 0 && (

@@ -4,7 +4,7 @@
  * Pure functions over a StatusContext so the store can recompute after simulated changes.
  */
 import type { VisualState } from '../models/types';
-import { AS_OF_DATE, PLANT, OPS, assetById, type Equipment, type EquipmentStatusRow } from '../data';
+import { NOW_DATE, PLANT, OPS, assetById, type Equipment, type EquipmentStatusRow } from '../data';
 
 export interface RoleOverride { duty_asset: string; standby_asset: string; at: string }
 export interface StatusContext {
@@ -48,7 +48,7 @@ export function getPairPartner(asset: Equipment | undefined): Equipment | null {
   return PLANT.equipment.find(o => o.asset_id !== asset.asset_id && o.pair_id === asset.pair_id && o.asset_type === asset.asset_type) ?? null;
 }
 
-const rotationRows = [...PLANT.dutyRotation].filter(r => r.date <= AS_OF_DATE).sort((a, b) => b.date.localeCompare(a.date));
+const rotationRows = [...PLANT.dutyRotation].filter(r => r.date <= NOW_DATE).sort((a, b) => b.date.localeCompare(a.date));
 
 /** DUTY / STBY from the latest rotation row ≤ as-of, with changeover overrides. Motors follow their pump. */
 export function getRotationRole(ctx: StatusContext, id: string): Role {
@@ -177,4 +177,14 @@ export function changeoverOffer(ctx: StatusContext, id: string): { pairId: strin
   if (!isDown(getStatus(ctx, duty.asset_id)) || isDown(getStatus(ctx, stby.asset_id))) return null;
   if (getStatus(ctx, stby.asset_id) !== 'In Service') return null;
   return { pairId: asset.pair_id, down: duty.asset_id, start: stby.asset_id };
+}
+
+/** Latest duty/standby changeover for the asset's pair (a simulated switch wins over the rotation log). */
+export function lastChangeover(ctx: StatusContext, id: string): { at: string; duty: string; standby: string; simulated: boolean } | null {
+  const pair = assetById.get(id)?.pair_id;
+  if (!pair) return null;
+  const ov = ctx.roleOverrides[pair];
+  if (ov) return { at: ov.at, duty: ov.duty_asset, standby: ov.standby_asset, simulated: true };
+  const r = rotationRows.find(x => x.pair_id === pair);
+  return r ? { at: r.date, duty: r.duty_asset, standby: r.standby_asset, simulated: false } : null;
 }

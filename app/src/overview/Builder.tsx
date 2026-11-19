@@ -7,12 +7,8 @@ import type { LayoutDoc, LayoutItem } from '../domain/layout';
 import { usePlantStore } from '../store/plantStore';
 import { useUi } from '../store/uiStore';
 import { Icon } from '../shell/icons';
-
-/** Thumbnails present in public/models/thumbs (keys only; nothing is imported). */
-const THUMBS = new Set(
-  Object.keys(import.meta.glob('/public/models/thumbs/*.png', { query: '?url', import: 'default' }))
-    .map(k => k.split('/').pop()!.replace(/\.png$/, '')),
-);
+import { THUMBS } from './thumbs';
+import { dialog } from '../shell/Modal';
 
 const CAT_LABEL: Record<AssetCategory, string> = {
   rotating: 'Rotating equipment', process: 'Process equipment', structure: 'Structures', utility: 'Utilities', custom: 'Custom',
@@ -27,20 +23,54 @@ export function PlantsMenu() {
   const activeId = usePlantStore(s => s.activeId);
   const st = usePlantStore.getState;
   const [open, setOpen] = useState(false);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [draft, setDraft] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const active = plants[activeId];
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) { setOpen(false); setRenaming(null); } };
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     window.addEventListener('mousedown', close);
     return () => window.removeEventListener('mousedown', close);
   }, [open]);
 
   const switchTo = (fn: () => void) => { fn(); useUi.getState().select(null); useUi.getState().fit(); };
-  const commitRename = () => { if (renaming && draft.trim()) st().renamePlant(renaming, draft.trim()); setRenaming(null); };
+  const nameRule = (except?: string) => (v: string) => {
+    const t = v.trim();
+    if (!t) return 'Enter a name';
+    if (t.length > 60) return 'Keep it under 60 characters';
+    if (Object.values(st().plants).some(p => p.id !== except && p.name.toLowerCase() === t.toLowerCase())) return 'A plant with this name already exists';
+    return null;
+  };
+  const create = async () => {
+    setOpen(false);
+    const name = await dialog.prompt({ title: 'New plant', label: 'Plant name', initial: 'New plant', action: 'Create plant', validate: nameRule() });
+    if (!name) return;
+    switchTo(() => st().createPlant(name));
+    useUi.getState().setEditMode(true);
+  };
+  const rename = async (id: string) => {
+    setOpen(false);
+    const name = await dialog.prompt({ title: 'Rename plant', label: 'Plant name', initial: st().plants[id]?.name, action: 'Rename', validate: nameRule(id) });
+    if (name) st().renamePlant(id, name);
+  };
+  const remove = async (id: string) => {
+    setOpen(false);
+    const name = st().plants[id]?.name ?? '';
+    const ok = await dialog.confirm({
+      title: 'Delete plant', danger: true, action: 'Delete plant', typeToConfirm: name,
+      body: <p>This permanently deletes <b>{name}</b> and its layout. This cannot be undone.</p>,
+    });
+    if (ok) switchTo(() => st().deletePlant(id));
+  };
+  const reset = async () => {
+    setOpen(false);
+    const name = st().plants.default?.name ?? 'Franklin Baker WWTP';
+    const ok = await dialog.confirm({
+      title: 'Reset seeded plant', danger: true, action: 'Reset layout', typeToConfirm: name,
+      body: <p>This restores the original seeded layout of <b>{name}</b> and discards all layout edits made to it.</p>,
+    });
+    if (ok) switchTo(st().resetDefault);
+  };
 
   return (
     <div className="plants-menu" ref={ref}>
@@ -55,27 +85,18 @@ export function PlantsMenu() {
             if (!p) return null;
             return (
               <div key={id} className={`menu-row${id === activeId ? ' active' : ''}`}>
-                {renaming === id ? (
-                  <form onSubmit={e => { e.preventDefault(); commitRename(); }} className="menu-rename">
-                    <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={commitRename}
-                      onKeyDown={e => { if (e.key === 'Escape') setRenaming(null); }} />
-                  </form>
-                ) : (
-                  <button type="button" className="menu-main" onClick={() => { switchTo(() => st().setActive(id)); setOpen(false); }}>
-                    <span>{p.name}</span>
-                    <span className="muted small">{p.items.length} items</span>
-                  </button>
-                )}
-                <button type="button" className="icon-btn" title="Rename" onClick={() => { setRenaming(id); setDraft(p.name); }}><Icon name="edit" size={14} /></button>
+                <button type="button" className="menu-main" onClick={() => { switchTo(() => st().setActive(id)); setOpen(false); }}>
+                  <span>{p.name}</span>
+                  <span className="muted small">{p.items.length} items</span>
+                </button>
+                <button type="button" className="icon-btn" title="Rename" aria-label={`Rename ${p.name}`} onClick={() => rename(id)}><Icon name="edit" size={14} /></button>
                 {id === 'default'
-                  ? <button type="button" className="icon-btn" title="Reset to seeded layout" onClick={() => { if (confirm('Reset the seeded plant layout?')) switchTo(st().resetDefault); }}><Icon name="undo" size={14} /></button>
-                  : <button type="button" className="icon-btn" title="Delete" disabled={order.length <= 1} onClick={() => { if (confirm(`Delete "${p.name}"?`)) switchTo(() => st().deletePlant(id)); }}><Icon name="trash" size={14} /></button>}
+                  ? <button type="button" className="icon-btn" title="Reset to seeded layout" aria-label="Reset seeded plant" onClick={reset}><Icon name="undo" size={14} /></button>
+                  : <button type="button" className="icon-btn" title="Delete" aria-label={`Delete ${p.name}`} disabled={order.length <= 1} onClick={() => remove(id)}><Icon name="trash" size={14} /></button>}
               </div>
             );
           })}
-          <button type="button" className="menu-new" onClick={() => { switchTo(() => st().createPlant('New plant')); setOpen(false); useUi.getState().setEditMode(true); }}>
-            <Icon name="plus" size={14} />New plant
-          </button>
+          <button type="button" className="menu-new" onClick={create}><Icon name="plus" size={14} />New plant</button>
         </div>
       )}
     </div>

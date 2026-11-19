@@ -30,6 +30,7 @@ export interface StatusHistoryRow {
 }
 export interface Failure {
   event_id: string; asset_id: string; failure_at: string; symptom: string | null; failure_mode: string | null;
+  root_cause?: string | null; repair_action?: string | null; detected_by?: string | null; lesson_learned?: string | null;
   downtime_h: string | null; main_wo_id: string | null;
 }
 export interface WorkOrder {
@@ -47,7 +48,26 @@ export interface SpareSummary {
 export interface ProcedureFigure { figure_id: string; file_name: string; title: string; figure_type: string; caption: string | null }
 export interface DailyCheck {
   date: string; asset_id: string; running: boolean; vib_de_mm_s: number | null; vib_nde_mm_s: number | null;
-  temp_de_c: number | null; temp_nde_c: number | null;
+  temp_de_c: number | null; temp_nde_c: number | null; seal_reservoir_level_pct?: number | null; remarks?: string | null;
+}
+export interface ManualRound {
+  date: string; time: string; asset_id: string; role: string | null; status: string | null;
+  flow_m3h: number | null; discharge_pressure_bar: number | null; current_a: number | null; remarks: string | null;
+}
+export interface PmTask { task_id: string; task: string; assets: string; interval_days: number | null; procedure_ids: string | null; est_time_h: number | null; role: string | null; stop_needed: string | null }
+export interface Procedure {
+  procedure_id: string; title: string; category: string; equipment: string | null; purpose: string | null; when_used: string | null;
+  skills: string | null; crew_size: number | null; tools: string | null; ppe: string | null; permits: string | null;
+  est_time_h: number | null; parts: string | null; prerequisites: string | null; step_count: number | null; revision: string | null;
+}
+export interface SparePart {
+  part_id: string; part_name: string; fits_assets: string; category: string; part_number: string | null; unit: string;
+  qty_on_hand: number; min_qty: number; max_qty: number | null; reorder_point: number | null; lead_time_days: number | null;
+  unit_cost_php: number | null; critical: boolean; storage_location: string | null; below_min: boolean;
+}
+export interface IncidentReport {
+  report_id: string; asset_id: string; incident_date: string; severity: string | null; failure_mode: string | null;
+  root_cause: string | null; corrective_action: string | null; status: string | null;
 }
 
 export interface PlantData {
@@ -69,14 +89,45 @@ export interface OpsData {
   spareSummary: SpareSummary[];
   procedureFigures: ProcedureFigure[];
   dailyChecks: DailyCheck[];
+  manualRounds: ManualRound[];
+  pmTasks: PmTask[];
+  procedures: Procedure[];
+  spareInventory: SparePart[];
+  incidentReports: IncidentReport[];
 }
 
-export const PLANT = plantRaw as PlantData;
-export const OPS = opsRaw as OpsData;
+// ---------------------------------------------------------------- "today" simulation
+/**
+ * The bundled data was cut off on DATA_CUTOFF. Every date / datetime string is shifted by OFFSET_DAYS at load so
+ * the plant reads as if it is happening today (same rule as backend/src/gearcast_backend/data.py). Relative values
+ * (days until due, overdue, "since") stay correct because the dataset's own as-of dates shift by the same amount.
+ */
+const DATA_CUTOFF = '2026-10-31';
+const pad = (n: number) => String(n).padStart(2, '0');
+const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dayIndex = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
 
-/** "Now" for this dataset. */
-export const AS_OF_DATE = '2026-10-31';
-export const AS_OF_LABEL = '31 Oct 2026';
+/** Today's local date, YYYY-MM-DD: the "now" every cut-off and relative date uses. */
+export const NOW_DATE = isoDate(new Date());
+export const OFFSET_DAYS = dayIndex(NOW_DATE) - dayIndex(DATA_CUTOFF);
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})((?:[ T]\d{2}:\d{2}(?::\d{2})?)?.*)$/;
+export function shiftDateStr(v: string, days = OFFSET_DAYS): string {
+  const m = v.length <= 25 ? v.match(DATE_RE) : null;
+  if (!m) return v;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days));
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}${m[4]}`;
+}
+function shiftDates<T>(o: T, days = OFFSET_DAYS): T {
+  if (!days) return o;
+  if (Array.isArray(o)) return o.map(v => shiftDates(v, days)) as T;
+  if (o && typeof o === 'object') return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, shiftDates(v, days)])) as T;
+  if (typeof o === 'string') return shiftDateStr(o, days) as T;
+  return o;
+}
+
+export const PLANT = shiftDates(plantRaw as PlantData);
+export const OPS = shiftDates(opsRaw as OpsData);
 
 export const assetById = new Map(PLANT.equipment.map(a => [a.asset_id, a]));
 export const nodeById = new Map(PLANT.nodes.map(n => [n.node_id, n]));

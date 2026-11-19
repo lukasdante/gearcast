@@ -104,3 +104,8 @@
 .md tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.018); }
 .md td code { white-space: nowrap; }
 .md p:last-child em:only-child { color: var(--text-3); }
+
+/* When the asset inspector is open, Caster steps left of it instead of covering its corner. */
+.caster-fab { transition: right 0.2s ease; }
+body:has(.overview .inspector) .caster-fab { right: 408px; }
+body:has(.overview .inspector) .legend-wrap { right: 482px; }
