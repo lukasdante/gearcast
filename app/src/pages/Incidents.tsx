@@ -36,17 +36,33 @@ export function Incidents() {
   const [selected, setSelected] = useState<Row | null>(null);
   const [form, setForm] = useState(blankForm());
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [busy, setBusy] = useState<'' | 'draft' | 'docx' | 'submit'>('');
+  const [busy, setBusy] = useState<'' | 'draft' | 'docx' | 'submit' | 'pdf'>('');
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<{ report_id: string; shut_down: boolean; asset_id: string } | null>(null);
   const intent = useIntent(s => s.incident);
+  const pdfFail = (e: unknown) => setErr(e instanceof Error && /501|LibreOffice/.test(e.message)
+    ? 'PDF export needs LibreOffice on the server (sudo apt install libreoffice-writer-nogui). Use Print → Save as PDF meanwhile.'
+    : e instanceof Error ? e.message : 'PDF export failed');
+  const downloadPdf = async (id: string) => {
+    setBusy('pdf'); setErr(null);
+    try {
+      const res = await fetch(`/api/incidents/${encodeURIComponent(id)}/pdf`);
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+      downloadBlob(await res.blob(), `${id}.pdf`);
+    } catch (e) { pdfFail(e); } finally { setBusy(''); }
+  };
+  const downloadDraftPdf = async () => {
+    if (!draft) return;
+    setBusy('pdf'); setErr(null);
+    try { downloadBlob(await postBlob('/api/incidents/render?format=pdf', draft), `${draft.report_id}.pdf`); } catch (e) { pdfFail(e); } finally { setBusy(''); }
+  };
   const setStatus = useStatusStore(s => s.setStatus);
 
   const refresh = () => getJSON<{ submitted: Row[]; history: Row[] }>('/api/incidents').then(setRows).catch(() => setErr('Backend offline – start it on :8000'));
   useEffect(() => { refresh(); }, []);
   useEffect(() => {
     if (!intent) return;
-    setForm(blankForm(intent.asset_id)); setDraft(null); setDone(null); setMode('new');
+    setForm({ ...blankForm(intent.asset_id), ...(intent.prefill ?? {}) }); setDraft(null); setDone(null); setMode('new');
     useIntent.getState().clear('incident');
   }, [intent?.seq]);
 
@@ -112,7 +128,10 @@ export function Incidents() {
                   <span className="muted">{fmtDate(selected.date)}</span></div>
                 {selected.failure_mode && <p><b>{selected.failure_mode}</b></p>}
                 <p className="ir-summary">{selected.summary || 'No summary recorded.'}</p>
-                <div className="q-actions"><button type="button" className="btn sm" onClick={() => openAsset(selected.asset_id)}><Icon name="plant" size={13} />Open {selected.asset_id}</button></div>
+                <div className="q-actions">
+                  <button type="button" className="btn sm" onClick={() => openAsset(selected.asset_id)}><Icon name="plant" size={13} />Open {selected.asset_id}</button>
+                  <button type="button" className="btn sm" disabled={busy === 'pdf'} onClick={() => downloadPdf(selected.report_id)}><Icon name="download" size={13} />{busy === 'pdf' ? 'Preparing…' : 'Download PDF'}</button>
+                </div>
               </>
             ) : <p className="muted">Select a report to read it.</p>}
           </div>
@@ -163,7 +182,8 @@ export function Incidents() {
                 </div>
                 <div className="q-actions">
                   <button type="button" className="btn" onClick={docx} disabled={busy !== ''}><Icon name="download" size={14} />{busy === 'docx' ? 'Rendering…' : 'Download DOCX'}</button>
-                  <button type="button" className="btn" onClick={() => window.print()}><Icon name="print" size={14} />Print / PDF</button>
+                  <button type="button" className="btn" disabled={busy === 'pdf'} onClick={downloadDraftPdf}><Icon name="download" size={14} />Download PDF</button>
+                  <button type="button" className="btn" onClick={() => window.print()}><Icon name="print" size={14} />Print</button>
                   <button type="button" className={`btn ${form.shut_down ? 'danger' : 'primary'}`} onClick={submit} disabled={busy !== ''}>
                     {busy === 'submit' ? 'Submitting…' : form.shut_down ? `Submit & shut down ${draft.asset_id}` : 'Submit report'}
                   </button>

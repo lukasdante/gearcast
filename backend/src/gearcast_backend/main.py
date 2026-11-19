@@ -14,7 +14,7 @@ from .config import DEEPSEEK_API_KEY
 from .data import StatusCtx
 from .llm import MODEL
 from .rag import KB
-from .render import docx_to_pdf, render_docx, soffice_bin
+from .render import docx_to_pdf, history_docx, render_docx, soffice_bin
 from .troubleshoot import troubleshoot
 
 app = FastAPI(title="GearCast API", version="0.1.0")
@@ -168,6 +168,18 @@ def incident_get(report_id: str):
     if not r:
         raise HTTPException(404, "not found")
     return r
+
+
+@app.get("/api/incidents/{report_id}/pdf")
+def incident_pdf(report_id: str):
+    r = incidents.get_report(report_id)
+    if not r:
+        raise HTTPException(404, "not found")
+    data = history_docx(r["history"]) if "history" in r else render_docx(r)
+    pdf = docx_to_pdf(data)
+    if not pdf:
+        raise HTTPException(501, "PDF export needs LibreOffice (soffice) on the server")
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{report_id}.pdf"'})
 
 
 # ------------------------------------------------------------------ repair or replace

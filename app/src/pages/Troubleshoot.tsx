@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PLANT } from '../data';
-import { postJSON, simPayload } from '../api/client';
+import { postJSON, simPayload, streamSSE } from '../api/client';
+import { Markdown } from '../shell/Markdown';
 import { Icon } from '../shell/icons';
 import { Caster } from '../shell/Caster';
 import { useIntent } from '../store/intentStore';
@@ -30,7 +31,8 @@ interface Resp {
   asset?: { asset_id: string; status: string; role: string; partner?: string; partner_status?: string; advice?: string } | null;
   plan?: PlanItem[];
 }
-interface Session { id: string; query: string; asset_id: string; answers: { question_id: string; answer: string }[]; first: Resp | null; resp: Resp | null; started: string }
+interface ChatMsg { role: 'user' | 'assistant'; content: string }
+interface Session { id: string; query: string; asset_id: string; answers: { question_id: string; answer: string }[]; first: Resp | null; resp: Resp | null; started: string; chat?: ChatMsg[] }
 
 const SKEY = 'gearcast.troubleshoot.session.v1';
 const PKEY = (id: string) => `gearcast.troubleshoot.plan.${id}`;
@@ -103,6 +105,18 @@ export function Troubleshoot() {
   const current = plan.find(it => !isDone(it))?.id;
   const proc = resp?.stage === 'procedure' ? resp.procedure : undefined;
   const stepCheckId = (no: number) => `step:${proc?.id}:${no}`;
+  const writeIncident = () => {
+    if (!session) return;
+    const sym = first?.symptom;
+    const qa = (resp?.path ?? []).map(p => `${p.question} ${p.answer}`).join('; ');
+    const doneSteps = plan.filter(it => it.kind === 'step' && isDone(it)).map(it => `step ${it.no}`).join(', ');
+    useIntent.getState().setIncident(session.asset_id || resp?.asset?.asset_id || 'P-101B', {
+      observed: [session.query, sym ? `Symptom ${sym.id} ${sym.name}.` : '', qa ? `Checks: ${qa}.` : ''].filter(Boolean).join(' '),
+      procedure_used: proc?.id ?? '',
+      actions_taken: doneSteps ? `Troubleshooting per ${proc?.id ?? 'procedure'}: completed ${doneSteps}.` : '',
+    });
+    navigate('incidents');
+  };
 
   return (
     <div className="page ts-page">
@@ -200,8 +214,10 @@ export function Troubleshoot() {
             )}
           </div>
         )}
+        {session && <AskCaster session={session} setSession={setSession} plan={plan} isDone={isDone} />}
       </div>
 
+      {session && <JobSheet session={session} plan={plan} isDone={isDone} checks={checks} />}
       {session && plan.length > 0 && (
         <aside className="plan card">
           <div className="plan-head">
@@ -209,6 +225,7 @@ export function Troubleshoot() {
             <div className="plan-btns no-print">
               <button type="button" className="btn ghost sm" onClick={() => setChecks({})}>Reset plan</button>
               <button type="button" className="btn sm" onClick={() => window.print()}><Icon name="print" size={13} />Print job sheet</button>
+              <button type="button" className="btn sm primary" onClick={writeIncident}><Icon name="incidents" size={13} />Write incident report</button>
             </div>
           </div>
           <div className="progress"><i style={{ width: `${(doneCount / plan.length) * 100}%` }} /></div>
@@ -323,5 +340,137 @@ function ProcedureView({ proc, checks, toggle, stepCheckId }: { proc: Procedure;
       )}
       {proc.revision && <p className="small muted">{proc.revision} · {proc.approval ?? ''}</p>}
     </div>
+  );
+}
+
+const STARTERS = ['Why this procedure?', 'What torque or clearance should I check?', 'Can I keep running until the end of shift?'];
+
+/** Free-form follow-up questions to Caster at any point of the troubleshooting session. */
+function AskCaster({ session, setSession, plan, isDone }: {
+  session: Session; setSession: (s: Session) => void; plan: PlanItem[]; isDone: (it: PlanItem) => boolean;
+}) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const chat = session.chat ?? [];
+  const context = () => {
+    const r = session.resp, sym = session.first?.symptom;
+    const cur = plan.find(it => !isDone(it));
+    return [
+      'Troubleshooting context (from the GearCast Troubleshoot page):',
+      `Problem: ${session.query}`, `Asset: ${session.asset_id || 'not specified'}`,
+      sym ? `Symptom: ${sym.id} ${sym.name}` : '',
+      r?.path?.length ? `Checks answered: ${r.path.map(p => `${p.question_id} ${p.answer}`).join(', ')}` : '',
+      r?.procedure ? `Procedure: ${r.procedure.id} ${r.procedure.title}` : r?.question ? `Pending check: ${r.question.text}` : '',
+      `Plan progress: ${plan.filter(isDone).length}/${plan.length}${cur ? `; current item: ${cur.title}` : ''}`,
+      'Answer the technician\'s question below in that context.',
+    ].filter(Boolean).join('\n');
+  };
+  const send = async (q = text) => {
+    if (!q.trim() || busy) return;
+    const next: ChatMsg[] = [...chat, { role: 'user', content: q.trim() }, { role: 'assistant', content: '' }];
+    let cur = { ...session, chat: next };
+    setSession(cur); setText(''); setBusy(true);
+    const msgs = next.slice(0, -1).map((m, i) => i === 0 ? { ...m, content: `${context()}\n\nQuestion: ${m.content}` } : m);
+    try {
+      await streamSSE('/api/chat', { messages: msgs, sim: simPayload() }, e => {
+        if (e.type === 'delta' || e.type === 'reset_text' || e.type === 'error') {
+          const last = cur.chat![cur.chat!.length - 1];
+          const content = e.type === 'delta' ? last.content + e.text : e.type === 'error' ? `_${e.message}_` : '';
+          cur = { ...cur, chat: [...cur.chat!.slice(0, -1), { ...last, content }] };
+          setSession(cur);
+        }
+      });
+    } catch (err) {
+      const last = cur.chat![cur.chat!.length - 1];
+      cur = { ...cur, chat: [...cur.chat!.slice(0, -1), { ...last, content: `_${err instanceof Error ? err.message : 'Request failed'}_` }] };
+      setSession(cur);
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="ts-ask no-print">
+      {chat.map((m, i) => m.role === 'user'
+        ? <div key={i} className="bubble me">{m.content}</div>
+        : <CasterLine key={i} state={busy && i === chat.length - 1 ? (m.content ? 'talking' : 'thinking') : 'idle'}>
+            {m.content ? <div className="md"><Markdown text={m.content} /></div> : <span className="muted">Thinking…</span>}
+          </CasterLine>)}
+      {!chat.length && (
+        <div className="ts-examples"><span className="muted small">Ask Caster anytime:</span>
+          {STARTERS.map(x => <button key={x} type="button" className="suggest" onClick={() => send(x)}>{x}</button>)}
+        </div>
+      )}
+      <form className="ts-ask-box card" onSubmit={e => { e.preventDefault(); send(); }}>
+        <Caster size={22} state={busy ? 'thinking' : 'idle'} />
+        <input value={text} onChange={e => setText(e.target.value)} placeholder="Ask Caster about this job…" aria-label="Ask Caster" />
+        <button type="submit" className="btn primary sm" disabled={busy || !text.trim()}>Ask</button>
+      </form>
+    </div>
+  );
+}
+
+/** Print-only A4 job sheet (replaces the screen layout when printing). */
+function JobSheet({ session, plan, isDone, checks }: { session: Session; plan: PlanItem[]; isDone: (it: PlanItem) => boolean; checks: Record<string, string> }) {
+  const r = session.resp, sym = session.first?.symptom, p = r?.stage === 'procedure' ? r.procedure : undefined;
+  const now = new Date();
+  const jobNo = `JS-${now.toISOString().slice(0, 10).replace(/-/g, '')}-${session.id.slice(-4).toUpperCase()}`;
+  const stepDone = (no: number) => !!checks[`step:${p?.id}:${no}`];
+  const prep = plan.filter(it => it.kind === 'safety' || it.kind === 'prep' || it.kind === 'check' || it.kind === 'rts');
+  const Box = ({ on }: { on?: boolean }) => <span className={`js-box${on ? ' on' : ''}`}>{on ? '✓' : ''}</span>;
+  return (
+    <section className="jobsheet print-only">
+      <header className="js-head">
+        <div><div className="js-brand">GearCast</div><div className="js-plant">Franklin Baker – Darong WWTP · Maintenance</div></div>
+        <div className="js-title">JOB SHEET</div>
+        <table className="js-meta"><tbody>
+          <tr><th>Job no.</th><td>{jobNo}</td></tr>
+          <tr><th>Printed</th><td>{now.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</td></tr>
+          <tr><th>Asset</th><td>{session.asset_id || r?.asset?.asset_id || '—'}</td></tr>
+        </tbody></table>
+      </header>
+
+      <h3>1 · Problem and diagnosis</h3>
+      <table className="js-grid"><tbody>
+        <tr><th>Problem reported</th><td colSpan={3}>{session.query}</td></tr>
+        <tr><th>Symptom</th><td>{sym ? `${sym.id} · ${sym.name}` : '—'}</td><th>Severity</th><td>{sym?.severity ?? '—'}</td></tr>
+        <tr><th>Likely causes</th><td colSpan={3}>{sym?.typical_causes.join('; ') ?? '—'}</td></tr>
+        {r?.asset?.advice && <tr><th>Standby</th><td colSpan={3}>{r.asset.advice}</td></tr>}
+      </tbody></table>
+      {!!r?.path?.length && (
+        <table className="js-table"><thead><tr><th style={{ width: '12%' }}>Check</th><th>Question</th><th style={{ width: '10%' }}>Answer</th></tr></thead>
+          <tbody>{r.path.map(q => <tr key={q.question_id}><td>{q.question_id}</td><td>{q.question}</td><td><b>{q.answer}</b></td></tr>)}</tbody></table>
+      )}
+
+      {p && <>
+        <h3>2 · Procedure {p.id} — {p.title}</h3>
+        <table className="js-grid"><tbody>
+          <tr><th>Permits</th><td>{p.permits || '—'}</td><th>Time · crew</th><td>{p.est_time_h != null ? `${p.est_time_h} h` : '—'}{p.crew_size ? ` · ${p.crew_size}` : ''}</td></tr>
+          <tr><th>PPE</th><td colSpan={3}>{p.ppe || '—'}</td></tr>
+          <tr><th>Tools</th><td colSpan={3}>{p.tools || '—'}</td></tr>
+          {p.parts && <tr><th>Parts</th><td colSpan={3}>{p.parts}</td></tr>}
+        </tbody></table>
+        {!!p.key_points.length && <div className="js-note">{p.key_points.map((k, i) => <div key={i}><b>{k.type}:</b> {k.text}</div>)}</div>}
+        <table className="js-table js-steps">
+          <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '12%' }}>Phase</th><th>Instruction / acceptance</th><th style={{ width: '6%' }}>Done</th><th style={{ width: '11%' }}>Initials</th></tr></thead>
+          <tbody>{p.steps.map(st => (
+            <tr key={st.no}>
+              <td>{st.no}</td><td>{st.phase}</td>
+              <td>{st.instruction}{st.acceptance && <div className="js-acc">Accept: {st.acceptance}</div>}{st.safety && <div className="js-safe">⚠ {st.safety}</div>}
+                {(st.sign_off || st.photo_required) && <div className="js-tags">{st.sign_off ? 'SIGN-OFF ' : ''}{st.photo_required ? 'PHOTO' : ''}</div>}</td>
+              <td className="c"><Box on={stepDone(st.no)} /></td><td />
+            </tr>))}</tbody>
+        </table>
+      </>}
+
+      <h3>{p ? '3' : '2'} · Readiness and close-out</h3>
+      <table className="js-table"><tbody>{prep.map(it => (
+        <tr key={it.id}><td className="c" style={{ width: '6%' }}><Box on={isDone(it)} /></td><td>{it.title}{it.detail && <div className="js-acc">{it.detail}</div>}</td></tr>))}</tbody></table>
+
+      <h3>Findings / readings</h3>
+      <div className="js-lines">{Array.from({ length: 4 }, (_, i) => <div key={i} />)}</div>
+
+      <table className="js-sign"><tbody><tr>
+        <td><span>Technician</span></td><td><span>Supervisor</span></td><td><span>Date / time completed</span></td><td><span>Return-to-service test</span></td>
+      </tr></tbody></table>
+      {!!r?.sources?.length && <p className="js-src">Sources: {r.sources.map(s => s.label).join(' · ')}</p>}
+    </section>
   );
 }

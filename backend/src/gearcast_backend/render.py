@@ -174,3 +174,26 @@ def docx_to_pdf(data: bytes) -> bytes | None:
                        capture_output=True)
         out = Path(td) / "report.pdf"
         return out.read_bytes() if out.exists() else None
+
+
+def history_docx(h: dict) -> bytes:
+    """Plain incident report document for a historical (pre-GearCast) record."""
+    import io
+    d = docx.Document()
+    d.add_heading(f"Incident Report {h.get('report_id', '')}", level=1)
+    d.add_paragraph("Franklin Baker – Darong WWTP · historical record exported from GearCast")
+    rows = [("Asset", h.get("asset_id")), ("Incident date", h.get("incident_date")), ("Severity", h.get("severity")),
+            ("Failure mode", h.get("failure_mode")), ("Root cause", h.get("root_cause")),
+            ("Procedure used", h.get("procedure_used")), ("Repair cost (PHP)", h.get("repair_cost_php")),
+            ("Production loss (PHP)", h.get("production_loss_php")), ("Repair or replace", h.get("repair_or_replace")),
+            ("Corrective action", h.get("corrective_action")), ("Status", h.get("status"))]
+    t = d.add_table(rows=0, cols=2)
+    t.style = "Table Grid"
+    for k, v in rows:
+        c = t.add_row().cells
+        c[0].text, c[1].text = k, "" if v is None else str(v)
+    d.add_heading("Report", level=2)
+    d.add_paragraph(str(h.get("expected_report_text") or "No narrative recorded."))
+    buf = io.BytesIO()
+    d.save(buf)
+    return buf.getvalue()
