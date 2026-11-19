@@ -6,7 +6,7 @@ const ROUTES: Route[] = ['dashboard', 'overview', 'assets', 'pm', 'spares', 'inc
 
 const read = (): Route => {
   const r = window.location.hash.replace(/^#\/?/, '') as Route;
-  return ROUTES.includes(r) && r !== 'dashboard' ? r : 'overview';
+  return ROUTES.includes(r) ? r : 'dashboard';
 };
 const subscribe = (cb: () => void) => {
   window.addEventListener('hashchange', cb);

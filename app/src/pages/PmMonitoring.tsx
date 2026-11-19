@@ -3,7 +3,7 @@ import { NOW_DATE, OPS } from '../data';
 import { openAsset } from '../shell/TopBar';
 import '../styles/pages.css';
 
-type Band = 'overdue' | 'due' | 'soon' | 'later';
+export type Band = 'overdue' | 'due' | 'soon' | 'later';
 const BANDS: { id: Band; label: string; hint: string }[] = [
   { id: 'overdue', label: 'Overdue', hint: 'past due date' },
   { id: 'due', label: 'Due now', hint: 'today or tomorrow' },
@@ -19,12 +19,12 @@ const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const fmt = (s: string) => toDay(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const TODAY = toDay(NOW_DATE);
 
-interface Row {
+export interface Row {
   id: string; task_id: string; task: string; asset_id: string; interval_days: number | null; last_done: string | null;
   due: string; days: number; band: Band; est_h: number | null; role: string | null; stop: boolean; procs: string[];
 }
 
-function buildRows(): Row[] {
+export function buildRows(): Row[] {
   const tasks = new Map(OPS.pmTasks.map(t => [t.task_id, t]));
   return OPS.pmStatus.map(r => {
     // Same rule as the prototype: due = last done + interval; fall back to the scheduled next due date.

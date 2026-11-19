@@ -46,18 +46,18 @@ function checkOf(m: Record<string, CheckRec>, id: string, defLast: string | null
   const since = last ? Math.round((dms(NOW_DATE) - dms(last)) / DAY) : null;
   return { last, freq, next: last ? addDays(last, freq) : null, since, late: since == null ? freq : Math.max(0, since - freq) };
 }
-const unitCheck = (m: Record<string, CheckRec>, u: SpareSummary) => {
+export const unitCheck = (m: Record<string, CheckRec>, u: SpareSummary) => {
   const def = u.last_check_date && u.next_check_due ? Math.max(1, Math.round((dms(u.next_check_due) - dms(u.last_check_date)) / DAY)) : 30;
   return checkOf(m, u.asset_id, u.last_check_date, def);
 };
-const partCheck = (m: Record<string, CheckRec>, p: SparePart) => checkOf(m, p.part_id, (p as SparePart & { stock_date?: string }).stock_date ?? null, 30);
+export const partCheck = (m: Record<string, CheckRec>, p: SparePart) => checkOf(m, p.part_id, (p as SparePart & { stock_date?: string }).stock_date ?? null, 30);
 /** A missed check lowers readiness: overdue -> at most amber, more than one full interval late -> red. */
 const degrade = (tone: Tone, c: Check): Tone => (c.late > c.freq ? 'bad' : c.late > 0 && tone === 'ok' ? 'warn' : tone);
 const XKEY = 'gearcast.spares.extra.v1';
 const loadExtra = (): SparePart[] => { try { return JSON.parse(localStorage.getItem(XKEY) || '[]'); } catch { return []; } };
 
 /** Stock level vs target (max, else reorder / 2×min): green full = well stocked, amber = at/near minimum, red sliver = below minimum. */
-function partLevel(p: SparePart, c?: Check): { pct: number; tone: Tone; label: string } {
+export function partLevel(p: SparePart, c?: Check): { pct: number; tone: Tone; label: string } {
   const target = p.max_qty || Math.max(p.reorder_point ?? 0, p.min_qty * 2, 1);
   let pct = Math.max(0.06, Math.min(1, p.qty_on_hand / target));
   const stock: Tone = p.qty_on_hand <= 0 || p.qty_on_hand < p.min_qty ? 'bad' : p.qty_on_hand <= (p.reorder_point ?? p.min_qty) ? 'warn' : 'ok';
@@ -67,12 +67,12 @@ function partLevel(p: SparePart, c?: Check): { pct: number; tone: Tone; label: s
     : stock === 'ok' ? 'Well stocked' : stock === 'warn' ? 'At reorder level' : p.qty_on_hand <= 0 ? 'Out of stock' : 'Below minimum';
   return { pct, tone, label };
 }
-function unitLevel(u: SpareSummary, c: Check): { pct: number; tone: Tone; label: string } {
+export function unitLevel(u: SpareSummary, c: Check): { pct: number; tone: Tone; label: string } {
   if (u.readiness_status !== 'Ready') return { pct: 0.2, tone: 'bad', label: u.readiness_status };
   const tone = degrade('ok', c);
   return tone === 'ok' ? { pct: 1, tone, label: 'Ready' } : tone === 'warn' ? { pct: 0.6, tone, label: 'Ready · check overdue' } : { pct: 0.2, tone, label: 'Check long overdue' };
 }
-function Ring({ pct, tone, size = 18 }: { pct: number; tone: Tone; size?: number }) {
+export function Ring({ pct, tone, size = 18 }: { pct: number; tone: Tone; size?: number }) {
   const r = size / 2 - 2.5, c = 2 * Math.PI * r;
   return (
     <svg className={`ring ${tone}`} width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">

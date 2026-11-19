@@ -2,7 +2,7 @@ import { Icon } from './icons';
 import { navigate, type Route } from '../store/route';
 
 const NAV: { route: Route; label: string; icon: string; soon?: boolean }[] = [
-  { route: 'dashboard', label: 'Dashboard', icon: 'dashboard', soon: true },
+  { route: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { route: 'overview', label: 'Plant Overview', icon: 'plant' },
   { route: 'assets', label: 'Assets', icon: 'assets' },
   { route: 'pm', label: 'PM Monitoring', icon: 'pm' },

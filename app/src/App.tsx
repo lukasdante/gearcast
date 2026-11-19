@@ -5,6 +5,8 @@ import { ChatLauncher } from './shell/ChatLauncher';
 import { DialogHost } from './shell/Modal';
 import { Placeholder } from './pages/Placeholder';
 import { PmMonitoring } from './pages/PmMonitoring';
+import { Dashboard } from './pages/Dashboard';
+import { Splash } from './shell/Splash';
 import { Assets } from './pages/Assets';
 import { SpareReadiness } from './pages/SpareReadiness';
 import { PlantOverview } from './overview/PlantOverview';
@@ -27,7 +29,8 @@ export default function App() {
       <TopBar />
       <Sidebar route={route} />
       <main className="app-main">
-        {route === 'overview' ? <PlantOverview />
+        {route === 'dashboard' ? <Dashboard />
+          : route === 'overview' ? <PlantOverview />
           : route === 'troubleshoot' ? <Troubleshoot />
             : route === 'incidents' ? <Incidents />
               : route === 'rr' ? <RepairReplace />
@@ -38,6 +41,7 @@ export default function App() {
                   : <Placeholder title={TITLES[route as keyof typeof TITLES][0]} text={TITLES[route as keyof typeof TITLES][1]} />}
       </main>
       <ChatLauncher />
+      <Splash />
       <DialogHost />
     </div>
   );

@@ -141,3 +141,13 @@
   background: var(--bg-2); color: var(--text); font: inherit; outline: none;
 }
 .chat-input input:focus { border-color: rgba(47, 208, 193, 0.5); }
+
+/* start-up splash */
+.splash { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 40%, #12202a 0%, var(--bg, #0b0f14) 70%); transition: opacity 0.45s ease, visibility 0s 0.45s; }
+.splash.out { opacity: 0; visibility: hidden; }
+.splash-box { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.splash-brand { font-size: 22px; letter-spacing: 0.02em; color: var(--text-2, #9fb0c2); }
+.splash-brand b { color: var(--text, #e6edf3); font-weight: 700; }
+.splash-bar { width: 240px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.splash-bar i { display: block; height: 100%; background: var(--accent, #2fd0c1); border-radius: 4px; transition: width 0.25s ease; }
+.splash-txt { font-size: 12px; color: var(--text-3, #6b7d90); font-variant-numeric: tabular-nums; }
