@@ -1,0 +1,10 @@
+{
+ "kind": "motor",
+ "footprint": [
+  0.631,
+  0.326
+ ],
+ "height": 0.603,
+ "ports": [],
+ "tris": 10852
+}

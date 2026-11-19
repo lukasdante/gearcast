@@ -1,0 +1,37 @@
+{
+ "kind": "pump_submersible",
+ "footprint": [
+  0.688,
+  0.415
+ ],
+ "height": 1.373,
+ "ports": [
+  {
+   "id": "in",
+   "position": [
+    -0.321,
+    0.07,
+    -0.042
+   ],
+   "direction": [
+    -1.0,
+    0.0,
+    -0.0
+   ]
+  },
+  {
+   "id": "out",
+   "position": [
+    0.108,
+    0.544,
+    0.098
+   ],
+   "direction": [
+    0.0,
+    1.0,
+    -0.0
+   ]
+  }
+ ],
+ "tris": 12548
+}

@@ -26,18 +26,22 @@ export function portWorld(item: LayoutItem, port: Port | null) {
 }
 
 /** Simple orthogonal route: stub out of each port, then X / Z / X legs at the source height, drop to the target. */
-export function routePipe(a: { pos: THREE.Vector3; dir: THREE.Vector3 }, b: { pos: THREE.Vector3; dir: THREE.Vector3 }, stub = 0.6) {
+export function routePipe(a: { pos: THREE.Vector3; dir: THREE.Vector3 }, b: { pos: THREE.Vector3; dir: THREE.Vector3 }, stub = 0.6, detour = 4.5) {
   const a1 = a.pos.clone().addScaledVector(a.dir, stub);
   const b1 = b.pos.clone().addScaledVector(b.dir, stub);
   const y = a1.y;
   const mx = (a1.x + b1.x) / 2;
-  const raw = [
-    a.pos, a1,
-    new THREE.Vector3(mx, y, a1.z),
-    new THREE.Vector3(mx, y, b1.z),
-    new THREE.Vector3(b1.x, y, b1.z),
-    b1, b.pos,
-  ];
+  // Flowing "backwards" (e.g. sludge return): detour on a lane beside both items instead of cutting through them.
+  const lane = Math.max(a1.z, b1.z) + detour;
+  const raw = b1.x < a1.x - 0.5
+    ? [a.pos, a1, new THREE.Vector3(a1.x, y, lane), new THREE.Vector3(b1.x, y, lane), new THREE.Vector3(b1.x, y, b1.z), b1, b.pos]
+    : [
+      a.pos, a1,
+      new THREE.Vector3(mx, y, a1.z),
+      new THREE.Vector3(mx, y, b1.z),
+      new THREE.Vector3(b1.x, y, b1.z),
+      b1, b.pos,
+    ];
   // drop duplicates and collinear points
   const pts: THREE.Vector3[] = [];
   for (const p of raw) {

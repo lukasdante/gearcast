@@ -39,66 +39,58 @@ export const areaName = (nodeId: string) => AREA_NAMES[nodeId] ?? nodeById.get(n
 
 // ---------------------------------------------------------------- default plant
 
-const PX = 0.04; // metres per mimic pixel
-const areaCentre = (ref: string): [number, number] => {
-  const el = PLANT.layout.find(e => e.element_type === 'Area' && e.ref_id === ref);
-  if (!el) return [0, 0];
-  const x = Number(el.x) + Number(el.width) / 2;
-  const y = Number(el.y) + Number(el.height) / 2;
-  return [round((x - 900) * PX), round((y - 450) * PX)];
-};
-const round = (v: number) => Math.round(v * 2) / 2;
-
+/**
+ * Compact site, flow left → right along z = 0 (positions in metres), following the
+ * prototype mimic's area order: Production → W01 … W08, spares store south of the sump.
+ */
 export function buildDefaultPlant(): LayoutDoc {
   const items: LayoutItem[] = [];
   const pipes: LayoutPipe[] = [];
-  const at = (ref: string, dx = 0, dz = 0): [number, number] => {
-    const [x, z] = areaCentre(ref);
-    return [x + dx, z + dz];
-  };
   const add = (id: string, kind: string, label: string, position: [number, number], extra: Partial<LayoutItem> = {}) =>
     items.push({ id, kind, label, position, rotationY: 0, ...extra });
+  const area = (id: string, kind: string, label: string, position: [number, number], nodeId = id) =>
+    add(id, kind, label, position, { props: { nodeId } });
   const asset = (assetId: string, kind: string, position: [number, number], extra: Partial<LayoutItem> = {}) =>
     add(assetId, kind, assetId, position, { assetId, ...extra });
-  const pipe = (from: string, to: string, fp = 'out', tp = 'in', flow: LayoutPipe['flow'] = 'wastewater') =>
-    pipes.push({ id: `pipe-${from}-${to}${flow === 'sludge' ? '-sl' : ''}`, from: { itemId: from, port: fp }, to: { itemId: to, port: tp }, flow });
+  const pipe = (from: string, to: string, flow: LayoutPipe['flow'] = 'wastewater') =>
+    pipes.push({ id: `pipe-${from}-${to}`, from: { itemId: from, port: 'out' }, to: { itemId: to, port: 'in' }, flow });
 
   const screenH = getKind('vibrating_screen').height;
+  const half = (k: string) => getKind(k).footprint[0] / 2;
 
-  // Production & utilities (N01–N17) → two buildings
-  add('bld-production', 'building', 'Production halls', at('PRODUCTION', 0, -5), { props: { nodeId: 'PRODUCTION' } });
-  add('bld-utilities', 'building', 'Utilities (CIP, boiler)', at('PRODUCTION', 0, 3), { props: { nodeId: 'PRODUCTION' } });
-  // W01 raw-water sump with submersibles inside
-  add('W01', 'sump', 'Raw-water collection sump', at('W01'), { props: { nodeId: 'W01' } });
-  asset('P-201A', 'pump_submersible', at('W01', -0.9, 0.6));
-  asset('P-201B', 'pump_submersible', at('W01', 0.9, 0.6));
-  // W02 vibrating screens with vibrator motors mounted on top
-  asset('SC-101A', 'vibrating_screen', at('W02', 0, -1.5));
-  asset('SC-101B', 'vibrating_screen', at('W02', 0, 1.5));
-  asset('VM-101A', 'vibrator_motor', at('W02', 0, -1.5), { props: { elevation: screenH } });
-  asset('VM-101B', 'vibrator_motor', at('W02', 0, 1.5), { props: { elevation: screenH } });
+  // Production & utilities (N01–N17)
+  area('bld-production', 'building', 'Production halls', [-30, -3], 'PRODUCTION');
+  area('bld-utilities', 'building', 'Utilities (CIP, boiler)', [-30, 3], 'PRODUCTION');
+  // W01 raw-water sump with two submersibles inside
+  area('W01', 'sump', 'Raw-water collection sump', [-21, 0]);
+  asset('P-201A', 'pump_submersible', [-21.9, -0.9]);
+  asset('P-201B', 'pump_submersible', [-21.9, 0.9]);
+  // W02 vibrating screens, vibrator motors mounted on top
+  asset('SC-101A', 'vibrating_screen', [-14.5, -1.5]);
+  asset('SC-101B', 'vibrating_screen', [-14.5, 1.5]);
+  asset('VM-101A', 'vibrator_motor', [-14.5, -1.5], { props: { elevation: screenH } });
+  asset('VM-101B', 'vibrator_motor', [-14.5, 1.5], { props: { elevation: screenH } });
   // W03 – W04
-  add('W03', 'separator', 'Oil & grease separator', at('W03'), { props: { nodeId: 'W03' } });
-  add('W04', 'tank', 'Equalization tank', at('W04'), { props: { nodeId: 'W04' } });
-  // W05 transfer pump room: pump + coupled motor side by side
-  const pumpW = getKind('pump_end_suction').footprint[0];
-  const motorW = getKind('motor').footprint[0];
-  asset('P-101A', 'pump_end_suction', at('W05', -motorW / 2, -1.2));
-  asset('M-101A', 'motor', at('W05', pumpW / 2, -1.2));
-  asset('P-101B', 'pump_end_suction', at('W05', -motorW / 2, 1.2));
-  asset('M-101B', 'motor', at('W05', pumpW / 2, 1.2));
+  area('W03', 'separator', 'Oil & grease separator', [-8, 0]);
+  area('W04', 'tank', 'Equalization tank', [-0.5, 0]);
+  // W05 transfer pump room: motor coaxial on each pump's drive end (+X)
+  const px = 6, mx = px + half('pump_end_suction') + half('motor') + 0.08; // coaxial, coupling gap
+  asset('P-101A', 'pump_end_suction', [px, -1.4]);
+  asset('M-101A', 'motor', [mx, -1.4]);
+  asset('P-101B', 'pump_end_suction', [px, 1.4]);
+  asset('M-101B', 'motor', [mx, 1.4]);
   // W06 – W08
-  add('W06', 'bio_reactor', 'Biological reactor', at('W06'), { props: { nodeId: 'W06' } });
-  add('W07', 'clarifier', 'Clarifier', at('W07'), { props: { nodeId: 'W07' } });
-  add('W08', 'discharge', 'Treated effluent discharge', at('W08'), { props: { nodeId: 'W08' } });
+  area('W06', 'bio_reactor', 'Biological reactor', [16.5, 0]);
+  area('W07', 'clarifier', 'Clarifier', [26.5, 0]);
+  area('W08', 'discharge', 'Treated effluent discharge', [34, 0]);
   // Spares store
-  add('rack', 'spare_rack', 'Spares rack', at('STORE', 0, -1.2), { props: { nodeId: 'STORE' } });
+  area('rack', 'spare_rack', 'Spares rack', [-21, 10], 'STORE');
   ['SP-P01', 'SP-P02', 'SP-M01', 'SP-VM01'].forEach((id, i) => {
     const kind = id === 'SP-P01' ? 'pump_end_suction' : id === 'SP-P02' ? 'pump_submersible' : id === 'SP-M01' ? 'motor' : 'vibrator_motor';
-    asset(id, kind, at('STORE', -3 + i * 2, 1));
+    asset(id, kind, [-24 + i * 2, 12.5]);
   });
 
-  // Pipes following the prototype links L015–L039
+  // Pipes following the prototype links (L015–L039)
   pipe('bld-production', 'W01');
   pipe('bld-utilities', 'W01');
   pipe('P-201A', 'SC-101A');
@@ -112,7 +104,7 @@ export function buildDefaultPlant(): LayoutDoc {
   pipe('P-101B', 'W06');
   pipe('W06', 'W07');
   pipe('W07', 'W08');
-  pipe('W07', 'W06', 'out', 'in', 'sludge');
+  pipe('W07', 'W06', 'sludge');
 
   return { id: 'default', name: 'Franklin Baker WWTP', items, pipes };
 }

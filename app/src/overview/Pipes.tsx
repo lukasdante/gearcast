@@ -18,9 +18,9 @@ uniform float uTime; uniform float uLen; uniform float uStart; uniform vec3 uCol
 varying float vV;
 void main() {
   float s = uStart + vV * uLen;
-  float d = fract((s - uTime * 1.4) / 1.1);
-  float a = smoothstep(0.0, 0.06, d) * (1.0 - smoothstep(0.38, 0.46, d));
-  gl_FragColor = vec4(uColor * 1.6, a * 0.95);
+  float d = fract((s - uTime * 1.2) / 1.4);
+  float a = smoothstep(0.0, 0.08, d) * (1.0 - smoothstep(0.22, 0.32, d));
+  gl_FragColor = vec4(uColor * 1.25, a * 0.7);
 }`;
 
 const baseMat = {

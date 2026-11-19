@@ -54,11 +54,14 @@ const STYLE = {
 
 export function Zones({ doc, live }: { doc: LayoutDoc; live: Live }) {
   const zones = useMemo(() => computeZones(doc), [doc]);
+  // Alternate labels between the back and front edges (in x order) so neighbouring areas don't collide.
+  const sortedIdx = useMemo(() => new Map([...zones].sort((a, b) => a.x0 - b.x0).map((z, i) => [z.nodeId, i])), [zones]);
   const select = useUi(s => s.select);
   const editMode = useUi(s => s.editMode);
   return (
     <group>
       {zones.map(z => {
+        const front = sortedIdx.get(z.nodeId)! % 2 === 1;
         const ns = live.impact.nodeState[z.nodeId] ?? 'ok';
         const st = STYLE[ns];
         const rising = live.impact.levelRising.has(z.nodeId);
@@ -71,8 +74,8 @@ export function Zones({ doc, live }: { doc: LayoutDoc; live: Live }) {
               <meshStandardMaterial color={st.fill} transparent opacity={st.opacity} depthWrite={false} />
             </mesh>
             <Line points={roundedRect(z)} color={st.line} lineWidth={ns === 'ok' ? 1.2 : 2} dashed={ns === 'affected'} dashSize={0.6} gapSize={0.4} />
-            <Html position={[z.x0 + 0.3, 0.05, z.z0 + 0.1]} zIndexRange={[12, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={`zone-label ${ns}`}
+            <Html position={[z.x0 + 0.3, 0.05, front ? z.z1 + 0.25 : z.z0 + 0.1]} zIndexRange={[12, 0]} style={{ pointerEvents: 'none' }}>
+              <div className={`zone-label ${ns}${front ? ' front' : ''}`}
                 onClick={() => !editMode && firstStructure && select(firstStructure.id)}
                 style={{ pointerEvents: !editMode && firstStructure ? 'auto' : 'none' }}>
                 {tag && <span className="mono zone-tag">{tag}</span>}

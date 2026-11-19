@@ -70,7 +70,7 @@ export const usePlantStore = create<PlantState>()(
       },
     }),
     {
-      name: 'gearcast.plants.v1',
+      name: 'gearcast.plants.v2',
       partialize: s => ({ plants: s.plants, order: s.order, activeId: s.activeId }),
     },
   ),

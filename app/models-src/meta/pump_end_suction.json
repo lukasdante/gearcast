@@ -1,0 +1,37 @@
+{
+ "kind": "pump_end_suction",
+ "footprint": [
+  1.14,
+  0.59
+ ],
+ "height": 0.7,
+ "ports": [
+  {
+   "id": "in",
+   "position": [
+    -0.492,
+    0.36,
+    -0.005
+   ],
+   "direction": [
+    -1.0,
+    0.0,
+    -0.0
+   ]
+  },
+  {
+   "id": "out",
+   "position": [
+    -0.17,
+    0.674,
+    0.193
+   ],
+   "direction": [
+    0.0,
+    1.0,
+    -0.0
+   ]
+  }
+ ],
+ "tris": 13266
+}

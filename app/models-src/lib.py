@@ -32,9 +32,9 @@ B2T_AXIS = {'X': 'x', 'Z': 'y', 'Y': 'z'}
 # name: (hex sRGB, metallic, roughness, emissive)
 PALETTE = {
     'pump':      ('#4d667b', 0.35, 0.42, False),
-    'motor':     ('#3a4047', 0.40, 0.48, False),
+    'motor':     ('#58616b', 0.35, 0.45, False),
     'process':   ('#5f6d78', 0.30, 0.50, False),
-    'frame':     ('#2b3137', 0.40, 0.55, False),
+    'frame':     ('#363d44', 0.40, 0.55, False),
     'steel':     ('#8e979f', 0.75, 0.38, False),
     'stainless': ('#c4ccd3', 0.85, 0.30, False),
     'galv':      ('#9aa3a9', 0.60, 0.50, False),
@@ -49,9 +49,24 @@ PALETTE = {
     'glass':     ('#c8a24a', 0.10, 0.15, False),
     'water':     ('#1d3a40', 0.10, 0.10, False),
     'status':    ('#ffffff', 0.00, 0.40, True),
+    'pump2':     ('#435a6d', 0.35, 0.48, False),
+    'motor2':    ('#6b747d', 0.40, 0.40, False),
+    'castiron':  ('#55595d', 0.55, 0.62, False),
+    'brass':     ('#b08d4a', 0.85, 0.35, False),
+    'sight':     ('#d9b25a', 0.00, 0.08, False),
+    'plate':     ('#b9c0c6', 0.70, 0.35, False),
+    'mesh':      ('#7d868d', 0.80, 0.45, False),
+    'cladding':  ('#6f7c86', 0.30, 0.55, False),
+    'roof':      ('#3d454c', 0.40, 0.55, False),
+    'window':    ('#1b2630', 0.30, 0.15, False),
+    'wood':      ('#8c6b48', 0.00, 0.80, False),
+    'carton':    ('#9c8261', 0.00, 0.90, False),
+    'liquor':    ('#4a3e2c', 0.05, 0.20, False),
+    'grating':   ('#6c747a', 0.60, 0.55, False),
 }
 
 PORTS = []
+EXTRA_META = {}
 
 
 def srgb2lin(h):
@@ -63,14 +78,20 @@ def srgb2lin(h):
     return out + [1.0]
 
 
+_BUILD = ['0']
+
+
 def M(name):
     # material names are exported to glTF unprefixed; in the live session we prefix to avoid clashes
     mname = ('gc_' + name) if LIVE else name
     m = bpy.data.materials.get(mname)
-    if m:
+    if m and m.get('gc_built') == _BUILD[0]:
         return m
     hexc, metal, rough, emit = PALETTE[name]
-    m = bpy.data.materials.new(mname)
+    if m is None:
+        m = bpy.data.materials.new(mname)
+    m['gc_built'] = _BUILD[0]
+    m.use_nodes = True
     p = [n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'][0]
     p.inputs['Base Color'].default_value = srgb2lin(hexc)
     p.inputs['Metallic'].default_value = metal
@@ -87,6 +108,8 @@ LIVE = not bpy.app.background
 def reset():
     """Headless: factory-reset. Live GUI: clear only the 'GearCast' scene's objects (never other scenes)."""
     PORTS.clear()
+    EXTRA_META.clear()
+    _BUILD[0] = repr(__import__('time').time())
     if not LIVE:
         bpy.ops.wm.read_factory_settings(use_empty=True)
         return
@@ -94,6 +117,13 @@ def reset():
     if sc is None:
         raise RuntimeError("live mode requires a scene named 'GearCast'")
     bpy.context.window.scene = sc
+    if sc.world is None:
+        w = bpy.data.worlds.get('gc_world') or bpy.data.worlds.new('gc_world')
+        w.use_nodes = True
+        bg = next(n for n in w.node_tree.nodes if n.type == 'BACKGROUND')
+        bg.inputs[0].default_value = (0.05, 0.06, 0.075, 1)
+        bg.inputs[1].default_value = 1.0
+        sc.world = w
     for o in list(sc.objects):
         data = o.data
         bpy.data.objects.remove(o, do_unlink=True)
@@ -102,6 +132,9 @@ def reset():
                 bpy.data.meshes.remove(data)
             elif isinstance(data, bpy.types.Curve):
                 bpy.data.curves.remove(data)
+    for m in list(bpy.data.materials):
+        if m.name.startswith('gc_') and m.users == 0:
+            bpy.data.materials.remove(m)
 
 
 def _active(o):
@@ -218,15 +251,24 @@ def to_mesh(o, name, mat):
     return _finish(o, name, mat)
 
 
-def boolean(o, cutters, op='DIFFERENCE'):
+def boolean(o, cutters, op='DIFFERENCE', solver='EXACT'):
+    """Boolean with clean-up; falls back to the Manifold solver if Exact collapses the mesh."""
     if not isinstance(cutters, (list, tuple)):
         cutters = [cutters]
     c = join(cutters, '_cutter') if len(cutters) > 1 else cutters[0]
-    m = o.modifiers.new('bool', 'BOOLEAN')
-    m.operation = op
-    m.solver = 'EXACT'
-    m.object = c
-    apply_mods(o)
+    backup = o.data.copy()
+    for sv in ((solver, 'MANIFOLD') if solver != 'MANIFOLD' else ('MANIFOLD',)):
+        m = o.modifiers.new('bool', 'BOOLEAN')
+        m.operation = op
+        m.solver = sv
+        m.object = c
+        apply_mods(o)
+        if len(o.data.polygons) > 0:
+            break
+        old = o.data
+        o.data = backup.copy()
+        bpy.data.meshes.remove(old)
+    bpy.data.meshes.remove(backup)
     bpy.data.objects.remove(c, do_unlink=True)
     return o
 
@@ -278,6 +320,75 @@ def bolt_ring(count, radius, axis, center, size=0.012, h=0.04, mat='steel', phas
     return radial(lambda a, p: cyl(size, h, p, axis, mat, verts=6), count, radius, axis, center, ph, name)
 
 
+def loft(rings, name='loft', mat='steel', cap_start=True, cap_end=True):
+    """Skin a list of equal-length closed vertex rings into a tube mesh (quads), optional fan caps."""
+    import bmesh
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    vr = [[bm.verts.new(v) for v in ring] for ring in rings]
+    n = len(rings[0])
+    for a, b in zip(vr[:-1], vr[1:]):
+        for i in range(n):
+            bm.faces.new((a[i], a[(i + 1) % n], b[(i + 1) % n], b[i]))
+    if cap_start:
+        bm.faces.new(list(reversed(vr[0])))
+    if cap_end:
+        bm.faces.new(vr[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    return _finish(o, name, mat)
+
+
+def mesh_from(verts, faces, name='mesh', mat='steel'):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.validate()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    return _finish(o, name, mat)
+
+
+def bevel(o, width, seg=2, angle=40, only_vertices=False):
+    b = o.modifiers.new('bevel', 'BEVEL')
+    b.width = width
+    b.segments = seg
+    b.limit_method = 'ANGLE'
+    b.angle_limit = math.radians(angle)
+    b.use_clamp_overlap = True
+    if only_vertices:
+        b.affect = 'VERTICES'
+    return apply_mods(o)
+
+
+def solidify(o, t, offset=-1):
+    m = o.modifiers.new('solid', 'SOLIDIFY')
+    m.thickness = t
+    m.offset = offset
+    m.use_even_offset = True
+    return apply_mods(o)
+
+
+def array(o, count, offset, name=None):
+    m = o.modifiers.new('arr', 'ARRAY')
+    m.count = count
+    m.use_relative_offset = False
+    m.use_constant_offset = True
+    m.constant_offset_displacement = offset
+    apply_mods(o)
+    if name:
+        o.name = name
+    return o
+
+
+def set_mat(o, mat):
+    o.data.materials.clear()
+    o.data.materials.append(M(mat))
+    return o
+
+
 def port(pid, loc, direction):
     PORTS.append((pid, Vector(loc), Vector(direction)))
 
@@ -310,6 +421,27 @@ def tris(o):
     return sum(len(p.vertices) - 2 for p in o.data.polygons)
 
 
+def preview_rig(lo, hi):
+    """Live-only: key/fill/rim lights + dark ground so `look` renders resemble the app."""
+    size = max((hi - lo).length, 1.0)
+    def light(name, kind, energy, loc, rot, sz=1.0):
+        d = bpy.data.lights.new(name, kind)
+        d.energy = energy
+        if kind == 'AREA':
+            d.size = sz
+        o = bpy.data.objects.new(name, d)
+        bpy.context.collection.objects.link(o)
+        o.location = loc
+        o.rotation_euler = rot
+    light('_rig_key', 'SUN', 3.0, (0, 0, 10), (math.radians(50), 0, math.radians(-35)))
+    light('_rig_fill', 'SUN', 0.8, (0, 0, 10), (math.radians(60), 0, math.radians(140)))
+    light('_rig_rim', 'SUN', 1.2, (0, 0, 10), (math.radians(-70), 0, math.radians(10)))
+    bpy.ops.mesh.primitive_plane_add(size=size * 6, location=(0, 0, -0.001))
+    g = bpy.context.object
+    g.name = '_rig_ground'
+    g.data.materials.append(M('dark'))
+
+
 def finalize(kind, smooth_angle=40):
     meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
     for o in meshes:
@@ -328,7 +460,7 @@ def finalize(kind, smooth_angle=40):
         if o.parent is None:
             o.location += shift
     for o in meshes:
-        if not o.name.startswith(('ROTOR', 'SHAKE')):
+        if not o.name.startswith(('ROTOR', 'SHAKE', 'WATER')):
             apply_xf(o, location=True)
     total = sum(tris(o) for o in meshes)
     size = hi - lo
@@ -341,10 +473,12 @@ def finalize(kind, smooth_angle=40):
                    'direction': r3([d.x, d.z, -d.y])} for pid, p, d in PORTS],
         'tris': total,
     }
+    meta.update(EXTRA_META)
     print('BUILT', kind, 'tris', total, 'footprint', meta['footprint'], 'height', meta['height'])
     for o in meshes:
         print('   ', o.name, tris(o))
     if LIVE:  # live GUI session: inspect only, never write build outputs from here
+        preview_rig(lo + shift, hi + shift)
         return meta
     os.makedirs(OUT_GLB, exist_ok=True)
     os.makedirs(OUT_META, exist_ok=True)

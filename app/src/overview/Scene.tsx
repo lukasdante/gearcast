@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, Line, OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { getKind } from '../models/registry';
@@ -16,13 +16,13 @@ import { findPort, portWorld, snap } from './geometry';
 const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 function bounds(doc: LayoutDoc) {
-  if (!doc.items.length) return { cx: 0, cz: 0, r: 20 };
+  if (!doc.items.length) return { cx: 0, cz: 0, r: 20, hw: 16, hd: 12 };
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   for (const it of doc.items) {
     const r = itemRect(it);
     x0 = Math.min(x0, r.x0); x1 = Math.max(x1, r.x1); z0 = Math.min(z0, r.z0); z1 = Math.max(z1, r.z1);
   }
-  return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, r: Math.max(12, Math.hypot(x1 - x0, z1 - z0) / 2) };
+  return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, r: Math.max(12, Math.hypot(x1 - x0, z1 - z0) / 2), hw: Math.max(8, (x1 - x0) / 2), hd: Math.max(6, (z1 - z0) / 2) };
 }
 
 /** Smooth fly-to for selection and Fit; cancelled when the user grabs the camera. */
@@ -31,6 +31,11 @@ function CameraRig({ doc }: { doc: LayoutDoc }) {
   const controls = useThree(s => s.controls) as OrbitControlsImpl | null;
   const goal = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
   const fitSeq = useUi(s => s.fitSeq);
+  const size = useThree(s => s.size);
+  // Side panels (palette left, inspector right) cover the canvas: shift the projection centre into the visible area.
+  const panelR = useUi(s => (s.editMode ? !!(s.selectedItemId || s.selectedPipeId) : !!(s.selectedItemId || s.selectedAssetId)) ? 390 : 0);
+  const panelL = useUi(s => (s.editMode ? 250 : 0));
+  const offset = useRef({ l: 0, r: 0 });
   const selectedItemId = useUi(s => s.selectedItemId);
   const editMode = useUi(s => s.editMode);
   const docRef = useRef(doc);
@@ -40,8 +45,11 @@ function CameraRig({ doc }: { doc: LayoutDoc }) {
     const b = bounds(docRef.current);
     const target = new THREE.Vector3(b.cx, 0, b.cz);
     const persp = camera as THREE.PerspectiveCamera;
-    const dist = (b.r / Math.sin(THREE.MathUtils.degToRad(persp.fov / 2))) * 0.62 * Math.max(1, 1.5 / persp.aspect);
-    const pos = target.clone().add(new THREE.Vector3(0, 0.78, 0.63).normalize().multiplyScalar(dist));
+    const tv = Math.tan(THREE.MathUtils.degToRad(persp.fov / 2));
+    // Fit width and depth separately (depth is foreshortened by the ~45° view), with margin for the overlays.
+    const aspect = Math.max(0.5, (size.width - panelL - panelR) / size.height);
+    const dist = Math.max((b.hw * 1.08) / (tv * aspect), (b.hd * 1.6) / tv) + b.hd * 0.4;
+    const pos = target.clone().add(new THREE.Vector3(0, 0.74, 0.68).normalize().multiplyScalar(dist));
     if (instant && controls) { camera.position.copy(pos); controls.target.copy(target); controls.update(); }
     else goal.current = { pos, target };
   };
@@ -56,7 +64,7 @@ function CameraRig({ doc }: { doc: LayoutDoc }) {
     const target = new THREE.Vector3(it.position[0], h * 0.45, it.position[1]);
     const dir = camera.position.clone().sub(controls.target).normalize();
     if (dir.y < 0.35) { dir.y = 0.35; dir.normalize(); }
-    const dist = Math.max(9, Math.max(...getKind(it.kind).footprint) * (it.scale ?? 1) * 2.4);
+    const dist = Math.max(17, Math.max(...getKind(it.kind).footprint) * (it.scale ?? 1) * 3);
     goal.current = { pos: target.clone().addScaledVector(dir, dist), target };
   }, [selectedItemId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -67,6 +75,18 @@ function CameraRig({ doc }: { doc: LayoutDoc }) {
   }, [controls]);
 
   useFrame((_, dt) => {
+    const o = offset.current;
+    const k0 = 1 - Math.exp(-dt * 10);
+    const nl = Math.abs(panelL - o.l) < 0.5 ? panelL : o.l + (panelL - o.l) * k0;
+    const nr = Math.abs(panelR - o.r) < 0.5 ? panelR : o.r + (panelR - o.r) * k0;
+    const persp = camera as THREE.PerspectiveCamera;
+    const fullW = size.width + nl + nr;
+    if (nl !== o.l || nr !== o.r || persp.view?.fullWidth !== fullW || persp.view?.height !== size.height) {
+      o.l = nl; o.r = nr;
+      persp.aspect = fullW / size.height;
+      persp.setViewOffset(fullW, size.height, nr, 0, size.width, size.height);
+      persp.updateProjectionMatrix();
+    }
     const g = goal.current;
     if (!g || !controls) return;
     const k = 1 - Math.exp(-dt * 4.5);
@@ -144,6 +164,7 @@ export function pickPort(item: LayoutItem, port: string) {
   const ui = useUi.getState();
   const tool = ui.tool;
   if (tool.type !== 'pipe') return;
+  if (!getKind(item.kind).ports.length) return; // e.g. motors: nothing to connect
   if (!tool.from) { ui.setTool({ type: 'pipe', from: { itemId: item.id, port } }); return; }
   if (tool.from.itemId === item.id) { ui.setTool({ type: 'pipe' }); return; }
   const from = tool.from;
@@ -160,6 +181,29 @@ function nearestPort(item: LayoutItem, point: THREE.Vector3, prefer: 'in' | 'out
     if (d < bd) { bd = d; best = p; }
   }
   return best.id;
+}
+
+/** Dev-only hooks for the Playwright screenshot script. */
+function DevHooks({ doc }: { doc: LayoutDoc }) {
+  const camera = useThree(s => s.camera);
+  const size = useThree(s => s.size);
+  const gl = useThree(s => s.gl);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as Record<string, unknown>;
+    w.__gcProject = (x: number, y: number, z: number) => {
+      const v = new THREE.Vector3(x, y, z).project(camera);
+      const r = gl.domElement.getBoundingClientRect();
+      return { x: r.left + ((v.x + 1) / 2) * size.width, y: r.top + ((1 - v.y) / 2) * size.height };
+    };
+    w.__gcItemPos = (id: string) => doc.items.find(i => i.id === id || i.assetId === id)?.position;
+    w.__gcLastItem = () => doc.items[doc.items.length - 1]?.id;
+    w.__gcSelect = (assetId: string) => {
+      const it = doc.items.find(i => i.assetId === assetId);
+      useUi.getState().select(it?.id ?? null, assetId);
+    };
+  }, [camera, size, gl, doc]);
+  return null;
 }
 
 function SceneContent({ doc, live }: { doc: LayoutDoc; live: Live }) {
@@ -225,6 +269,7 @@ function SceneContent({ doc, live }: { doc: LayoutDoc; live: Live }) {
       <Pipes doc={doc} live={live} />
       {editMode && <BuilderLayer doc={doc} />}
       <CameraRig doc={doc} />
+      {import.meta.env.DEV && <DevHooks doc={doc} />}
     </>
   );
 }

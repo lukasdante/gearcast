@@ -1,4 +1,4 @@
-import { memo, useRef } from 'react';
+import { Suspense, memo, useRef } from 'react';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
@@ -7,7 +7,9 @@ import type { LayoutItem } from '../domain/layout';
 import type { ItemVisual } from './live';
 import { itemRect } from './Zones';
 
-const LABEL_NEAR = 38; // metres: asset tags fade out beyond this camera distance
+// Camera distance (m) beyond which tags fade: main units stay longer than motors / spares.
+const LABEL_NEAR = { main: 95, minor: 40 };
+const isMinor = (it: LayoutItem) => !it.assetId || /^(M-|VM-|SP-)/.test(it.assetId);
 
 export interface ItemHandlers {
   onClick: (item: LayoutItem, e: ThreeEvent<MouseEvent>) => void;
@@ -29,6 +31,16 @@ function Footprint({ item, color, opacity }: { item: LayoutItem; color: string; 
   );
 }
 
+/** Light stand-in while a GLB-backed model loads. */
+function LoadingBox({ fx, fz, h }: { fx: number; fz: number; h: number }) {
+  return (
+    <mesh position-y={h / 2}>
+      <boxGeometry args={[fx, h, fz]} />
+      <meshStandardMaterial color="#2a3442" transparent opacity={0.5} roughness={0.9} />
+    </mesh>
+  );
+}
+
 function AssetLabel({ item, vis, selected, hovered, height }: { item: LayoutItem; vis: ItemVisual; selected: boolean; hovered: boolean; height: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const camera = useThree(s => s.camera);
@@ -40,9 +52,9 @@ function AssetLabel({ item, vis, selected, hovered, height }: { item: LayoutItem
     const el = ref.current;
     if (!el) return;
     const d = camera.position.distanceTo(pos.current);
-    const show = force || d < LABEL_NEAR;
+    const show = force || d < LABEL_NEAR[isMinor(item) ? 'minor' : 'main'];
     el.style.opacity = show ? '1' : '0';
-    el.style.transform = `translate(-50%, -100%) scale(${show ? Math.max(0.78, Math.min(1, 26 / d)) : 0.8})`;
+    el.style.transform = `translate(-50%, -100%) scale(${show ? Math.max(0.8, Math.min(1, 55 / d)) : 0.8})`;
   });
   const v = vis.view;
   return (
@@ -77,8 +89,9 @@ export const ItemNode = memo(function ItemNode({ item, vis, selected, hovered, e
         onPointerOver={e => { e.stopPropagation(); handlers.onHover(item); }}
         onPointerOut={() => handlers.onHover(null)}
       >
-        <C state={vis.state} statusColor={vis.color} selected={selected} hovered={hovered} level={vis.level} scale={s}
-          {...(item.kind === 'custom' ? { color: item.props?.color, size: item.props?.size, label: item.label } : {})} />
+        <Suspense fallback={<LoadingBox fx={def.footprint[0] * s} fz={def.footprint[1] * s} h={def.height * s} />}>
+          <C state={vis.state} statusColor={vis.color} selected={selected} hovered={hovered} level={vis.level} scale={s} />
+        </Suspense>
       </group>
       {(selected || hovered) && elev === 0 && <Footprint item={item} color={selected ? '#2fd0c1' : '#9fb3c8'} opacity={selected ? 0.22 : 0.12} />}
     </group>
