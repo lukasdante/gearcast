@@ -8,6 +8,7 @@ from collections.abc import Iterator
 from .data import AS_OF, DATA, StatusCtx
 from .llm import MODEL, client
 from .tools import TOOL_SCHEMAS, label_for, run_tool
+from . import ops as appops
 
 SYSTEM = f"""You are Caster, GearCast's assistant for the Head of Operations of the wastewater treatment plant (WWTP)
 at a coconut processing plant (Franklin Baker – Darong). Tracked assets: transfer pumps P-101A/B (motors M-101A/B),
@@ -51,9 +52,9 @@ def sse(obj: dict) -> str:
     return f"data: {json.dumps(obj, default=str)}\n\n"
 
 
-def run_chat(messages: list[dict], sim: dict | None) -> Iterator[str]:
+def run_chat(messages: list[dict], sim: dict | None, client_state: dict | None = None) -> Iterator[str]:
     ctx = StatusCtx.from_client(sim)
-    convo: list[dict] = [{"role": "system", "content": SYSTEM}]
+    convo: list[dict] = [{"role": "system", "content": SYSTEM + "\n\n" + appops.PROMPT}]
     if ctx.simulated:
         convo.append({"role": "system", "content": "Simulated status changes active: " + ", ".join(
             f"{a} → {ctx.own(a)}" for a in ctx.simulated)})
@@ -64,7 +65,7 @@ def run_chat(messages: list[dict], sim: dict | None) -> Iterator[str]:
     t0 = time.time()
     for _ in range(6):
         try:
-            stream = client.chat.completions.create(model=MODEL, messages=convo, tools=TOOL_SCHEMAS + [ACTION_TOOL], stream=True,
+            stream = client.chat.completions.create(model=MODEL, messages=convo, tools=TOOL_SCHEMAS + [ACTION_TOOL, appops.APP_STATE_SCHEMA] + appops.OP_SCHEMAS, stream=True,
                                                     max_tokens=1600, reasoning_effort="low")
             content, reasoning, calls = "", "", {}
             for ch in stream:
@@ -88,7 +89,7 @@ def run_chat(messages: list[dict], sim: dict | None) -> Iterator[str]:
             break
         if not calls:
             break
-        only_actions = all(c["name"] == "propose_action" for c in calls.values())
+        only_actions = all(c["name"] == "propose_action" or c["name"] in appops.OP_BY_NAME for c in calls.values())
         if content and not only_actions:  # interim narration before data tools: drop it from the visible answer
             yield sse({"type": "reset_text"})
         msg = {"role": "assistant", "content": content or None, "tool_calls": [
@@ -101,7 +102,15 @@ def run_chat(messages: list[dict], sim: dict | None) -> Iterator[str]:
                 args = json.loads(c["args"] or "{}")
             except json.JSONDecodeError:
                 args = {}
-            if c["name"] == "propose_action":
+            if c["name"] == "get_app_state":
+                result = client_state or {"note": "No app state was sent."}
+            elif c["name"] in appops.OP_BY_NAME:
+                op = appops.OP_BY_NAME[c["name"]]
+                yield sse({"type": "op", "id": c["id"], "name": c["name"], "args": args, "confirm": op["confirm"]})
+                result = {"status": "awaiting_user_confirmation" if op["confirm"] else "sent_to_app",
+                          "note": "Shown to the user with a Confirm button; not done until they confirm." if op["confirm"]
+                          else "The app executes this immediately."}
+            elif c["name"] == "propose_action":
                 aid = (args.get("asset_id") or "").upper() or None
                 if args.get("kind") and (aid is None or aid in DATA.asset) and len(actions) < 3:
                     actions.append({**args, "asset_id": aid})

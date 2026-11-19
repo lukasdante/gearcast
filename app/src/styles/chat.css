@@ -110,3 +110,11 @@
 body:has(.overview .inspector) .caster-fab { right: 408px; }
 body:has(.overview .inspector) .legend-wrap { right: 482px; }
 body:has(.rr-drawer.open) .caster-fab { right: 476px; }
+
+/* Caster operation cards */
+.op-cards { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.op-card { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-left: 3px solid var(--oc, var(--line)); border-radius: 8px; background: var(--panel-2); font-size: 12.5px; }
+.op-card.ask { --oc: #f2b53b; } .op-card.running { --oc: var(--accent); } .op-card.done { --oc: #3ccf73; } .op-card.error { --oc: #ef5a5a; } .op-card.cancelled { opacity: 0.6; }
+.op-ico { display: grid; place-items: center; width: 18px; color: var(--oc); }
+.op-txt { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.op-btns { display: flex; gap: 4px; }

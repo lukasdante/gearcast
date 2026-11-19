@@ -63,7 +63,7 @@ export function Incidents() {
   const setStatus = useStatusStore(s => s.setStatus);
 
   const refresh = () => getJSON<{ submitted: Row[]; history: Row[] }>('/api/incidents').then(setRows).catch(() => setErr('Backend offline – start it on :8000'));
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); window.addEventListener('gearcast:incidents', refresh); return () => window.removeEventListener('gearcast:incidents', refresh); }, []);
   useEffect(() => {
     if (!intent) return;
     const f = { ...blankForm(intent.asset_id), ...(intent.prefill ?? {}) };

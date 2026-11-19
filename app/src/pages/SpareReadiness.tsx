@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { NOW_DATE, OPS } from '../data';
@@ -34,7 +34,7 @@ type Tone = 'ok' | 'warn' | 'bad';
 
 /** Readiness checks (last checked + frequency) per stored unit / part, kept in this browser. */
 interface CheckRec { last?: string; freq?: number }
-const useChecks = create<{ m: Record<string, CheckRec>; set: (id: string, r: CheckRec) => void }>()(persist(
+export const useChecks = create<{ m: Record<string, CheckRec>; set: (id: string, r: CheckRec) => void }>()(persist(
   set => ({ m: {}, set: (id, r) => set(st => ({ m: { ...st.m, [id]: { ...st.m[id], ...r } } })) }),
   { name: 'gearcast.spares.checks.v1' }));
 const DAY = 86400000;
@@ -88,6 +88,11 @@ export function SpareReadiness() {
   const [unitInfo, setUnitInfo] = useState<SpareSummary | null>(null);
   const [adding, setAdding] = useState(false);
   const checks = useChecks(st => st.m);
+  useEffect(() => {
+    const reload = () => setExtra(loadExtra());
+    window.addEventListener('gearcast:spares', reload);
+    return () => window.removeEventListener('gearcast:spares', reload);
+  }, []);
   const [q, setQ] = useState('');
   const [lowOnly, setLowOnly] = useState(false);
   const parts = useMemo(() => [...OPS.spareInventory, ...extra], [extra]);

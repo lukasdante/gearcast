@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NOW_DATE, OPS } from '../data';
 import { openAsset } from '../shell/TopBar';
 import '../styles/pages.css';
@@ -49,6 +49,11 @@ export function PmMonitoring() {
   const [day, setDay] = useState<string | null>(null);
   const [month, setMonth] = useState(() => new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
   const [assign, setAssign] = useState<Record<string, string>>(() => { try { return JSON.parse(localStorage.getItem(AKEY) || '{}'); } catch { return {}; } });
+  useEffect(() => {
+    const reload = () => { try { setAssign(JSON.parse(localStorage.getItem(AKEY) || '{}')); } catch { /* storage unavailable */ } };
+    window.addEventListener('gearcast:pm-assign', reload);
+    return () => window.removeEventListener('gearcast:pm-assign', reload);
+  }, []);
   const setTech = (id: string, v: string) => setAssign(a => {
     const n = { ...a, [id]: v }; if (!v) delete n[id];
     try { localStorage.setItem(AKEY, JSON.stringify(n)); } catch { /* storage unavailable */ }

@@ -4,6 +4,8 @@ import { Caster, type CasterState } from './Caster';
 import { Markdown } from './Markdown';
 import { openAsset } from './TopBar';
 import { simPayload, streamSSE } from '../api/client';
+import { OP_REGISTRY, appState } from '../ai/ops';
+import { dialog } from './Modal';
 import { useStatusCtx } from '../store/statusStore';
 import { useIntent } from '../store/intentStore';
 import { navigate } from '../store/route';
@@ -11,7 +13,8 @@ import '../styles/chat.css';
 
 interface ToolChip { id: string; label: string; status: 'start' | 'done' }
 interface Action { kind: 'open_asset' | 'open_troubleshoot' | 'draft_incident'; asset_id?: string | null; query?: string; label?: string }
-interface Msg { role: 'user' | 'assistant'; content: string; tools?: ToolChip[]; actions?: Action[]; error?: string; pending?: boolean }
+interface OpCard { id: string; name: string; args: Record<string, unknown>; confirm: boolean; state: 'ask' | 'running' | 'done' | 'error' | 'cancelled'; result?: string }
+interface Msg { role: 'user' | 'assistant'; content: string; tools?: ToolChip[]; actions?: Action[]; ops?: OpCard[]; error?: string; pending?: boolean }
 
 const SUGGESTIONS = ['Which assets need attention and do we have backups?', 'What PM is due this week?', 'Any spare parts below minimum?'];
 const GREETING = "Hi, I'm Caster. Ask me about equipment status, backups, PM, spares or costs.";
@@ -49,7 +52,7 @@ export function ChatLauncher() {
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      await streamSSE('/api/chat', { messages: history.map(m => ({ role: m.role, content: m.content })), sim: simPayload() }, e => {
+      await streamSSE('/api/chat', { messages: history.map(m => ({ role: m.role, content: m.content + (m.ops?.length ? `\n[Operations: ${m.ops.map(o => `${o.name} ${o.state}${o.result ? ` (${o.result})` : ''}`).join('; ')}]` : '') })), sim: simPayload(), client: appState() }, e => {
         if (e.type === 'delta') { setBusy('talking'); patchLast(m => ({ ...m, content: m.content + e.text })); }
         else if (e.type === 'reset_text') patchLast(m => ({ ...m, content: '' }));
         else if (e.type === 'tool') {
@@ -60,6 +63,10 @@ export function ChatLauncher() {
             if (i >= 0) tools[i] = { ...tools[i], status: e.status }; else tools.push({ id: e.id, label: e.label, status: e.status });
             return { ...m, tools };
           });
+        } else if (e.type === 'op') {
+          const card: OpCard = { id: e.id, name: e.name, args: e.args ?? {}, confirm: !!e.confirm, state: e.confirm ? 'ask' : 'running' };
+          patchLast(m => ({ ...m, ops: [...(m.ops ?? []), card] }));
+          if (!e.confirm) runOp(card);
         } else if (e.type === 'actions') patchLast(m => ({ ...m, actions: e.actions }));
         else if (e.type === 'error') patchLast(m => ({ ...m, error: e.message }));
       }, ac.signal);
@@ -69,6 +76,18 @@ export function ChatLauncher() {
       patchLast(m => ({ ...m, pending: false }));
       setBusy('idle');
     }
+  };
+
+  const patchOp = (id: string, p: Partial<OpCard>) => setMsgs(ms => ms.map(m => (m.ops?.some(o => o.id === id) ? { ...m, ops: m.ops!.map(o => (o.id === id ? { ...o, ...p } : o)) } : m)));
+  const runOp = async (o: OpCard) => {
+    const def = OP_REGISTRY[o.name];
+    if (!def) { patchOp(o.id, { state: 'error', result: 'Not supported in this app' }); return; }
+    if (o.name === 'delete_plant') {
+      const ok = await dialog.confirm({ title: 'Delete plant', body: `Caster asked to delete "${o.args.plant}". This cannot be undone.`, action: 'Delete plant', danger: true, typeToConfirm: String(o.args.plant) });
+      if (!ok) { patchOp(o.id, { state: 'cancelled' }); return; }
+    }
+    patchOp(o.id, { state: 'running' });
+    try { patchOp(o.id, { state: 'done', result: await def.run(o.args) }); } catch (err) { patchOp(o.id, { state: 'error', result: err instanceof Error ? err.message : 'Failed' }); }
   };
 
   const reset = () => { abortRef.current?.abort(); setMsgs([]); setBusy('idle'); };
@@ -106,6 +125,23 @@ export function ChatLauncher() {
                   )}
                   {m.content ? <Markdown text={m.content} /> : m.pending && !m.error ? <div className="typing"><i /><i /><i /></div> : null}
                   {m.error && <p className="chat-err">{m.error}</p>}
+                  {!!m.ops?.length && (
+                    <div className="op-cards">
+                      {m.ops.map(o => {
+                        const def = OP_REGISTRY[o.name];
+                        return (
+                          <div key={o.id} className={`op-card ${o.state}`}>
+                            <span className="op-ico">{o.state === 'running' ? <span className="spin" /> : o.state === 'done' ? <Icon name="check" size={13} /> : o.state === 'ask' ? <Icon name="bolt" size={13} /> : <Icon name="close" size={13} />}</span>
+                            <span className="op-txt"><b>{def ? def.label(o.args) : o.name}</b>{o.result && <span className="muted small">{o.result}</span>}{o.state === 'cancelled' && <span className="muted small">Cancelled</span>}</span>
+                            {o.state === 'ask' && <span className="op-btns">
+                              <button type="button" className="btn ghost sm" onClick={() => patchOp(o.id, { state: 'cancelled' })}>Cancel</button>
+                              <button type="button" className={`btn sm ${/delete|fault|reset/.test(o.name) ? 'danger solid' : 'primary'}`} onClick={() => runOp(o)}>Confirm</button>
+                            </span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   {!!m.actions?.length && !m.pending && (
                     <div className="chat-actions">
                       {m.actions.map((a, j) => (

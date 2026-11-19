@@ -68,6 +68,16 @@ def list_reports() -> dict:
             "history": sorted(hist, key=lambda x: x["report_id"], reverse=True)}
 
 
+def delete_report(report_id: str) -> bool:
+    with _lock:
+        rows = _load()
+        keep = [r for r in rows if r["report_id"] != report_id]
+        if len(keep) == len(rows):
+            return False
+        _save(keep)
+    return True
+
+
 def get_report(report_id: str) -> dict | None:
     r = next((x for x in _load() if x["report_id"] == report_id), None)
     if r:

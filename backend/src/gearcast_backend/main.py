@@ -48,11 +48,12 @@ def call_tool(name: str, body: dict):
 class ChatReq(BaseModel):
     messages: list[dict]
     sim: Sim | None = None
+    client: dict | None = None
 
 
 @app.post("/api/chat")
 def chat(req: ChatReq):
-    return StreamingResponse(run_chat(req.messages, req.sim.model_dump() if req.sim else None), media_type="text/event-stream",
+    return StreamingResponse(run_chat(req.messages, req.sim.model_dump() if req.sim else None, req.client), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
@@ -166,6 +167,14 @@ def incident_get(report_id: str):
     if not r:
         raise HTTPException(404, "not found")
     return r
+
+
+@app.delete("/api/incidents/{report_id}")
+def incident_delete(report_id: str):
+    if not incidents.delete_report(report_id):
+        raise HTTPException(404, "Only reports submitted in GearCast can be deleted")
+    pdf.pdf_path(report_id).unlink(missing_ok=True)
+    return {"ok": True}
 
 
 @app.get("/api/incidents/{report_id}/pdf")
