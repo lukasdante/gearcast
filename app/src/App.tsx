@@ -1,35 +1,28 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import './styles/shell.css';
+import { Sidebar } from './shell/Sidebar';
+import { TopBar } from './shell/TopBar';
+import { ChatLauncher } from './shell/ChatLauncher';
+import { Placeholder } from './pages/Placeholder';
+import { PlantOverview } from './overview/PlantOverview';
+import { useRoute } from './store/route';
 
-function App() {
-  const [count, setCount] = useState(0)
+const TITLES = {
+  assets: ['Assets', 'Asset register, history and procedures per unit.'],
+  pm: ['PM Monitoring', 'Preventive maintenance due dates, overdue tasks and compliance.'],
+  spares: ['Spare Readiness', 'Installed standby and stored spare readiness checks.'],
+  incidents: ['Incidents', 'Incident reports — required before an asset is taken out of service.'],
+} as const;
 
+export default function App() {
+  const route = useRoute();
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      <TopBar />
+      <Sidebar route={route} />
+      <main className="app-main">
+        {route === 'overview' ? <PlantOverview /> : <Placeholder title={TITLES[route as keyof typeof TITLES][0]} text={TITLES[route as keyof typeof TITLES][1]} />}
+      </main>
+      <ChatLauncher />
+    </div>
+  );
 }
-
-export default App

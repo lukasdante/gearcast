@@ -1,0 +1,143 @@
+.app {
+  display: grid;
+  grid-template-columns: 196px 1fr;
+  grid-template-rows: 52px 1fr;
+  height: 100vh;
+  background: var(--bg);
+}
+
+/* ---------------------------------------------------------------- top bar */
+.topbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 20px;
+  padding: 0 14px 0 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 9px; width: 166px; }
+.brand-mark {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px;
+  color: var(--accent); background: var(--accent-dim); border: 1px solid rgba(47, 208, 193, 0.3);
+}
+.brand-name { font-size: 16px; letter-spacing: -0.01em; font-weight: 500; color: var(--text-2); }
+.brand-name b { color: var(--text); font-weight: 700; }
+.topbar-plant { display: flex; align-items: center; gap: 12px; min-width: 0; color: var(--text-2); }
+.plant-name { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sep { width: 1px; height: 16px; background: var(--line-2); }
+.asof { white-space: nowrap; }
+.asof .mono { color: var(--text); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.sim-badge {
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 500;
+  color: #f4c770; background: rgba(242, 181, 59, 0.09); border: 1px solid rgba(242, 181, 59, 0.28);
+}
+.sim-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #f2b53b; }
+
+.alarm-wrap { position: relative; }
+.bell {
+  position: relative; display: grid; place-items: center; width: 34px; height: 34px;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text-2); cursor: pointer;
+}
+.bell:hover { color: var(--text); border-color: var(--line-2); }
+.bell.has { color: var(--st-fault); border-color: rgba(240, 82, 82, 0.4); }
+.bell.unacked { animation: bell-glow 1.6s ease-in-out infinite; }
+@keyframes bell-glow { 50% { box-shadow: 0 0 0 4px rgba(240, 82, 82, 0.16); } }
+.bell-count {
+  position: absolute; top: -6px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px; font-size: 10.5px; line-height: 18px; text-align: center; font-weight: 700;
+  color: #fff; background: var(--st-fault); border: 2px solid var(--bg-2);
+}
+.alarm-panel {
+  position: absolute; right: 0; top: 42px; width: 400px; max-height: 60vh; overflow: auto;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 6px;
+}
+.alarm-panel header { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.alarm-empty { color: var(--text-3); padding: 10px; margin: 0; }
+.alarm-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); }
+.alarm-row:hover { background: var(--panel-2); }
+.alarm-row.acked { opacity: 0.6; }
+.alarm-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--st-fault); box-shadow: 0 0 0 3px rgba(240, 82, 82, 0.18); flex: none; }
+.alarm-row.acked .alarm-dot { box-shadow: none; }
+.alarm-text { flex: 1; min-width: 0; }
+.alarm-text .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alarm-status { color: var(--st-fault); font-weight: 600; font-size: 12px; }
+.alarm-actions { display: flex; gap: 6px; }
+
+/* ---------------------------------------------------------------- sidebar */
+.sidebar {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px 10px;
+  background: var(--bg-2); border-right: 1px solid var(--line);
+}
+.nav-item {
+  display: flex; align-items: center; gap: 11px; width: 100%; padding: 8px 10px;
+  border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-2);
+  font-size: 13px; font-weight: 500; text-align: left; cursor: pointer;
+}
+.nav-item:hover:not(:disabled) { background: var(--panel); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+.nav-item.active svg { color: var(--accent); }
+.nav-item:disabled { color: var(--text-3); cursor: default; }
+.soon {
+  margin-left: auto; font-style: normal; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-3); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px;
+}
+
+.app-main { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+
+/* ---------------------------------------------------------------- shared controls */
+.muted { color: var(--text-3); }
+.small { font-size: 11.5px; }
+.tag { color: var(--text); font-weight: 600; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 30px; padding: 0 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text);
+  font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--panel-3); border-color: rgba(160, 180, 205, 0.32); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.btn.ghost { background: transparent; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #062521; font-weight: 600; }
+.btn.primary:hover:not(:disabled) { background: #49dccf; border-color: #49dccf; }
+.btn.danger { color: #ff8b8b; border-color: rgba(240, 82, 82, 0.4); background: rgba(240, 82, 82, 0.08); }
+.btn.danger:hover:not(:disabled) { background: rgba(240, 82, 82, 0.16); border-color: rgba(240, 82, 82, 0.6); }
+.btn.on { background: var(--accent-dim); border-color: rgba(47, 208, 193, 0.5); color: var(--accent); }
+.icon-btn {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-sm);
+  border: 0; background: none; color: var(--text-2); cursor: pointer;
+}
+.icon-btn:hover { background: var(--panel-3); color: var(--text); }
+
+/* ---------------------------------------------------------------- placeholder pages */
+.placeholder { padding: 48px 56px; max-width: 640px; }
+.placeholder h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.placeholder p { color: var(--text-2); margin: 0 0 18px; }
+.placeholder-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); border: 1px dashed var(--line-2); padding: 4px 8px; border-radius: 4px; }
+
+/* ---------------------------------------------------------------- chat */
+.chat-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 40; width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center; border: 1px solid rgba(47, 208, 193, 0.5); cursor: pointer;
+  background: #10302d; color: var(--accent); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.chat-fab:hover { background: #144039; }
+.chat {
+  position: fixed; right: 20px; bottom: 76px; z-index: 40; width: 320px; height: 380px;
+  display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: 10px; box-shadow: var(--shadow); overflow: hidden;
+}
+.chat header { display: flex; justify-content: space-between; align-items: center; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.chat-body { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.chat-msg { margin: 0; padding: 8px 11px; border-radius: 10px; max-width: 85%; font-size: 12.5px; }
+.chat-msg.bot { background: var(--panel-3); color: var(--text-2); align-self: flex-start; }
+.chat-msg.me { background: var(--accent-dim); color: var(--text); align-self: flex-end; }
+.chat-input { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
+.chat-input input {
+  flex: 1; height: 32px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--line-2);
+  background: var(--bg-2); color: var(--text); font: inherit; outline: none;
+}
+.chat-input input:focus { border-color: rgba(47, 208, 193, 0.5); }
