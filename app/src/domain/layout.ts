@@ -16,7 +16,10 @@ export interface LayoutItem {
   scale?: number;
   props?: {
     nodeId?: string;      // process area this item belongs to (unbound structures)
-    elevation?: number;   // metres above ground (e.g. vibrator motor on its screen)
+    elevation?: number;   // metres above ground (e.g. pump standing on a sump floor)
+    labelY?: number;      // tag height override (e.g. raise a submersible's tag above its sump)
+    /** Drawn as part of another model: render only an invisible click box [x, y, z] (m) instead of the kind's model. */
+    proxy?: [number, number, number];
     color?: string;       // custom kind
     size?: [number, number, number]; // custom kind [x, y, z]
   };
@@ -40,61 +43,70 @@ export const areaName = (nodeId: string) => AREA_NAMES[nodeId] ?? nodeById.get(n
 // ---------------------------------------------------------------- default plant
 
 /**
- * Compact site, flow left → right along z = 0 (positions in metres), following the
- * prototype mimic's area order: Production → W01 … W08, spares store south of the sump.
+ * Compact site laid out on the real model footprints (models/kinds/meta.ts), ~3.5 m access
+ * spacing, flow left → right along z ≈ 0:
+ * Production → W01 sump → W02 screens → W03 separator → W04 EQ tank → W05 pump room → W06 → W07 → W08,
+ * spares store beside the pump room.
  */
 export function buildDefaultPlant(): LayoutDoc {
   const items: LayoutItem[] = [];
   const pipes: LayoutPipe[] = [];
   const add = (id: string, kind: string, label: string, position: [number, number], extra: Partial<LayoutItem> = {}) =>
     items.push({ id, kind, label, position, rotationY: 0, ...extra });
-  const area = (id: string, kind: string, label: string, position: [number, number], nodeId = id) =>
-    add(id, kind, label, position, { props: { nodeId } });
+  const area = (id: string, kind: string, label: string, position: [number, number], nodeId = id, rotationY = 0) =>
+    add(id, kind, label, position, { props: { nodeId }, rotationY });
   const asset = (assetId: string, kind: string, position: [number, number], extra: Partial<LayoutItem> = {}) =>
     add(assetId, kind, assetId, position, { assetId, ...extra });
   const pipe = (from: string, to: string, flow: LayoutPipe['flow'] = 'wastewater') =>
     pipes.push({ id: `pipe-${from}-${to}`, from: { itemId: from, port: 'out' }, to: { itemId: to, port: 'in' }, flow });
 
-  const screenH = getKind('vibrating_screen').height;
   const half = (k: string) => getKind(k).footprint[0] / 2;
+  const sumpH = getKind('sump').height;
 
-  // Production & utilities (N01–N17)
-  area('bld-production', 'building', 'Production halls', [-30, -3], 'PRODUCTION');
-  area('bld-utilities', 'building', 'Utilities (CIP, boiler)', [-30, 3], 'PRODUCTION');
-  // W01 raw-water sump with two submersibles inside
-  area('W01', 'sump', 'Raw-water collection sump', [-21, 0]);
-  asset('P-201A', 'pump_submersible', [-21.9, -0.9]);
-  asset('P-201B', 'pump_submersible', [-21.9, 0.9]);
-  // W02 vibrating screens, vibrator motors mounted on top
-  asset('SC-101A', 'vibrating_screen', [-14.5, -1.5]);
-  asset('SC-101B', 'vibrating_screen', [-14.5, 1.5]);
-  asset('VM-101A', 'vibrator_motor', [-14.5, -1.5], { props: { elevation: screenH } });
-  asset('VM-101B', 'vibrator_motor', [-14.5, 1.5], { props: { elevation: screenH } });
+  // Production & utilities (N01–N17): two halls behind the head of works, drains facing the sump
+  area('bld-production', 'building', 'Production halls', [-30.5, -12.5], 'PRODUCTION', -Math.PI / 2);
+  area('bld-utilities', 'building', 'Utilities (CIP, boiler)', [-20.5, -12.5], 'PRODUCTION', -Math.PI / 2);
+
+  // W01 raw-water sump (above-grade chamber, 1.2 m walls): submersibles stand in the open-grating bay,
+  // seated slightly into the floor so they sit under the grating in the liquid; tags raised above the chamber.
+  const SX = -27.5, PUMP_Y = -0.25;
+  area('W01', 'sump', 'Raw-water collection sump', [SX, 0]);
+  asset('P-201A', 'pump_submersible', [SX - 0.7, -0.85], { props: { elevation: PUMP_Y, labelY: sumpH + 0.4 } });
+  asset('P-201B', 'pump_submersible', [SX - 0.7, 0.85], { props: { elevation: PUMP_Y, labelY: sumpH + 0.4 } });
+
+  // W02 vibrating screens; their vibrator motors are part of the screen model, VM-101A/B are click proxies
+  const CX = -19.5;
+  asset('SC-101A', 'vibrating_screen', [CX, -1.6]);
+  asset('SC-101B', 'vibrating_screen', [CX, 1.6]);
+  asset('VM-101A', 'vibrator_motor', [CX - 0.16, -1.6], { props: { elevation: 1.28, proxy: [0.5, 0.42, 1.0], labelY: 2.8 } });
+  asset('VM-101B', 'vibrator_motor', [CX - 0.16, 1.6], { props: { elevation: 1.28, proxy: [0.5, 0.42, 1.0], labelY: 2.8 } });
+
   // W03 – W04
-  area('W03', 'separator', 'Oil & grease separator', [-8, 0]);
-  area('W04', 'tank', 'Equalization tank', [-0.5, 0]);
-  // W05 transfer pump room: motor coaxial on each pump's drive end (+X)
-  const px = 6, mx = px + half('pump_end_suction') + half('motor') + 0.08; // coaxial, coupling gap
-  asset('P-101A', 'pump_end_suction', [px, -1.4]);
-  asset('M-101A', 'motor', [mx, -1.4]);
-  asset('P-101B', 'pump_end_suction', [px, 1.4]);
-  asset('M-101B', 'motor', [mx, 1.4]);
+  area('W03', 'separator', 'Oil & grease separator', [-12, 0]);
+  area('W04', 'tank', 'Equalization tank', [-3.5, 0]);
+
+  // W05 transfer pump room: motor coaxial on each pump's drive end (+X) with a coupling gap
+  const px = 3, mx = px + half('pump_end_suction') + half('motor') + 0.08;
+  asset('P-101A', 'pump_end_suction', [px, -1.3]);
+  asset('M-101A', 'motor', [mx, -1.3]);
+  asset('P-101B', 'pump_end_suction', [px, 1.3]);
+  asset('M-101B', 'motor', [mx, 1.3]);
+
   // W06 – W08
-  area('W06', 'bio_reactor', 'Biological reactor', [16.5, 0]);
-  area('W07', 'clarifier', 'Clarifier', [26.5, 0]);
-  area('W08', 'discharge', 'Treated effluent discharge', [34, 0]);
-  // Spares store
-  area('rack', 'spare_rack', 'Spares rack', [-21, 10], 'STORE');
-  ['SP-P01', 'SP-P02', 'SP-M01', 'SP-VM01'].forEach((id, i) => {
-    const kind = id === 'SP-P01' ? 'pump_end_suction' : id === 'SP-P02' ? 'pump_submersible' : id === 'SP-M01' ? 'motor' : 'vibrator_motor';
-    asset(id, kind, [-24 + i * 2, 12.5]);
-  });
+  area('W06', 'bio_reactor', 'Biological reactor', [12.5, 0]);
+  area('W07', 'clarifier', 'Clarifier', [24.5, 0]);
+  area('W08', 'discharge', 'Treated effluent discharge', [34.5, 0]);
+
+  // Spares store beside the pump room
+  area('rack', 'spare_rack', 'Spares rack', [3.5, 7.5], 'STORE');
+  ([['SP-P01', 'pump_end_suction', 1.9], ['SP-P02', 'pump_submersible', 3.3], ['SP-M01', 'motor', 4.4], ['SP-VM01', 'vibrator_motor', 5.3]] as const)
+    .forEach(([id, kind, x]) => asset(id, kind, [x, 9.6]));
 
   // Pipes following the prototype links (L015–L039)
   pipe('bld-production', 'W01');
   pipe('bld-utilities', 'W01');
-  pipe('P-201A', 'SC-101A');
-  pipe('P-201B', 'SC-101B');
+  pipe('W01', 'SC-101A');
+  pipe('W01', 'SC-101B');
   pipe('SC-101A', 'W03');
   pipe('SC-101B', 'W03');
   pipe('W03', 'W04');

@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import * as THREE from 'three';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import { getKind } from '../models/registry';
 import { areaName, itemNode, type LayoutDoc, type LayoutItem } from '../domain/layout';
@@ -6,6 +8,7 @@ import type { Live } from './live';
 import { useUi } from '../store/uiStore';
 
 const PAD = 1.1;
+const COMPACT_BEYOND = 55; // m camera distance
 
 /** Axis-aligned footprint of an item on the ground (rotation in 90° steps). */
 export function itemRect(it: LayoutItem) {
@@ -54,14 +57,28 @@ const STYLE = {
 
 export function Zones({ doc, live }: { doc: LayoutDoc; live: Live }) {
   const zones = useMemo(() => computeZones(doc), [doc]);
-  // Alternate labels between the back and front edges (in x order) so neighbouring areas don't collide.
-  const sortedIdx = useMemo(() => new Map([...zones].sort((a, b) => a.x0 - b.x0).map((z, i) => [z.nodeId, i])), [zones]);
   const select = useUi(s => s.select);
   const editMode = useUi(s => s.editMode);
+  // Label anchor: centred on the area, just above its tallest item; every other area (in x order) a little higher
+  // so neighbours of similar height don't collide.
+  const lift = useMemo(() => new Map([...zones].sort((a, b) => (a.x0 + a.x1) - (b.x0 + b.x1)).map((z, i) => [z.nodeId, (i % 2) * 1.3])), [zones]);
+  const tops = useMemo(() => new Map(zones.map(z => [z.nodeId, Math.max(0, ...doc.items.filter(i => z.itemIds.includes(i.id))
+    .map(i => (i.props?.elevation ?? 0) + (i.props?.proxy ? i.props.proxy[1] : getKind(i.kind).height * (i.scale ?? 1))))])), [zones, doc.items]);
+  // Far away: tagged areas collapse to "W05 · state" (full name on hover); names return when zoomed in.
+  const labels = useRef(new Map<string, HTMLDivElement>());
+  const camera = useThree(st => st.camera);
+  const v = useRef(new THREE.Vector3());
+  useFrame(() => {
+    for (const z of zones) {
+      const el = labels.current.get(z.nodeId);
+      if (!el) continue;
+      const far = camera.position.distanceTo(v.current.set((z.x0 + z.x1) / 2, 0, (z.z0 + z.z1) / 2)) > COMPACT_BEYOND;
+      el.classList.toggle('compact', far);
+    }
+  });
   return (
     <group>
       {zones.map(z => {
-        const front = sortedIdx.get(z.nodeId)! % 2 === 1;
         const ns = live.impact.nodeState[z.nodeId] ?? 'ok';
         const st = STYLE[ns];
         const rising = live.impact.levelRising.has(z.nodeId);
@@ -74,9 +91,12 @@ export function Zones({ doc, live }: { doc: LayoutDoc; live: Live }) {
               <meshStandardMaterial color={st.fill} transparent opacity={st.opacity} depthWrite={false} />
             </mesh>
             <Line points={roundedRect(z)} color={st.line} lineWidth={ns === 'ok' ? 1.2 : 2} dashed={ns === 'affected'} dashSize={0.6} gapSize={0.4} />
-            <Html position={[z.x0 + 0.3, 0.05, front ? z.z1 + 0.25 : z.z0 + 0.1]} zIndexRange={[12, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={`zone-label ${ns}${front ? ' front' : ''}`}
-                onClick={() => !editMode && firstStructure && select(firstStructure.id)}
+            <Html position={[(z.x0 + z.x1) / 2, tops.get(z.nodeId)! + 0.5 + lift.get(z.nodeId)! + (ns === 'down' ? 1.8 : 0), (z.z0 + z.z1) / 2]}
+              zIndexRange={ns === 'down' ? [30, 20] : [12, 0]} style={{ pointerEvents: 'none' }}>
+              <div className={`zone-label ${ns}${tag ? ' tagged' : ''}`} title={areaName(z.nodeId)}
+                ref={el => { if (el) labels.current.set(z.nodeId, el); else labels.current.delete(z.nodeId); }}
+                onClick={e => { e.stopPropagation(); if (!editMode && firstStructure) select(firstStructure.id); }}
+                onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}
                 style={{ pointerEvents: !editMode && firstStructure ? 'auto' : 'none' }}>
                 {tag && <span className="mono zone-tag">{tag}</span>}
                 <span className="zone-name">{areaName(z.nodeId)}</span>

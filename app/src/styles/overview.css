@@ -179,6 +179,7 @@ kbd {
 
 /* ---------------------------------------------------------------- 3D labels */
 .asset-label {
+  cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px; padding: 3px 7px 3px 6px; white-space: nowrap;
   background: rgba(11, 15, 20, 0.82); border: 1px solid rgba(160, 180, 205, 0.18); border-radius: 5px;
   font-size: 11px; color: var(--text); transform-origin: 50% 100%; transition: opacity 0.2s; user-select: none;
@@ -189,9 +190,9 @@ kbd {
 .asset-label.k-fault { background: rgba(80, 18, 20, 0.92); border-color: rgba(240, 82, 82, 0.8); color: #ffe1e1; box-shadow: 0 0 14px rgba(240, 82, 82, 0.35); }
 .asset-label.k-fault .chip { color: #ffb3b3; }
 .zone-label {
-  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; transform: translateY(-100%);
-  padding: 3px 8px; border-radius: 5px; font-size: 11.5px; color: var(--text-2);
-  background: rgba(11, 15, 20, 0.6); border: 1px solid rgba(160, 180, 205, 0.12); cursor: default; user-select: none;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transform: translate(-50%, -100%);
+  padding: 2px 7px; border-radius: 5px; font-size: 11px; color: var(--text-2);
+  background: rgba(11, 15, 20, 0.72); border: 1px solid rgba(160, 180, 205, 0.12); cursor: default; user-select: none;
 }
 .zone-tag { color: var(--text); font-weight: 600; font-size: 11px; }
 .zone-state { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
@@ -199,4 +200,5 @@ kbd {
 .zone-state.affected { color: #1a1204; background: var(--st-maint); }
 .zone-label.down { border-color: rgba(240, 82, 82, 0.7); background: rgba(60, 16, 18, 0.85); color: #ffd6d6; }
 .zone-label.affected, .zone-label.changeover { border-color: rgba(242, 181, 59, 0.5); }
-.zone-label.front { transform: none; }
+.zone-label.tagged.compact .zone-name { display: none; }
+.zone-label.tagged.compact:hover .zone-name { display: inline; }

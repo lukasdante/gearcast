@@ -15,14 +15,60 @@ import { findPort, portWorld, snap } from './geometry';
 
 const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
-function bounds(doc: LayoutDoc) {
-  if (!doc.items.length) return { cx: 0, cz: 0, r: 20, hw: 16, hd: 12 };
-  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-  for (const it of doc.items) {
+/** World-space boxes of the layout items from the real model footprints / heights. */
+function itemBoxes(doc: LayoutDoc): THREE.Box3[] {
+  if (!doc.items.length) return [new THREE.Box3(new THREE.Vector3(-16, 0, -12), new THREE.Vector3(16, 4, 12))];
+  return doc.items.map(it => {
     const r = itemRect(it);
-    x0 = Math.min(x0, r.x0); x1 = Math.max(x1, r.x1); z0 = Math.min(z0, r.z0); z1 = Math.max(z1, r.z1);
+    const h = (it.props?.elevation ?? 0) + (it.props?.proxy ? it.props.proxy[1] : getKind(it.kind).height * (it.scale ?? 1));
+    return new THREE.Box3(new THREE.Vector3(r.x0, 0, r.z0), new THREE.Vector3(r.x1, h, r.z1));
+  });
+}
+export const bounds = (doc: LayoutDoc) => itemBoxes(doc).reduce((a, b) => a.union(b), new THREE.Box3());
+
+/** Default view direction: 3/4 view from the front-right, ~40° down. */
+const VIEW_DIR = (() => {
+  const el = THREE.MathUtils.degToRad(40), az = THREE.MathUtils.degToRad(12);
+  return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+})();
+const FILL = 0.85;
+
+/**
+ * Camera position / target that frames the item boxes to fill FILL of a viewport with the given aspect,
+ * by projecting the box corners and iterating distance + recentring.
+ */
+export function frameBoxes(boxes: THREE.Box3[], fov: number, aspect: number) {
+  const cam = new THREE.PerspectiveCamera(fov, aspect, 0.1, 2000);
+  const box = boxes.reduce((a, b) => a.union(b), new THREE.Box3());
+  const corners: THREE.Vector3[] = [];
+  for (const b of boxes) for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) corners.push(new THREE.Vector3(x, y, z));
+  const target = box.getCenter(new THREE.Vector3()).setY(0);
+  let dist = box.getSize(new THREE.Vector3()).length();
+  const extent = (d: number) => {
+    cam.position.copy(target).addScaledVector(VIEW_DIR, d);
+    cam.lookAt(target);
+    cam.updateMatrixWorld();
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const c of corners) {
+      const p = c.clone().project(cam);
+      x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+    }
+    return { x0, x1, y0, y1, k: Math.max((x1 - x0) / 2, (y1 - y0) / 2) / FILL };
+  };
+  for (let pass = 0; pass < 4; pass++) {
+    let lo = 2, hi = 2000;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (extent(mid).k > 1) lo = mid; else hi = mid; }
+    dist = hi;
+    // recentre: move the target so the projected box is centred, keeping it on the ground
+    const e = extent(dist);
+    const cx = (e.x0 + e.x1) / 2, cy = (e.y0 + e.y1) / 2;
+    const th = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * dist;
+    const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+    target.addScaledVector(right, cx * th * aspect).addScaledVector(up, cy * th);
+    target.addScaledVector(VIEW_DIR, -target.y / VIEW_DIR.y);
   }
-  return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, r: Math.max(12, Math.hypot(x1 - x0, z1 - z0) / 2), hw: Math.max(8, (x1 - x0) / 2), hd: Math.max(6, (z1 - z0) / 2) };
+  return { pos: target.clone().addScaledVector(VIEW_DIR, dist), target };
 }
 
 /** Smooth fly-to for selection and Fit; cancelled when the user grabs the camera. */
@@ -42,14 +88,9 @@ function CameraRig({ doc }: { doc: LayoutDoc }) {
   docRef.current = doc;
 
   const fit = (instant = false) => {
-    const b = bounds(docRef.current);
-    const target = new THREE.Vector3(b.cx, 0, b.cz);
     const persp = camera as THREE.PerspectiveCamera;
-    const tv = Math.tan(THREE.MathUtils.degToRad(persp.fov / 2));
-    // Fit width and depth separately (depth is foreshortened by the ~45° view), with margin for the overlays.
     const aspect = Math.max(0.5, (size.width - panelL - panelR) / size.height);
-    const dist = Math.max((b.hw * 1.08) / (tv * aspect), (b.hd * 1.6) / tv) + b.hd * 0.4;
-    const pos = target.clone().add(new THREE.Vector3(0, 0.74, 0.68).normalize().multiplyScalar(dist));
+    const { pos, target } = frameBoxes(itemBoxes(docRef.current), persp.fov, aspect);
     if (instant && controls) { camera.position.copy(pos); controls.target.copy(target); controls.update(); }
     else goal.current = { pos, target };
   };
@@ -64,7 +105,7 @@ function CameraRig({ doc }: { doc: LayoutDoc }) {
     const target = new THREE.Vector3(it.position[0], h * 0.45, it.position[1]);
     const dir = camera.position.clone().sub(controls.target).normalize();
     if (dir.y < 0.35) { dir.y = 0.35; dir.normalize(); }
-    const dist = Math.max(17, Math.max(...getKind(it.kind).footprint) * (it.scale ?? 1) * 3);
+    const dist = Math.max(13, Math.max(...getKind(it.kind).footprint) * (it.scale ?? 1) * 2.6);
     goal.current = { pos: target.clone().addScaledVector(dir, dist), target };
   }, [selectedItemId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -173,11 +214,13 @@ export function pickPort(item: LayoutItem, port: string) {
 }
 
 function nearestPort(item: LayoutItem, point: THREE.Vector3, prefer: 'in' | 'out') {
-  const ports = getKind(item.kind).ports;
-  if (!ports.length) return prefer;
+  const all = getKind(item.kind).ports;
+  if (!all.length) return prefer;
+  // source picks an outlet, destination an inlet, when the kind has one
+  const ports = all.some(p => p.id.startsWith(prefer)) ? all.filter(p => p.id.startsWith(prefer)) : all;
   let best = ports[0], bd = Infinity;
   for (const p of ports) {
-    const d = portWorld(item, p).pos.distanceTo(point) + (p.id.startsWith(prefer) ? 0 : 0.75);
+    const d = portWorld(item, p).pos.distanceTo(point);
     if (d < bd) { bd = d; best = p; }
   }
   return best.id;
@@ -274,31 +317,52 @@ function SceneContent({ doc, live }: { doc: LayoutDoc; live: Live }) {
   );
 }
 
+/** Gallery key light (direction [8, 14, 6]) with its shadow camera fitted to the plant. */
+function KeyLight({ doc }: { doc: LayoutDoc }) {
+  const ref = useRef<THREE.DirectionalLight>(null);
+  const box = useMemo(() => bounds(doc), [doc]);
+  useEffect(() => {
+    const l = ref.current;
+    if (!l) return;
+    const c = box.getCenter(new THREE.Vector3()).setY(0);
+    const r = Math.max(12, box.getSize(new THREE.Vector3()).setY(0).length() / 2 + 2);
+    l.position.copy(c).add(new THREE.Vector3(8, 14, 6).normalize().multiplyScalar(r * 2));
+    l.target.position.copy(c);
+    l.target.updateMatrixWorld();
+    const sc = l.shadow.camera;
+    sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.near = 1; sc.far = r * 4;
+    sc.updateProjectionMatrix();
+  }, [box]);
+  return (
+    <directionalLight ref={ref} castShadow intensity={2.2} shadow-mapSize={[4096, 4096]}
+      shadow-bias={-0.0004} shadow-normalBias={0.02} />
+  );
+}
+
 export function Scene({ doc, live }: { doc: LayoutDoc; live: Live }) {
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [10, 45, 55], fov: 38, near: 0.5, far: 600 }}
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [10, 45, 55], fov: 40, near: 0.3, far: 600 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onPointerMissed={() => { if (!useUi.getState().editMode || useUi.getState().tool.type === 'select') useUi.getState().select(null); }}>
       <color attach="background" args={['#0b0f14']} />
-      <fog attach="fog" args={['#0b0f14', 110, 260]} />
-      <hemisphereLight args={['#c9d6e8', '#10151c', 0.55]} />
-      <directionalLight castShadow position={[28, 48, 30]} intensity={1.7} color="#fff6ea"
-        shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03}
-        shadow-camera-left={-55} shadow-camera-right={55} shadow-camera-top={45} shadow-camera-bottom={-45} shadow-camera-far={160} />
-      <directionalLight position={[-30, 20, -25]} intensity={0.35} color="#9fc2ff" />
+      <fog attach="fog" args={['#0b0f14', 120, 300]} />
+      {/* Same rig as the model gallery: hemisphere + warm key + cool fill + lightformer environment */}
+      <hemisphereLight args={['#b8c7d6', '#1a1f26', 0.55]} />
+      <KeyLight doc={doc} />
+      <directionalLight position={[-10, 6, -8]} intensity={0.5} color="#9fb4c8" />
       <Environment resolution={128} frames={1}>
-        <Lightformer intensity={1.2} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[40, 40, 1]} color="#dfe8f5" />
-        <Lightformer intensity={0.6} position={[-20, 4, 10]} rotation-y={Math.PI / 2} scale={[30, 6, 1]} color="#8fb4ff" />
-        <Lightformer intensity={0.5} position={[20, 4, -10]} rotation-y={-Math.PI / 2} scale={[30, 6, 1]} color="#ffd9b0" />
+        <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[12, 3, 1]} />
+        <Lightformer form="rect" intensity={1} color="#a8c2dd" position={[-6, 3, -4]} scale={[8, 2, 1]} />
+        <Lightformer form="ring" intensity={1.2} position={[6, 4, -2]} scale={3} />
       </Environment>
       <mesh rotation-x={-Math.PI / 2} receiveShadow position-y={-0.01}>
         <planeGeometry args={[600, 600]} />
-        <meshStandardMaterial color="#0f141b" roughness={0.95} metalness={0} />
+        <meshStandardMaterial color="#141a21" roughness={0.95} metalness={0} />
       </mesh>
       <Grid position={[0, 0.002, 0]} args={[400, 400]} cellSize={1} cellThickness={0.6} cellColor="#18212c"
-        sectionSize={5} sectionThickness={1} sectionColor="#223041" fadeDistance={170} fadeStrength={1.6} infiniteGrid />
+        sectionSize={5} sectionThickness={1} sectionColor="#223041" fadeDistance={320} fadeStrength={1.4} infiniteGrid />
       <SceneContent doc={doc} live={live} />
-      <OrbitControls makeDefault enableDamping dampingFactor={0.08} maxPolarAngle={Math.PI / 2.25} minDistance={4} maxDistance={180}
+      <OrbitControls makeDefault enableDamping dampingFactor={0.08} maxPolarAngle={Math.PI / 2.3} minPolarAngle={0.12} minDistance={4} maxDistance={200}
         screenSpacePanning={false} />
     </Canvas>
   );
