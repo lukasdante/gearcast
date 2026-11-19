@@ -62,15 +62,17 @@ export function Incidents() {
   useEffect(() => { refresh(); }, []);
   useEffect(() => {
     if (!intent) return;
-    setForm({ ...blankForm(intent.asset_id), ...(intent.prefill ?? {}) }); setDraft(null); setDone(null); setMode('new');
+    const f = { ...blankForm(intent.asset_id), ...(intent.prefill ?? {}) };
+    setForm(f); setDraft(null); setDone(null); setMode('new');
     useIntent.getState().clear('incident');
+    if (intent.prefill) generate(f); // arriving from Troubleshoot: let Caster draft straight away
   }, [intent?.seq]);
 
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
-  const generate = async () => {
+  const generate = async (f: typeof form = form) => {
     setBusy('draft'); setErr(null); setDone(null);
     try {
-      const body = { ...form, failure_at: form.failure_at.replace('T', ' '), downtime_h: form.downtime_h === '' ? null : Number(form.downtime_h), sim: simPayload() };
+      const body = { ...f, failure_at: f.failure_at.replace('T', ' '), downtime_h: f.downtime_h === '' ? null : Number(f.downtime_h), sim: simPayload() };
       setDraft(await postJSON<Draft>('/api/incidents/draft', body));
     } catch (e) { setErr(e instanceof Error ? e.message : 'Draft failed'); } finally { setBusy(''); }
   };

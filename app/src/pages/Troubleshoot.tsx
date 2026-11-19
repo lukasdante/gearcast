@@ -113,6 +113,10 @@ export function Troubleshoot() {
     useIntent.getState().setIncident(session.asset_id || resp?.asset?.asset_id || 'P-101B', {
       observed: [session.query, sym ? `Symptom ${sym.id} ${sym.name}.` : '', qa ? `Checks: ${qa}.` : ''].filter(Boolean).join(' '),
       procedure_used: proc?.id ?? '',
+      parts_used: proc?.parts ?? '',
+      operating_condition: 'Running',
+      detected_by: /nois|grind|knock|rattl|vibrat/i.test(session.query) ? 'Noise' : /leak|drip|seep/i.test(session.query) ? 'Leak observed'
+        : /flow|level/i.test(session.query) ? 'Flow drop' : /trip|overload/i.test(session.query) ? 'Trip' : 'Inspection',
       actions_taken: doneSteps ? `Troubleshooting per ${proc?.id ?? 'procedure'}: completed ${doneSteps}.` : '',
     });
     navigate('incidents');

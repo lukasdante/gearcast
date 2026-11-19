@@ -109,3 +109,4 @@
 .caster-fab { transition: right 0.2s ease; }
 body:has(.overview .inspector) .caster-fab { right: 408px; }
 body:has(.overview .inspector) .legend-wrap { right: 482px; }
+body:has(.rr-drawer.open) .caster-fab { right: 476px; }

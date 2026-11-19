@@ -3,7 +3,6 @@ import { PLANT } from '../data';
 import { getJSON } from '../api/client';
 import { Icon } from '../shell/icons';
 import { openAsset } from '../shell/TopBar';
-import { fmtDate } from '../domain/assetInfo';
 import '../styles/pages.css';
 
 interface Rule { id: string; label: string; value: number | string; limit: number | string; fired: boolean }
@@ -22,9 +21,13 @@ const php = (n: number) => `PHP ${Math.round(n).toLocaleString('en-US')}`;
 const tone = (r: string) => (r.startsWith('Replace') ? 'bad' : r.includes('watch') ? 'warn' : 'ok');
 const ASSETS = PLANT.equipment.map(a => a.asset_id);
 
+/** 2025-06-10 -> 06/10/25 */
+const shortDate = (d: string) => { const [y, m, dd] = d.slice(0, 10).split('-'); return `${m}/${dd}/${y.slice(2)}`; };
+
 export function RepairReplace() {
   const [data, setData] = useState<{ model: ModelInfo; cases: CaseRow[] } | null>(null);
-  const [sel, setSel] = useState<string>('RR-03');
+  const [sel, setSel] = useState<string>('');
+  const [open, setOpen] = useState(false);
   const [live, setLive] = useState<{ asset: string; cost: string; result: (Prediction & { asset_id: string }) | null }>({ asset: 'P-101B', cost: '', result: null });
   const [err, setErr] = useState<string | null>(null);
 
@@ -34,7 +37,7 @@ export function RepairReplace() {
       const q = live.cost ? `?repair_cost_php=${Number(live.cost)}` : '';
       setLive(l => ({ ...l, result: null }));
       const r = await getJSON<Prediction & { asset_id: string }>(`/api/rr/predict/${live.asset}${q}`);
-      setLive(l => ({ ...l, result: r })); setSel('');
+      setLive(l => ({ ...l, result: r })); setSel(''); setOpen(true);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Prediction failed'); }
   };
   const row = data?.cases.find(c => c.case.case_id === sel);
@@ -66,8 +69,8 @@ export function RepairReplace() {
                 <thead><tr><th>Case</th><th>Date</th><th>Asset</th><th>Failure</th><th className="num">Repair</th><th className="num">% new</th><th>Model</th><th className="num">Conf.</th></tr></thead>
                 <tbody>
                   {data.cases.map(c => (
-                    <tr key={c.case.case_id} className={sel === c.case.case_id ? 'active' : ''} onClick={() => setSel(c.case.case_id)}>
-                      <td className="mono">{c.case.case_id}</td><td>{fmtDate(c.case.decision_date)}</td><td className="mono tag">{c.case.asset_id}</td>
+                    <tr key={c.case.case_id} className={sel === c.case.case_id ? 'active' : ''} onClick={() => { setSel(c.case.case_id); setOpen(true); }}>
+                      <td className="mono">{c.case.case_id}</td><td className="mono">{shortDate(c.case.decision_date)}</td><td className="mono tag">{c.case.asset_id}</td>
                       <td className="ellip">{c.failure_mode}</td><td className="num mono">{Math.round(c.case.repair_cost_php).toLocaleString('en-US')}</td>
                       <td className="num mono">{(c.case.repair_cost_ratio * 100).toFixed(1)}%</td>
                       <td><span className={`rec ${tone(c.prediction.recommendation)}`}>{c.prediction.recommendation}</span></td>
@@ -83,7 +86,13 @@ export function RepairReplace() {
                 <button type="button" className="btn primary sm" onClick={check}>Run model</button>
               </div>
             </div>
-            {pred && <RrDetail p={pred} title={row ? `${row.case.case_id} · ${row.case.asset_id}` : `Live check · ${live.result?.asset_id}`} assetId={row?.case.asset_id ?? live.result?.asset_id} actual={row?.case.actual_decision} />}
+            {pred && (
+              <aside className={`rr-drawer${open ? ' open' : ''}`} aria-hidden={!open}>
+                <button type="button" className="rr-drawer-close btn ghost sm" onClick={() => setOpen(false)} aria-label="Collapse panel">›</button>
+                <RrDetail p={pred} title={row ? `${row.case.case_id} · ${row.case.asset_id}` : `Live check · ${live.result?.asset_id}`} assetId={row?.case.asset_id ?? live.result?.asset_id} actual={row?.case.actual_decision} />
+              </aside>
+            )}
+            {pred && !open && <button type="button" className="rr-drawer-tab" onClick={() => setOpen(true)} aria-label="Show details">‹ Details</button>}
           </div>
         </>
       )}

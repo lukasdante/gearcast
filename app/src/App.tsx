@@ -5,6 +5,7 @@ import { ChatLauncher } from './shell/ChatLauncher';
 import { DialogHost } from './shell/Modal';
 import { Placeholder } from './pages/Placeholder';
 import { PmMonitoring } from './pages/PmMonitoring';
+import { SpareReadiness } from './pages/SpareReadiness';
 import { PlantOverview } from './overview/PlantOverview';
 import { useRoute } from './store/route';
 import { Troubleshoot } from './pages/Troubleshoot';
@@ -31,6 +32,7 @@ export default function App() {
               : route === 'rr' ? <RepairReplace />
                 : route === 'knowledge' ? <Knowledge />
                   : route === 'pm' ? <PmMonitoring />
+                    : route === 'spares' ? <SpareReadiness />
                   : <Placeholder title={TITLES[route as keyof typeof TITLES][0]} text={TITLES[route as keyof typeof TITLES][1]} />}
       </main>
       <ChatLauncher />
