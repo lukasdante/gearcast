@@ -4,6 +4,8 @@
  */
 import { OPS, PLANT } from '../data';
 import { del, postJSON, simPayload } from '../api/client';
+import { pushAssignments } from '../api/assignments';
+import { storeReportPdf } from '../api/incidentDocs';
 import { usePlantStore } from '../store/plantStore';
 import { useStatusStore } from '../store/statusStore';
 import { useIntent } from '../store/intentStore';
@@ -89,7 +91,7 @@ export const OP_REGISTRY: Record<string, OpDef> = {
       if (!rows.length) throw new Error(`No PM task ${a.task_id}${a.asset_id ? ` for ${a.asset_id}` : ''}`);
       const m = read<Record<string, string>>(AKEY, {});
       for (const r of rows) { if (a.assignee) m[r.status_id] = String(a.assignee).toUpperCase(); else delete m[r.status_id]; }
-      write(AKEY, m); window.dispatchEvent(new Event('gearcast:pm-assign'));
+      write(AKEY, m); pushAssignments(m); window.dispatchEvent(new Event('gearcast:pm-assign'));
       return `${rows.length} task row(s) ${a.assignee ? `assigned to ${String(a.assignee).toUpperCase()}` : 'unassigned'}`;
     },
   },
@@ -134,6 +136,7 @@ export const OP_REGISTRY: Record<string, OpDef> = {
       });
       const res = await postJSON<{ report_id: string; status_change?: { asset_id: string; new_status: string; reason: string } | null }>('/api/incidents', draft);
       if (res.status_change) useStatusStore.getState().setStatus(res.status_change.asset_id, res.status_change.new_status, res.status_change.reason);
+      await storeReportPdf(res.report_id).catch(() => { /* rendered on first download instead */ });
       window.dispatchEvent(new Event('gearcast:incidents'));
       return `Submitted ${res.report_id}${res.status_change ? ` · ${x.asset_id} shut down` : ''}`;
     },

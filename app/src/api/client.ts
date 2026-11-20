@@ -13,6 +13,7 @@ export class ApiError extends Error {
 
 async function check(r: Response) {
   if (!r.ok) {
+    if (r.status === 401) window.dispatchEvent(new Event('gearcast:unauthorized'));
     let msg = r.statusText;
     try { const j = await r.json(); msg = j.detail ?? msg; } catch { /* not json */ }
     throw new ApiError(r.status, typeof msg === 'string' ? msg : JSON.stringify(msg));

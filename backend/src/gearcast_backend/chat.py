@@ -36,14 +36,14 @@ Format when delivering information (markdown):
 Do not narrate what you are about to do before calling tools — call them, then answer.
 
 Actions: when useful, call propose_action together with your data tools or before writing the final answer to give the user one-click buttons (max 3): open_asset, open_troubleshoot,
-draft_incident. Out of scope (not WWTP equipment/operations): say so briefly. Safety emergencies (injury, fire,
+draft_incident, open_repair_replace. Out of scope (not WWTP equipment/operations): say so briefly. Safety emergencies (injury, fire,
 structural): tell them to call the supervisor / emergency response first."""
 
 ACTION_TOOL = {"type": "function", "function": {
     "name": "propose_action",
-    "description": "Show the user a button in the chat. kind=open_asset (asset_id), open_troubleshoot (query describing the symptom, asset_id), draft_incident (asset_id; only when an asset has failed or must be taken out of service).",
+    "description": "Show the user a button in the chat. kind=open_asset (asset_id), open_troubleshoot (query describing the symptom, asset_id), draft_incident (asset_id; only when an asset has failed or must be taken out of service), open_repair_replace (asset_id; opens the repair-or-replace decision for that asset).",
     "parameters": {"type": "object", "properties": {
-        "kind": {"type": "string", "enum": ["open_asset", "open_troubleshoot", "draft_incident"]},
+        "kind": {"type": "string", "enum": ["open_asset", "open_troubleshoot", "draft_incident", "open_repair_replace"]},
         "asset_id": {"type": "string"}, "query": {"type": "string"}, "label": {"type": "string", "description": "Short button text"}},
         "required": ["kind"]}}}
 

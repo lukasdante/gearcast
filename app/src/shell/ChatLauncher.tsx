@@ -12,7 +12,7 @@ import { navigate } from '../store/route';
 import '../styles/chat.css';
 
 interface ToolChip { id: string; label: string; status: 'start' | 'done' }
-interface Action { kind: 'open_asset' | 'open_troubleshoot' | 'draft_incident'; asset_id?: string | null; query?: string; label?: string }
+interface Action { kind: 'open_asset' | 'open_troubleshoot' | 'draft_incident' | 'open_repair_replace'; asset_id?: string | null; query?: string; label?: string }
 interface OpCard { id: string; name: string; args: Record<string, unknown>; confirm: boolean; state: 'ask' | 'running' | 'done' | 'error' | 'cancelled'; result?: string }
 interface Msg { role: 'user' | 'assistant'; content: string; tools?: ToolChip[]; actions?: Action[]; ops?: OpCard[]; error?: string; pending?: boolean }
 
@@ -23,9 +23,11 @@ function runAction(a: Action) {
   if (a.kind === 'open_asset' && a.asset_id) openAsset(a.asset_id);
   else if (a.kind === 'open_troubleshoot') { useIntent.getState().setTroubleshoot(a.query ?? '', a.asset_id); navigate('troubleshoot'); }
   else if (a.kind === 'draft_incident' && a.asset_id) { useIntent.getState().setIncident(a.asset_id); navigate('incidents'); }
+  else if (a.kind === 'open_repair_replace') { if (a.asset_id) useIntent.getState().setRR(a.asset_id); navigate('rr'); }
 }
-const actionLabel = (a: Action) => a.label || (a.kind === 'open_asset' ? `Open ${a.asset_id}` : a.kind === 'draft_incident' ? `Draft incident · ${a.asset_id}` : 'Troubleshoot');
-const actionIcon = (a: Action) => (a.kind === 'open_asset' ? 'plant' : a.kind === 'draft_incident' ? 'incidents' : 'wrench');
+const actionLabel = (a: Action) => a.label || (a.kind === 'open_asset' ? `Open ${a.asset_id}` : a.kind === 'draft_incident' ? `Draft incident · ${a.asset_id}`
+  : a.kind === 'open_repair_replace' ? `Repair or replace${a.asset_id ? ` · ${a.asset_id}` : ''}` : 'Troubleshoot');
+const actionIcon = (a: Action) => (a.kind === 'open_asset' ? 'plant' : a.kind === 'draft_incident' ? 'incidents' : a.kind === 'open_repair_replace' ? 'cycle' : 'wrench');
 
 export function ChatLauncher() {
   const [open, setOpen] = useState(false);

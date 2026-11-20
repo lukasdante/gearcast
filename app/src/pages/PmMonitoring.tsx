@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NOW_DATE, OPS } from '../data';
 import { openAsset } from '../shell/TopBar';
+import { useAuth } from '../store/authStore';
+import { pushAssignments } from '../api/assignments';
 import '../styles/pages.css';
 
 export type Band = 'overdue' | 'due' | 'soon' | 'later';
@@ -43,7 +45,9 @@ export function buildRows(): Row[] {
 }
 
 export function PmMonitoring() {
-  const rows = useMemo(buildRows, []);
+  const allRows = useMemo(buildRows, []);
+  const me = useAuth(s => s.user);
+  const tech = me?.role === 'technician';
   const [band, setBand] = useState<Band | null>(null);
   const [q, setQ] = useState('');
   const [day, setDay] = useState<string | null>(null);
@@ -56,9 +60,11 @@ export function PmMonitoring() {
   }, []);
   const setTech = (id: string, v: string) => setAssign(a => {
     const n = { ...a, [id]: v }; if (!v) delete n[id];
-    try { localStorage.setItem(AKEY, JSON.stringify(n)); } catch { /* storage unavailable */ }
+    pushAssignments(n);
     return n;
   });
+  // Technicians see only the tasks assigned to them (read-only assignment).
+  const rows = useMemo(() => (tech ? allRows.filter(r => assign[r.id] === me?.username) : allRows), [allRows, tech, assign, me?.username]);
 
   const counts = Object.fromEntries(BANDS.map(b => [b.id, rows.filter(r => r.band === b.id).length])) as Record<Band, number>;
   const byDay = useMemo(() => {
@@ -80,8 +86,8 @@ export function PmMonitoring() {
   return (
     <div className="page pm-page">
       <header className="page-head">
-        <h1>PM Monitoring</h1>
-        <p>Preventive maintenance due dates and delegation. Today is {TODAY.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+        <h1>{tech ? `My tasks · ${me?.username}` : 'PM Monitoring'}</h1>
+        <p>{tech ? 'Preventive maintenance tasks assigned to you.' : 'Preventive maintenance due dates and delegation.'} Today is {TODAY.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.</p>
       </header>
 
       <div className="pm-top">
@@ -144,18 +150,18 @@ export function PmMonitoring() {
                   <td className="mono small">{r.procs.join(', ') || '—'}</td>
                   <td className="small">{r.role ?? '—'}</td>
                   <td>
-                    <select className="pm-assign" value={assign[r.id] ?? ''} onChange={e => setTech(r.id, e.target.value)} aria-label={`Assign ${r.task_id} ${r.asset_id}`}>
+                    <select className="pm-assign" disabled={tech} value={assign[r.id] ?? ''} onChange={e => setTech(r.id, e.target.value)} aria-label={`Assign ${r.task_id} ${r.asset_id}`}>
                       {TECHS.map(t => <option key={t} value={t}>{t || 'Unassigned'}</option>)}
                     </select>
                   </td>
                 </tr>
               ))}
-              {!shown.length && <tr><td colSpan={10} className="muted">No tasks match.</td></tr>}
+              {!shown.length && <tr><td colSpan={10} className="muted">{tech && !rows.length ? 'No tasks are assigned to you yet.' : 'No tasks match.'}</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      <p className="muted small pm-foot">Due date = last done + interval (plant rule). Assignments are saved in this browser.</p>
+      <p className="muted small pm-foot">Due date = last done + interval (plant rule). Assignments are shared: each technician sees the tasks assigned to them under My tasks.</p>
     </div>
   );
 }

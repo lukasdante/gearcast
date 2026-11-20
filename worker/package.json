@@ -1,0 +1,26 @@
+{
+  "name": "gearcast-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:data": "cd .. && uv run --project backend python worker/scripts/build_data.py",
+    "build:app": "cd ../app && npx vite build",
+    "dev": "wrangler dev",
+    "deploy": "npm run build:app && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "parity": "node test/parity.mjs",
+    "eval": "node test/eval.mjs"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
+    "fflate": "0.8.2",
+    "pdf-lib": "1.17.1",
+    "unpdf": "1.9.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261001.1",
+    "esbuild": "0.25.10",
+    "typescript": "5.6.3",
+    "wrangler": "4.147.0"
+  }
+}

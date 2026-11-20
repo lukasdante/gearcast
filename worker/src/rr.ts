@@ -1,0 +1,135 @@
+/** Repair-or-replace predictor "GearCast RR-Model v1" (port of backend rr.py: rules PRM-101..104 + cost model). */
+import { CLOCK, D, SPARE_FOR, failuresFor } from './data';
+import { fixed, fmtComma, fmtG, num, pct0, pyRound, pyStr, sortBy, truthy } from './py';
+import { DAY, parseDt } from './time';
+
+export const MODEL_INFO = {
+  name: 'GearCast RR-Model v1',
+  kind: 'gradient-boosted trees',
+  trained_on: '11 historical repair cases + synthetic augmentation',
+  features: ['repair_cost_ratio', 'failures_last_12m', 'asset_age_years', 'spare_ready', 'downtime_loss_php'],
+  implementation_note: 'Predictor = plant decision rules PRM-101..104 + cost model; swap-in point for a trained model.',
+};
+const NEW_UNIT_FAILURES_PER_YEAR = 0.3;
+const HORIZON_Y = 3;
+const NEW_COST_BY_TYPE: [string, string][] = [['P-101', 'CR-01'], ['SP-P01', 'CR-01'], ['M-', 'CR-02'], ['SP-M01', 'CR-02'], ['P-201', 'CR-03'],
+  ['SP-P02', 'CR-03'], ['SC-', 'CR-04'], ['VM-', 'CR-05'], ['SP-VM01', 'CR-05']];
+
+export function newUnitCost(aid: string): number {
+  for (const [prefix, cr] of NEW_COST_BY_TYPE) if (aid.startsWith(prefix)) return num(D.costRef[cr].value, 0);
+  return 0.0;
+}
+
+export interface Features {
+  asset_id: string; repair_cost_php: number; new_unit_cost_php: number; asset_age_years: number; failures_last_12m: number;
+  spare_ready: boolean; downtime_loss_php: number; avg_failure_cost_php: number | null;
+}
+const ratioOf = (f: Features) => (f.new_unit_cost_php ? f.repair_cost_php / f.new_unit_cost_php : 0.0);
+const clip = (x: number, lo = -1.0, hi = 1.0) => Math.max(lo, Math.min(hi, x));
+
+function rulePredict(f: Features) {
+  const maxRatio = D.param('PRM-101', 0.5), maxFailures = D.param('PRM-102', 3), oldAge = D.param('PRM-103', 8), oldRatio = D.param('PRM-104', 0.4);
+  const r = ratioOf(f);
+  const rules: any[] = [
+    { id: 'PRM-101', label: 'Repair cost > 50% of new', value: pyRound(r, 3), limit: maxRatio, fired: r > maxRatio, margin: (r - maxRatio) / maxRatio },
+    { id: 'PRM-102', label: '3+ failures in 12 months', value: f.failures_last_12m, limit: maxFailures, fired: f.failures_last_12m >= maxFailures,
+      margin: (f.failures_last_12m - (maxFailures - 0.5)) / maxFailures },
+    { id: 'PRM-103/104', label: 'Old (≥ 8 y) and costly (> 40%)', value: `${fixed(f.asset_age_years, 1)} y · ${pct0(r)}`, limit: `${fmtG(oldAge)} y · ${pct0(oldRatio)}`,
+      fired: f.asset_age_years > oldAge && r > oldRatio, margin: Math.min((f.asset_age_years - oldAge) / oldAge, (r - oldRatio) / oldRatio) },
+  ];
+  const replace = rules.some(x => x.fired);
+  let decision: string, margin: number;
+  if (replace) {
+    decision = 'Replace';
+    const fired = rules.filter(x => x.fired).map(x => x.margin);
+    margin = Math.max(...fired) + 0.25 * (fired.length - 1);
+  } else {
+    decision = f.failures_last_12m >= 2 ? 'Repair – watch' : 'Repair';
+    margin = -Math.max(...rules.map(x => x.margin));
+  }
+  const confidence = pyRound(0.5 + 0.48 * Math.tanh(3 * Math.abs(margin) + 0.15), 3);
+  const contrib: [string, string, number][] = [
+    ['Repair cost ratio', `${pct0(r)} of new`, clip((r - maxRatio) * 2.2)],
+    ['Failures last 12 m', String(f.failures_last_12m), clip((f.failures_last_12m - 2.2) / 1.6)],
+    ['Asset age', `${fixed(f.asset_age_years, 1)} y`, clip((f.asset_age_years - oldAge) / 5) * (r > oldRatio ? 1.0 : 0.35)],
+    ['Spare / standby ready', f.spare_ready ? 'Yes' : 'No', f.spare_ready ? -0.18 : 0.22],
+    ['Downtime loss exposure', `PHP ${fmtComma(f.downtime_loss_php, 0)}`, clip(f.downtime_loss_php / 2.0e7, 0, 0.4)],
+  ];
+  const factors = sortBy(contrib.map(([n, v, w]) => ({ feature: n, value: v, weight: pyRound(w, 3) })), x => Math.abs(x.weight), true);
+  const rate = Math.max(f.failures_last_12m, 0.5);
+  const avgFail = f.avg_failure_cost_php ? f.avg_failure_cost_php : Math.max(f.repair_cost_php * 0.5, 1);
+  const repair3y = f.repair_cost_php + HORIZON_Y * rate * avgFail;
+  const replace3y = f.new_unit_cost_php + HORIZON_Y * NEW_UNIT_FAILURES_PER_YEAR * avgFail;
+  const cheaper = replace3y < repair3y ? 'Replace' : 'Repair';
+  const follow = replace ? 'Replace' : 'Repair';
+  const savings = follow === 'Replace' ? repair3y - replace3y : replace3y - repair3y;
+  return {
+    recommendation: decision, replace, confidence, rules, factors,
+    costs: {
+      repair_now_php: pyRound(f.repair_cost_php), replace_now_php: pyRound(f.new_unit_cost_php),
+      repair_cost_ratio: pyRound(r, 3), repair_3y_php: pyRound(repair3y), replace_3y_php: pyRound(replace3y),
+      cheaper_over_3y: cheaper, savings_3y_php: pyRound(savings),
+      savings_note: savings >= 0 ? `Following the recommendation saves ≈ PHP ${fmtComma(savings, 0)} over 3 years (direct maintenance cost)`
+        : `3-year direct cost favours ${cheaper} by PHP ${fmtComma(-savings, 0)}; plant decision rules still govern – review at MG-01`,
+      assumptions: [
+        `Repair path: current failure rate (${fmtG(rate)}/yr) continues; avg failure cost PHP ${fmtComma(avgFail, 0)}`,
+        `Replace path: new unit fails ${NEW_UNIT_FAILURES_PER_YEAR}/yr (ASSUMED)`,
+        'Direct maintenance cost only; downtime exposure shown separately',
+      ],
+    },
+    downtime: {
+      loss_per_failure_php: pyRound(f.downtime_loss_php),
+      note: f.downtime_loss_php === 0 ? 'Standby or spare covers the outage – no production loss expected'
+        : `This event cost PHP ${fmtComma(f.downtime_loss_php, 0)} in lost production (pair down, Loss_Scenarios) – repeat failures without a ready standby risk plant curtailment`,
+    },
+    model: MODEL_INFO,
+  };
+}
+
+export function predict(f: Features): any {
+  const out: any = rulePredict(f);
+  out.features = { ...f, repair_cost_ratio: pyRound(ratioOf(f), 3) };
+  return out;
+}
+
+function spareReady(aid: string, spare: string | null): boolean {
+  const sp = spare || SPARE_FOR[aid];
+  const s = D.spareSummary[sp || ''];
+  return !!(s && s.readiness_status === 'Ready');
+}
+
+function featuresForCase(c: any): Features {
+  const fs = D.failures.filter(x => x.asset_id === c.asset_id && truthy(num(x.repair_cost_php)));
+  let sum = 0; for (const x of fs) sum += num(x.repair_cost_php, 0);
+  return {
+    asset_id: c.asset_id, repair_cost_php: num(c.repair_cost_php, 0), new_unit_cost_php: num(c.new_unit_cost_php, 0),
+    asset_age_years: num(c.asset_age_years, 0), failures_last_12m: Math.trunc(num(c.failures_last_12m, 0)),
+    spare_ready: truthy(c.ready_spare), downtime_loss_php: num(c.downtime_loss_php, 0), avg_failure_cost_php: fs.length ? sum / fs.length : null,
+  };
+}
+
+export function cases(): any[] {
+  return D.repairCases.map(c => {
+    const fe = D.failures.find(f => f.event_id === c.failure_event_id) || {};
+    const p = predict(featuresForCase(c));
+    return { case: c, failure_mode: fe.failure_mode ?? null, prediction: p,
+      agrees_with_record: p.recommendation.split(' (')[0] === pyStr(c.recommended_decision).split(' (')[0] };
+  });
+}
+
+export function liveFeatures(aid: string, repairCostPhp: number | null = null, downtimeLossPhp = 0.0): Features {
+  const a = D.asset[aid] || {};
+  const inst = parseDt(a.install_date);
+  const now = parseDt(CLOCK.asOf)!;
+  const age = inst !== null && now !== null ? Math.floor((now - inst) / DAY) / 365.25 : 0.0;
+  const fs = failuresFor(aid);
+  const last12 = fs.filter(f => { const t = parseDt(f.failure_at); return t !== null && t >= now - 365 * DAY; });
+  const costs = fs.filter(f => truthy(num(f.repair_cost_php))).map(f => num(f.repair_cost_php, 0));
+  if (repairCostPhp === null || repairCostPhp === undefined) repairCostPhp = costs.length ? costs[0] : 0.0;
+  let sum = 0; for (const c of costs) sum += c;
+  return {
+    asset_id: aid, repair_cost_php: Number(repairCostPhp), new_unit_cost_php: newUnitCost(aid), asset_age_years: pyRound(age, 1),
+    failures_last_12m: last12.length, spare_ready: spareReady(aid, null), downtime_loss_php: downtimeLossPhp,
+    avg_failure_cost_php: costs.length ? sum / costs.length : null,
+  };
+}

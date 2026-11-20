@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PLANT } from '../data';
-import { downloadBlob, getJSON, postBlob, postJSON, simPayload } from '../api/client';
+import { downloadBlob, getJSON, postJSON, simPayload } from '../api/client';
+import { draftDocxBlob, draftPdfBlob, reportPdfBlob, storeReportPdf } from '../api/incidentDocs';
 import { Icon } from '../shell/icons';
 import { Caster } from '../shell/Caster';
 import { openAsset } from '../shell/TopBar';
@@ -50,15 +51,13 @@ export function Incidents() {
   const downloadPdf = async (id: string) => {
     setBusy('pdf'); setErr(null);
     try {
-      const res = await fetch(`/api/incidents/${encodeURIComponent(id)}/pdf`);
-      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      downloadBlob(await res.blob(), `${id}.pdf`);
+      downloadBlob(await reportPdfBlob(id), `${id}.pdf`);
     } catch (e) { pdfFail(e); } finally { setBusy(''); }
   };
   const downloadDraftPdf = async () => {
     if (!draft) return;
     setBusy('pdf'); setErr(null);
-    try { downloadBlob(await postBlob('/api/incidents/render?format=pdf', draft), `${draft.report_id}.pdf`); } catch (e) { pdfFail(e); } finally { setBusy(''); }
+    try { downloadBlob(await draftPdfBlob(draft), `${draft.report_id}.pdf`); } catch (e) { pdfFail(e); } finally { setBusy(''); }
   };
   const setStatus = useStatusStore(s => s.setStatus);
 
@@ -84,7 +83,7 @@ export function Incidents() {
   const docx = async () => {
     if (!draft) return;
     setBusy('docx');
-    try { downloadBlob(await postBlob('/api/incidents/render?format=docx', draft), `${draft.report_id}.docx`); } catch (e) { setErr(e instanceof Error ? e.message : 'Render failed'); } finally { setBusy(''); }
+    try { downloadBlob(await draftDocxBlob(draft), `${draft.report_id}.docx`); } catch (e) { setErr(e instanceof Error ? e.message : 'Render failed'); } finally { setBusy(''); }
   };
   const submit = async () => {
     if (!draft) return;
@@ -92,6 +91,7 @@ export function Incidents() {
     try {
       const r = await postJSON<{ report_id: string; shut_down: boolean; asset_id: string; status_change?: { new_status: string; reason: string } }>('/api/incidents', { ...draft, shut_down: form.shut_down });
       if (r.status_change) setStatus(r.asset_id, r.status_change.new_status, r.status_change.reason);
+      await storeReportPdf(r.report_id).catch(() => { /* rendered on first download instead */ });
       setDone(r); setDraft(null); refresh();
     } catch (e) { setErr(e instanceof Error ? e.message : 'Submit failed'); } finally { setBusy(''); }
   };

@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gearcast",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "gearcast.engrlouis.dev", "custom_domain": true }],
+  "workers_dev": true,
+  "assets": {
+    "directory": "../app/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "ai": { "binding": "AI", "remote": true },
+  "d1_databases": [{ "binding": "DB", "database_name": "gearcast-db", "database_id": "f81ddecd-dbf5-43ce-8a9e-8d2c9f7b6d02" }],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "gearcast-files" }],
+  "vectorize": [{ "binding": "VEC", "index_name": "gearcast-kb", "remote": true }],
+  "vars": { "DEEPSEEK_BASE_URL": "https://api.deepseek.com", "DEEPSEEK_MODEL": "deepseek-flash", "TZ_OFFSET_MIN": "480" },
+  "observability": { "enabled": true }
+}

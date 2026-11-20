@@ -3,6 +3,7 @@ import { PLANT } from '../data';
 import { getJSON } from '../api/client';
 import { Icon } from '../shell/icons';
 import { openAsset } from '../shell/TopBar';
+import { useIntent } from '../store/intentStore';
 import '../styles/pages.css';
 
 interface Rule { id: string; label: string; value: number | string; limit: number | string; fired: boolean }
@@ -32,11 +33,19 @@ export function RepairReplace() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => { getJSON<{ model: ModelInfo; cases: CaseRow[] }>('/api/rr/cases').then(setData).catch(() => setErr('Backend offline – start it on :8000')); }, []);
-  const check = async () => {
+  const intent = useIntent(s => s.rr);
+  useEffect(() => {
+    if (!intent) return;
+    useIntent.getState().clear('rr');
+    setLive(l => ({ ...l, asset: intent.asset_id, cost: '' }));
+    check(intent.asset_id, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent?.seq]);
+  const check = async (asset = live.asset, cost = live.cost) => {
     try {
-      const q = live.cost ? `?repair_cost_php=${Number(live.cost)}` : '';
+      const q = cost ? `?repair_cost_php=${Number(cost)}` : '';
       setLive(l => ({ ...l, result: null }));
-      const r = await getJSON<Prediction & { asset_id: string }>(`/api/rr/predict/${live.asset}${q}`);
+      const r = await getJSON<Prediction & { asset_id: string }>(`/api/rr/predict/${asset}${q}`);
       setLive(l => ({ ...l, result: r })); setSel(''); setOpen(true);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Prediction failed'); }
   };
@@ -83,7 +92,7 @@ export function RepairReplace() {
                 <b>Check an asset now</b>
                 <select value={live.asset} onChange={e => setLive(l => ({ ...l, asset: e.target.value }))}>{ASSETS.map(a => <option key={a}>{a}</option>)}</select>
                 <input type="number" min="0" placeholder="Repair quote (PHP), blank = last repair" value={live.cost} onChange={e => setLive(l => ({ ...l, cost: e.target.value }))} />
-                <button type="button" className="btn primary sm" onClick={check}>Run model</button>
+                <button type="button" className="btn primary sm" onClick={() => check()}>Run model</button>
               </div>
             </div>
             {pred && (

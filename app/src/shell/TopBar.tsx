@@ -5,6 +5,7 @@ import { useStatusCtx, useStatusStore } from '../store/statusStore';
 import { usePlantStore } from '../store/plantStore';
 import { useUi } from '../store/uiStore';
 import { navigate } from '../store/route';
+import { useAuth } from '../store/authStore';
 import { fmtDate, nowStamp } from '../domain/assetInfo';
 
 /** Live "data as of" clock (the dataset is shifted to today; see data/index.ts). */
@@ -50,6 +51,7 @@ export function TopBar() {
         <AsOf />
       </div>
       <div className="topbar-right">
+        <UserChip />
         <span className="sim-badge" title="Statuses are recorded / simulated from the workbook, not a live SCADA feed">
           <span className="dot" />Simulated status — not live SCADA
         </span>
@@ -84,5 +86,16 @@ export function TopBar() {
         </div>
       </div>
     </header>
+  );
+}
+
+function UserChip() {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+  return (
+    <span className="user-chip" title={user.name}>
+      <span><b>{user.username}</b> · {user.role === 'technician' ? 'Technician' : 'Operator'}</span>
+      <button type="button" className="btn sm ghost" onClick={() => logout()}>Sign out</button>
+    </span>
   );
 }

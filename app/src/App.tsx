@@ -15,6 +15,11 @@ import { Troubleshoot } from './pages/Troubleshoot';
 import { Incidents } from './pages/Incidents';
 import { RepairReplace } from './pages/RepairReplace';
 import { Knowledge } from './pages/Knowledge';
+import { Login } from './pages/Login';
+import { useEffect } from 'react';
+import { useAuth, TECH_ROUTES } from './store/authStore';
+import { navigate } from './store/route';
+import { syncAssignments } from './api/assignments';
 
 const TITLES = {
   assets: ['Assets', 'Asset register, history and procedures per unit.'],
@@ -24,6 +29,14 @@ const TITLES = {
 
 export default function App() {
   const route = useRoute();
+  const { user, ready, load } = useAuth();
+  const tech = user?.role === 'technician';
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (user) syncAssignments(); }, [user]);
+  useEffect(() => { if (tech && !(TECH_ROUTES as readonly string[]).includes(route)) navigate('pm'); }, [tech, route]);
+  if (!ready) return null;
+  if (!user) return <Login />;
+  if (tech && !(TECH_ROUTES as readonly string[]).includes(route)) return null;
   return (
     <div className="app">
       <TopBar />
@@ -40,7 +53,7 @@ export default function App() {
                     : route === 'spares' ? <SpareReadiness />
                   : <Placeholder title={TITLES[route as keyof typeof TITLES][0]} text={TITLES[route as keyof typeof TITLES][1]} />}
       </main>
-      <ChatLauncher />
+      {!tech && <ChatLauncher />}
       <Splash />
       <DialogHost />
     </div>
