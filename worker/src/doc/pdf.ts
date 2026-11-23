@@ -2,9 +2,10 @@
  * Same layout rules: template grid widths (scaled to the frame), gridSpan/vMerge, cell shading, bold/colour/size runs,
  * ☐/☒ tick boxes, the "HOW TO FILL IN" page skipped, footer + page numbers, DejaVu Sans Condensed. Reportlab's
  * metrics are reproduced: leading = 1.22 × size, first baseline = top − size, cell padding 3.5/2.5, frame padding 6. */
-import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib';
+import { PDFDocument, PDFFont, PDFImage, PDFPage, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { Doc, El, find, iter, kid, kids, textOf } from './xml';
+import { layoutChart, type TrendSpec } from './chart';
 
 const TWIP = 1 / 20;
 const hex = (h: string) => { const n = parseInt(h.replace('#', ''), 16); return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); };
@@ -15,6 +16,27 @@ interface Frag { t: string; b: boolean }
 interface Para { frags: Frag[]; size: number; color: string; align: 0 | 1 | 2; spaceAfter: number }
 interface Line { words: Frag[][]; w: number }
 interface Fonts { r: PDFFont; b: PDFFont; wr: Map<string, number>; wb: Map<string, number> }
+/** An inline picture: a raster image (rid) or a vector chart (chart index). */
+interface Img { k: 'img'; rid: string; chart: number | null; w: number; h: number; align: 0 | 1 | 2 }
+type Block = { k: 'p'; p: Para; lines?: Line[] } | Img;
+
+/** Extra content the .docx tree refers to: image bytes by rId, chart specs for gc-chart:N drawings. */
+export interface PdfExtras { images?: Record<string, { bytes?: Uint8Array; ext: 'png' | 'jpeg' }>; charts?: TrendSpec[] }
+let EXTRAS: PdfExtras = {};
+
+function drawingOf(p: El): Img | null {
+  const inl = find(p, 'wp:inline');
+  if (!inl) return null;
+  const ext = kid(inl, 'wp:extent'), doc = kid(inl, 'wp:docPr'), blip = find(inl, 'a:blip');
+  const w = ext ? parseInt(ext.a.cx, 10) / 12700 : 0, h = ext ? parseInt(ext.a.cy, 10) / 12700 : 0;
+  const m = /^gc-chart:(\d+)$/.exec(doc?.a.descr || '');
+  const chart = m ? parseInt(m[1], 10) : null;
+  const rid = blip?.a['r:embed'] || '';
+  if (chart !== null ? !EXTRAS.charts?.[chart] : !EXTRAS.images?.[rid]?.bytes) return null;
+  const ppr = kid(p, 'w:pPr'), jc = ppr ? kid(ppr, 'w:jc') : undefined;
+  const align = jc ? (({ center: 1, right: 2, end: 2 } as any)[jc.a['w:val']] ?? 0) : 0;
+  return { k: 'img', rid, chart, w, h, align };
+}
 
 function charW(F: Fonts, ch: string, bold: boolean): number {
   const m = bold ? F.wb : F.wr;
@@ -128,7 +150,8 @@ function drawLines(page: PDFPage, F: Fonts, p: Para, lines: Line[], x: number, t
 }
 
 // ------------------------------------------------------------------ tables
-interface Cell { paras: Para[]; lines?: Line[][]; h: number; span: number; rowSpan: number; fill: string | null; covered?: boolean }
+interface Cell { blocks: Block[]; h: number; span: number; rowSpan: number; fill: string | null; covered?: boolean }
+const IMG_GAP = 3;
 interface Table { widths: number[]; rows: Cell[][]; heights: number[]; width: number }
 const PAD_L = 3.5, PAD_R = 3.5, PAD_T = 2.5, PAD_B = 2.5;
 
@@ -143,7 +166,7 @@ function table(F: Fonts, tbl: El, availW: number): Table {
   const rows: Cell[][] = [];
   const vopen: Record<number, number> = {};
   trs.forEach((tr, ri) => {
-    const row: Cell[] = Array.from({ length: ncols }, () => ({ paras: [], h: 0, span: 1, rowSpan: 1, fill: null }));
+    const row: Cell[] = Array.from({ length: ncols }, () => ({ blocks: [] as Block[], h: 0, span: 1, rowSpan: 1, fill: null }));
     let ci = 0;
     for (const tc of kids(tr, 'w:tc')) {
       if (ci >= ncols) break;
@@ -162,7 +185,8 @@ function table(F: Fonts, tbl: El, availW: number): Table {
         }
       }
       const cell = row[ci];
-      cell.paras = kids(tc, 'w:p').map(p => para(p, 8.5, 0, true)).filter((p): p is Para => !!p);
+      cell.blocks = kids(tc, 'w:p').map((p): Block | null => { const d = drawingOf(p); if (d) return d; const q = para(p, 8.5, 0, true); return q ? { k: 'p', p: q } : null; })
+        .filter((b): b is Block => !!b);
       cell.span = span; cell.fill = fill;
       for (let k = 1; k < span && ci + k < ncols; k++) row[ci + k].covered = true;
       ci += span;
@@ -175,8 +199,8 @@ function table(F: Fonts, tbl: El, availW: number): Table {
     row.forEach((c, ci) => {
       if (c.covered) return;
       const w = widths.slice(ci, ci + c.span).reduce((a, b) => a + b, 0) - PAD_L - PAD_R;
-      c.lines = c.paras.map(p => wrap(F, p, w));
-      const t = c.paras.length ? c.paras.reduce((a, p, i) => a + c.lines![i].length * leading(p), 0) + PAD_T + PAD_B : 12 + PAD_T + PAD_B;
+      for (const b of c.blocks) if (b.k === 'p') b.lines = wrap(F, b.p, w); else if (b.w > w) { b.h *= w / b.w; b.w = w; }
+      const t = c.blocks.length ? c.blocks.reduce((a, b) => a + (b.k === 'p' ? b.lines!.length * leading(b.p) : b.h + IMG_GAP * 2), 0) + PAD_T + PAD_B : 12 + PAD_T + PAD_B;
       c.h = t;
       if (c.rowSpan === 1 && t > h) h = t;
     });
@@ -185,7 +209,7 @@ function table(F: Fonts, tbl: El, availW: number): Table {
   return { widths, rows, heights, width: widths.reduce((a, b) => a + b, 0) };
 }
 
-function drawRows(page: PDFPage, F: Fonts, t: Table, x0: number, top: number, r0: number, r1: number) {
+function drawRows(page: PDFPage, F: Fonts, t: Table, x0: number, top: number, r0: number, r1: number, imgs: Map<string, PDFImage>) {
   const colX = [x0];
   for (const w of t.widths) colX.push(colX[colX.length - 1] + w);
   const rowY = [top];
@@ -199,18 +223,51 @@ function drawRows(page: PDFPage, F: Fonts, t: Table, x0: number, top: number, r0
   for (const [c, x, y, w, h] of geo) if (c.fill) page.drawRectangle({ x, y: y - h, width: w, height: h, color: hex(c.fill), borderWidth: 0 });
   for (const [c, x, y, w] of geo) {
     let cy = y - PAD_T;
-    c.paras.forEach((p, i) => { const ls = c.lines![i]; drawLines(page, F, p, ls, x + PAD_L, cy, w - PAD_L - PAD_R); cy -= ls.length * leading(p); });
+    for (const b of c.blocks) {
+      if (b.k === 'p') { drawLines(page, F, b.p, b.lines!, x + PAD_L, cy, w - PAD_L - PAD_R); cy -= b.lines!.length * leading(b.p); continue; }
+      const iw = w - PAD_L - PAD_R;
+      drawImg(page, F, b, x + PAD_L + (b.align === 1 ? (iw - b.w) / 2 : b.align === 2 ? iw - b.w : 0), cy - IMG_GAP, imgs);
+      cy -= b.h + IMG_GAP * 2;
+    }
   }
   for (const [, x, y, w, h] of geo) page.drawRectangle({ x, y: y - h, width: w, height: h, borderColor: GRID, borderWidth: 0.5 });
 }
 
+// ------------------------------------------------------------------ pictures and charts
+function drawChart(page: PDFPage, F: Fonts, spec: TrendSpec, x: number, top: number, w: number, h: number) {
+  const Y = (y: number) => top - y;
+  for (const o of layoutChart(spec, w, h, 7)) {
+    if (o.t === 'rect') page.drawRectangle({ x: x + o.x, y: Y(o.y + o.h), width: o.w, height: o.h, color: hex(o.fill), borderWidth: 0 });
+    else if (o.t === 'line') page.drawLine({ start: { x: x + o.x1, y: Y(o.y1) }, end: { x: x + o.x2, y: Y(o.y2) }, thickness: o.width, color: hex(o.stroke), dashArray: o.dash });
+    else if (o.t === 'poly') page.drawSvgPath('M ' + o.pts.map(p => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L '), { x, y: top, borderColor: hex(o.stroke), borderWidth: o.width, borderLineCap: 1 as any });
+    else if (o.t === 'dot') page.drawCircle({ x: x + o.x, y: Y(o.y), size: o.r, color: hex(o.fill), borderWidth: 0 });
+    else {
+      const tw = strW(F, o.s, !!o.bold, o.size);
+      const tx = o.anchor === 'end' ? o.x - tw : o.anchor === 'middle' ? o.x - tw / 2 : o.x;
+      page.drawText(o.s, { x: x + tx, y: Y(o.y), size: o.size, font: o.bold ? F.b : F.r, color: hex(o.color) });
+    }
+  }
+  page.drawRectangle({ x, y: top - h, width: w, height: h, borderColor: GRID, borderWidth: 0.5 });
+}
+function drawImg(page: PDFPage, F: Fonts, b: Img, x: number, top: number, imgs: Map<string, PDFImage>) {
+  if (b.chart !== null) { drawChart(page, F, EXTRAS.charts![b.chart], x, top, b.w, b.h); return; }
+  const im = imgs.get(b.rid);
+  if (im) page.drawImage(im, { x, y: top - b.h, width: b.w, height: b.h });
+}
+
 // ------------------------------------------------------------------ document
-type Flow = { k: 'p'; p: Para } | { k: 'space'; h: number } | { k: 'tbl'; t: Table } | { k: 'break' };
+type Flow = { k: 'p'; p: Para } | { k: 'space'; h: number } | { k: 'tbl'; t: Table } | { k: 'break' } | { k: 'img'; img: Img };
 
 export interface PdfFonts { regular: Uint8Array | ArrayBuffer; bold: Uint8Array | ArrayBuffer }
 
-export async function docToPdf(doc: Doc, fonts: PdfFonts, footer = '', skipInstructions = true): Promise<Uint8Array> {
+export async function docToPdf(doc: Doc, fonts: PdfFonts, footer = '', skipInstructions = true, extras: PdfExtras = {}): Promise<Uint8Array> {
+  EXTRAS = extras;
   const pdf = await PDFDocument.create();
+  const imgs = new Map<string, PDFImage>();
+  for (const [rid, im] of Object.entries(extras.images || {})) {
+    if (!im.bytes) continue;
+    try { imgs.set(rid, im.ext === 'png' ? await pdf.embedPng(im.bytes) : await pdf.embedJpg(im.bytes)); } catch { /* unreadable image: left out */ }
+  }
   pdf.registerFontkit(fontkit);
   const F: Fonts = {
     r: await pdf.embedFont(fonts.regular, { subset: true, features: FEATURES }),
@@ -236,6 +293,8 @@ export async function docToPdf(doc: Doc, fonts: PdfFonts, footer = '', skipInstr
     if (skipping) { if (hasPageBreak(e)) skipping = false; continue; }
     if (e.n === 'w:p') {
       if (hasPageBreak(e)) { story.push({ k: 'break' }); continue; }
+      const d = drawingOf(e);
+      if (d) { if (d.w > frameW) { d.h *= frameW / d.w; d.w = frameW; } story.push({ k: 'img', img: d }, { k: 'space', h: 3 }); continue; }
       const p = para(e);
       story.push(p ? { k: 'p', p } : { k: 'space', h: 4 });
     } else if (e.n === 'w:tbl') {
@@ -248,9 +307,27 @@ export async function docToPdf(doc: Doc, fonts: PdfFonts, footer = '', skipInstr
   let page = pdf.addPage([pageW, pageH]);
   let y = fTop, onPage = 0;
   const newPage = () => { page = pdf.addPage([pageW, pageH]); y = fTop; onPage = 0; };
+  // keep-with-next: a section bar (one-row table) or a heading paragraph stays on the page of what follows it
+  const head = (fl: Flow | undefined) => (!fl ? 0 : fl.k === 'tbl' ? fl.t.heights[0] + (fl.t.heights[1] ?? 0) : fl.k === 'img' ? fl.img.h
+    : fl.k === 'p' ? leading(fl.p) * Math.min(2, wrap(F, fl.p, frameW).length) : 0);
+  const nextReal = (i: number) => { for (let j = i + 1; j < story.length; j++) if (story[j].k !== 'space') return story[j]; return undefined; };
+  story.forEach((fl, i) => {
+    const nx = nextReal(i);
+    const isBar = fl.k === 'tbl' && fl.t.rows.length === 1 && nx?.k === 'tbl';
+    const isCaption = fl.k === 'p' && nx?.k === 'img';
+    if (isBar || isCaption) (fl as any).keep = head(fl) + 5 + head(nx);
+  });
   for (const fl of story) {
+    if ((fl as any).keep && onPage && y - (fl as any).keep < fBottom) newPage();
     if (fl.k === 'break') { if (onPage) newPage(); continue; }
     if (fl.k === 'space') { if (y - fl.h < fBottom) { newPage(); continue; } y -= fl.h; onPage++; continue; }
+    if (fl.k === 'img') {
+      const b = fl.img;
+      if (y - b.h < fBottom && onPage) newPage();
+      drawImg(page, F, b, fx + (b.align === 1 ? (frameW - b.w) / 2 : b.align === 2 ? frameW - b.w : 0), y, imgs);
+      y -= b.h; onPage++;
+      continue;
+    }
     if (fl.k === 'p') {
       const lines = wrap(F, fl.p, frameW);
       const L = leading(fl.p);
@@ -274,7 +351,7 @@ export async function docToPdf(doc: Doc, fonts: PdfFonts, footer = '', skipInstr
       let h = 0, n = 0;
       while (r + n < t.rows.length && y - h - t.heights[r + n] >= fBottom - 1e-6) { h += t.heights[r + n]; n++; }
       if (n === 0) { if (onPage) { newPage(); continue; } h = t.heights[r]; n = 1; }
-      drawRows(page, F, t, x0, y, r, r + n);
+      drawRows(page, F, t, x0, y, r, r + n, imgs);
       y -= h; r += n; onPage++;
       if (r < t.rows.length) newPage();
     }

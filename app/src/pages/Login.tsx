@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { useAuth, type Role } from '../store/authStore';
+import { useAuth, ROLE_LABEL, type Role } from '../store/authStore';
 import '../styles/login.css';
 
-const ACCOUNTS: Record<Role, string[]> = { technician: ['MT-01', 'MT-02', 'MT-03', 'MT-04'], operator: ['OP-01', 'OP-02'] };
+const ACCOUNTS: Record<Role, string[]> = { supervisor: ['PS-01', 'PS-02'], engineer: ['EN-01', 'EN-02'], technician: ['MT-01', 'MT-02', 'MT-03', 'MT-04'] };
+const HINT: Record<Role, string> = {
+  supervisor: 'Full plant view. Approves PM findings, spare deployments and layout changes; grants temporary plant access.',
+  engineer: 'Full plant view. Approves PM findings and spare deployments; layout edits go to the Plant Supervisor for approval.',
+  technician: 'Your PM tasks and findings, troubleshooting, incidents, spares and Caster. Major records go for approval.',
+};
 
 export function Login() {
   const login = useAuth(s => s.login);
@@ -23,13 +28,13 @@ export function Login() {
         <div className="login-brand">GearCast</div>
         <p className="login-sub">Franklin Baker – Darong WWTP · Maintenance</p>
         <div className="login-roles" role="tablist" aria-label="Sign in as">
-          {(['technician', 'operator'] as Role[]).map(r => (
+          {(['supervisor', 'engineer', 'technician'] as Role[]).map(r => (
             <button key={r} type="button" role="tab" aria-selected={role === r} className={role === r ? 'active' : ''} onClick={() => pick(r)}>
-              {r === 'technician' ? 'Technician' : 'Operator'}
+              {r === 'supervisor' ? 'Supervisor' : ROLE_LABEL[r]}
             </button>
           ))}
         </div>
-        <p className="login-hint">{role === 'technician' ? 'Your assigned PM tasks, troubleshooting and spare readiness.' : 'Full plant view: dashboard, assets, PM, incidents, repair or replace, knowledge base and Caster.'}</p>
+        <p className="login-hint">{HINT[role]}</p>
         <label>Account
           <select value={username} onChange={e => setUsername(e.target.value)}>
             {ACCOUNTS[role].map(a => <option key={a}>{a}</option>)}

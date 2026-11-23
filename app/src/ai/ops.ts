@@ -5,13 +5,15 @@
 import { OPS, PLANT } from '../data';
 import { del, postJSON, simPayload } from '../api/client';
 import { pushAssignments } from '../api/assignments';
-import { storeReportPdf } from '../api/incidentDocs';
+import { photoMeta, storeReportPdf, uploadReportPhotos, type ReportPhoto } from '../api/incidentDocs';
 import { usePlantStore } from '../store/plantStore';
+import { usePlantAccess } from '../api/plants';
 import { useStatusStore } from '../store/statusStore';
 import { useIntent } from '../store/intentStore';
 import { navigate, type Route } from '../store/route';
 import { openAsset } from '../shell/TopBar';
 import { useChecks } from '../pages/SpareReadiness';
+import { canNow, ROLE_LABEL, useAuth, type Perm } from '../store/authStore';
 
 type Args = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 export interface OpDef { label: (a: Args) => string; run: (a: Args) => Promise<string> | string }
@@ -28,11 +30,29 @@ const asset = (id: string) => {
 };
 const plantByName = (name: string) => {
   const s = usePlantStore.getState(), n = String(name ?? '').trim().toLowerCase();
-  const id = s.order.find(i => s.plants[i]?.name.toLowerCase() === n) ?? s.order.find(i => s.plants[i]?.name.toLowerCase().includes(n));
+  const vis = usePlantAccess.getState().visible;
+  const order = vis ? s.order.filter(i => vis.includes(i)) : s.order;
+  const id = order.find(i => s.plants[i]?.name.toLowerCase() === n) ?? order.find(i => s.plants[i]?.name.toLowerCase().includes(n));
   if (!id) throw new Error(`No plant named "${name}"`);
   return { id, name: s.plants[id].name };
 };
 const seedStatus = (id: string) => PLANT.equipmentStatus.find(s => s.asset_id === id)?.current_status ?? 'In Service';
+
+/** Latest photo attached in the Caster chat: create_incident files it as Photo 1 of the report. */
+let chatPhoto: ReportPhoto | null = null;
+export const setChatPhoto = (p: ReportPhoto | null) => { chatPhoto = p; };
+
+/** Operations a role may not run (rbac.ts); Caster gets the refusal as the operation result. */
+const NEEDS: Record<string, Perm> = {
+  create_plant: 'plant.manage', rename_plant: 'plant.manage', delete_plant: 'plant.manage',
+  assign_pm: 'pm.assign', add_spare_part: 'spare.add', delete_incident: 'incident.delete',
+};
+export function opDenied(name: string): string | null {
+  const p = NEEDS[name];
+  if (!p || canNow(p)) return null;
+  const r = useAuth.getState().user?.role;
+  return `Not allowed for the ${r ? ROLE_LABEL[r] : 'current'} role. Ask a Plant Supervisor or Engineer.`;
+}
 
 export const OP_REGISTRY: Record<string, OpDef> = {
   open_page: {
@@ -130,15 +150,21 @@ export const OP_REGISTRY: Record<string, OpDef> = {
       const now = new Date(); const pad = (n: number) => String(n).padStart(2, '0');
       const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
       const draft = await postJSON<Record<string, unknown>>('/api/incidents/draft', {
-        asset_id: x.asset_id, failure_at: stamp, reported_by: 'Head of Operations', detected_by: a.detected_by ?? '', operating_condition: '',
+        asset_id: x.asset_id, failure_at: stamp, reported_by: useAuth.getState().user?.username ?? 'MT-02', detected_by: a.detected_by ?? '', operating_condition: '',
         observed: a.observed, actions_taken: a.actions_taken ?? '', downtime_h: a.downtime_h ?? null, procedure_used: a.procedure_used ?? '',
         parts_used: '', safety_injury: 'None', shut_down: !!a.shut_down, sim: simPayload(),
       });
-      const res = await postJSON<{ report_id: string; status_change?: { asset_id: string; new_status: string; reason: string } | null }>('/api/incidents', draft);
+      const photos = chatPhoto ? [chatPhoto] : [];
+      const res = await postJSON<{ report_id: string; status_change?: { asset_id: string; new_status: string; reason: string } | null }>('/api/incidents', { ...draft, photos: photoMeta(photos) });
       if (res.status_change) useStatusStore.getState().setStatus(res.status_change.asset_id, res.status_change.new_status, res.status_change.reason);
+      let photoNote = '';
+      if (photos.length) {
+        try { await uploadReportPhotos(res.report_id, photos); photoNote = ' · photo attached as Photo 1'; chatPhoto = null; }
+        catch (e) { photoNote = ` · photo not stored (${e instanceof Error ? e.message : 'upload failed'})`; }
+      }
       await storeReportPdf(res.report_id).catch(() => { /* rendered on first download instead */ });
       window.dispatchEvent(new Event('gearcast:incidents'));
-      return `Submitted ${res.report_id}${res.status_change ? ` · ${x.asset_id} shut down` : ''}`;
+      return `Submitted ${res.report_id}${res.status_change ? ` · ${x.asset_id} shut down` : ''}${photoNote}`;
     },
   },
   delete_incident: {
@@ -151,7 +177,7 @@ export const OP_REGISTRY: Record<string, OpDef> = {
 export function appState() {
   const p = usePlantStore.getState();
   return {
-    plants: p.order.map(id => ({ name: p.plants[id]?.name, active: id === p.activeId, items: p.plants[id]?.items.length })),
+    plants: p.order.filter(id => !usePlantAccess.getState().visible || usePlantAccess.getState().visible!.includes(id)).map(id => ({ name: p.plants[id]?.name, active: id === p.activeId, items: p.plants[id]?.items.length })),
     pm_assignments: Object.entries(read<Record<string, string>>(AKEY, {})).map(([sid, who]) => {
       const r = OPS.pmStatus.find(x => x.status_id === sid); return { task_id: r?.task_id, asset_id: r?.asset_id, assignee: who };
     }),

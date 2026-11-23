@@ -133,3 +133,46 @@ export function liveFeatures(aid: string, repairCostPhp: number | null = null, d
     avg_failure_cost_php: costs.length ? sum / costs.length : null,
   };
 }
+
+// --------------------------------------------------------------------------- replacement options (brands + suppliers)
+/** Supplier types that can supply a new unit of each asset type (Suppliers.supplier_type). */
+const ALT_TYPES: Record<string, RegExp> = {
+  pump: /^pumps/i, 'spare pump': /^pumps/i, motor: /electrical|motor repair|local service/i, 'spare motor': /electrical|motor repair|local service/i,
+  'vibrator motor': /electrical|motor repair|local service/i, screen: /^screens/i,
+};
+const supplierOut = (s: any, why: string) => ({
+  supplier_id: s.supplier_id, supplier_name: s.supplier_name, supplier_type: s.supplier_type, supplies: s.supplies, location: s.location,
+  phone: s.phone, email: s.email, lead_time_days: s.typical_lead_time_days ?? null, basis: s.basis, why,
+});
+
+/** Repair / Replace → "Replacement options": the installed brand/model, the OEM channel, alternative brands/suppliers,
+ *  and the parts that fit the unit with their suppliers (Equipment_Register, Suppliers, Spare_Parts_Inventory). */
+export function replacementOptions(assetId: string) {
+  const a = D.asset[assetId];
+  if (!a) return null;
+  const brand = String(a.manufacturer ?? '').trim();
+  const generic = !brand || /^generic/i.test(brand);
+  const sups = Object.values(D.suppliers) as any[];
+  const oem = generic ? [] : sups.filter(s => `${s.supplier_name} ${s.supplies}`.toLowerCase().includes(brand.toLowerCase().split(' ')[0]));
+  const re = ALT_TYPES[String(a.asset_type ?? '').toLowerCase()];
+  const alt = re ? sups.filter(s => re.test(String(s.supplier_type ?? '')) && !oem.includes(s)) : [];
+  const brandOf = (s: any) => { const m = /^(Grundfos|Ebara|KSB|Tsurumi)/i.exec(s.supplier_name); return m ? m[1] : null; };
+  const parts = D.spares.filter((p: any) => String(p.fits_assets ?? '').split(/;\s*/).includes(assetId)).map((p: any) => ({
+    part_id: p.part_id, part_name: p.part_name, part_number: p.part_number, category: p.category, qty_on_hand: p.qty_on_hand, min_qty: p.min_qty,
+    unit: p.unit, unit_cost_php: p.unit_cost_php, lead_time_days: p.lead_time_days, storage_location: p.storage_location, critical: !!p.critical,
+    supplier: D.suppliers[p.supplier_id]?.supplier_name ?? null, supplier_id: p.supplier_id ?? null,
+  }));
+  return {
+    asset_id: assetId, asset_type: a.asset_type,
+    installed: { brand: brand || null, model: a.model ?? null, rated_flow_m3h: a.rated_flow_m3h ?? null, rated_head_m: a.rated_head_m ?? null,
+      rated_power_kw: a.rated_power_kw ?? null, speed_rpm: a.speed_rpm ?? null, new_unit_cost_php: a.purchase_cost_php ?? null, basis: a.basis ?? null },
+    options: [
+      ...(!generic ? [{ kind: 'Like-for-like (OEM)', brand, model: a.model ?? null, suppliers: oem.map(s => supplierOut(s, `${brand} channel`)) }] : []),
+      ...alt.map(s => ({ kind: generic ? 'Equivalent unit' : 'Alternative brand', brand: brandOf(s) ?? (generic ? brand || null : null),
+        model: `Match duty: ${[a.rated_flow_m3h && `${a.rated_flow_m3h} m³/h`, a.rated_head_m && `${a.rated_head_m} m head`, a.rated_power_kw && `${a.rated_power_kw} kW`, a.speed_rpm && `${a.speed_rpm} rpm`].filter(Boolean).join(', ') || a.model || 'same rating'}`,
+        suppliers: [supplierOut(s, String(s.supplier_type))] })),
+    ],
+    parts,
+    note: 'Supplier list from the data package (Suppliers sheet); contacts marked "(see website)" or "to confirm" need checking before ordering.',
+  };
+}

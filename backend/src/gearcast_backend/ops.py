@@ -29,7 +29,7 @@ OPS = [
     _op("clear_fault", "Clear a simulated status on an asset (back to its recorded status).", {"asset_id": ASSET}, ["asset_id"]),
     _op("reset_simulation", "Clear every simulated status change.", {}, None, confirm=True),
     _op("switch_duty", "Make this asset the duty unit of its pair (its partner becomes standby).", {"asset_id": ASSET}, ["asset_id"], confirm=True),
-    _op("assign_pm", "Assign (delegate) a PM task to a technician/operator code (MT-01..MT-04, OP-01, OP-02); empty assignee unassigns.",
+    _op("assign_pm", "Assign (delegate) a PM task to a technician, engineer or plant supervisor code (MT-01..MT-04, EN-01, EN-02, PS-01, PS-02); empty assignee unassigns.",
         {"task_id": {"type": "string", "description": "e.g. PM-02"}, "asset_id": ASSET, "assignee": {"type": "string"}}, ["task_id", "assignee"]),
     _op("add_spare_part", "Add a spare part to the inventory.",
         {"part_name": {"type": "string"}, "fits_assets": {"type": "array", "items": {"type": "string"}},

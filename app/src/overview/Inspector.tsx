@@ -20,6 +20,7 @@ import { Modal } from '../shell/Modal';
 import { openAsset } from '../shell/TopBar';
 import { thumbUrl } from './thumbs';
 import type { Live } from './live';
+import { ShutdownEstimate } from './ShutdownCost';
 
 const seedStatus = new Map(PLANT.equipmentStatus.map(s => [s.asset_id, s.current_status]));
 type Tab = 'overview' | 'readings' | 'maintenance' | 'history' | 'parts';
@@ -156,6 +157,7 @@ export function OverviewTab({ id, v }: { id: string; v: AssetView }) {
       </div>
 
       <Section title="Simulation"><Actions id={id} v={v} /></Section>
+      <ShutdownEstimate id={id} />
 
       <Section title="Current status">
         <KV rows={[

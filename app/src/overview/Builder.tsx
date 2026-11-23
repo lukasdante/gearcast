@@ -5,6 +5,9 @@ import type { AssetCategory } from '../models/types';
 import { PLANT } from '../data';
 import type { LayoutDoc, LayoutItem } from '../domain/layout';
 import { usePlantStore } from '../store/plantStore';
+import { useCan } from '../store/authStore';
+import { usePlantAccess } from '../api/plants';
+import { AccessModal } from './PlantAccess';
 import { useUi } from '../store/uiStore';
 import { Icon } from '../shell/icons';
 import { THUMBS } from './thumbs';
@@ -23,8 +26,14 @@ export function PlantsMenu() {
   const activeId = usePlantStore(s => s.activeId);
   const st = usePlantStore.getState;
   const [open, setOpen] = useState(false);
+  const [access, setAccess] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const active = plants[activeId];
+  const manage = useCan('plant.manage');
+  const grant = useCan('access.grant');
+  const visible = usePlantAccess(s => s.visible);
+  const meta = usePlantAccess(s => s.meta);
+  const shown = visible ? order.filter(id => visible.includes(id)) : order;
 
   useEffect(() => {
     if (!open) return;
@@ -80,25 +89,29 @@ export function PlantsMenu() {
       {open && (
         <div className="menu" role="menu">
           <div className="menu-title muted small">Plants</div>
-          {order.map(id => {
+          {shown.map(id => {
             const p = plants[id];
             if (!p) return null;
+            const m = meta[id];
             return (
               <div key={id} className={`menu-row${id === activeId ? ' active' : ''}`}>
                 <button type="button" className="menu-main" onClick={() => { switchTo(() => st().setActive(id)); setOpen(false); }}>
                   <span>{p.name}</span>
-                  <span className="muted small">{p.items.length} items</span>
+                  <span className="muted small">{p.items.length} items{m?.access === 'temporary' ? ` · temporary access until ${m.expires_at}` : ''}</span>
                 </button>
-                <button type="button" className="icon-btn" title="Rename" aria-label={`Rename ${p.name}`} onClick={() => rename(id)}><Icon name="edit" size={14} /></button>
-                {id === 'default'
+                {manage && <button type="button" className="icon-btn" title="Rename" aria-label={`Rename ${p.name}`} onClick={() => rename(id)}><Icon name="edit" size={14} /></button>}
+                {manage && (id === 'default'
                   ? <button type="button" className="icon-btn" title="Reset to seeded layout" aria-label="Reset seeded plant" onClick={reset}><Icon name="undo" size={14} /></button>
-                  : <button type="button" className="icon-btn" title="Delete" aria-label={`Delete ${p.name}`} disabled={order.length <= 1} onClick={() => remove(id)}><Icon name="trash" size={14} /></button>}
+                  : <button type="button" className="icon-btn" title="Delete" aria-label={`Delete ${p.name}`} disabled={order.length <= 1} onClick={() => remove(id)}><Icon name="trash" size={14} /></button>)}
               </div>
             );
           })}
-          <button type="button" className="menu-new" onClick={create}><Icon name="plus" size={14} />New plant</button>
+          {manage && <button type="button" className="menu-new" onClick={create}><Icon name="plus" size={14} />New plant</button>}
+          {grant && <button type="button" className="menu-new" onClick={() => { setOpen(false); setAccess(true); }}><Icon name="lock" size={14} />Plant access…</button>}
+          {!manage && <div className="menu-access" style={{ padding: '6px 10px' }}>Other plants open only with access from a Plant Supervisor.</div>}
         </div>
       )}
+      {access && <AccessModal onClose={() => setAccess(false)} />}
     </div>
   );
 }

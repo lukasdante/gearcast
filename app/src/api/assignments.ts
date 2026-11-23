@@ -1,4 +1,4 @@
-/** PM task assignments, shared through the API so technicians see what the operator assigned to them.
+/** PM task assignments, shared through the API so technicians see what the supervisor or engineer assigned to them.
  * localStorage (gearcast.pm.assign.v1) stays the in-app cache read by the PM page and Caster's operations. */
 export const AKEY = 'gearcast.pm.assign.v1';
 

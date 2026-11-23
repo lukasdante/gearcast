@@ -143,6 +143,11 @@ corpus = {
 }
 
 OUT.mkdir(parents=True, exist_ok=True)
+# 3 pumping areas (placeholder rows until the raw data update): ref/data_patches/pump_areas.json
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from apply_pump_areas import patch_data  # noqa: E402
+patch_data(data)
+
 for name, obj in (("data", data), ("readings", readings), ("corpus", corpus)):
     p = OUT / f"{name}.json"
     p.write_text(json.dumps(obj, separators=(",", ":"), ensure_ascii=False))

@@ -20,7 +20,7 @@ const OPS = [
   op('clear_fault', 'Clear a simulated status on an asset (back to its recorded status).', { asset_id: ASSET }, ['asset_id']),
   op('reset_simulation', 'Clear every simulated status change.', {}, [], true),
   op('switch_duty', 'Make this asset the duty unit of its pair (its partner becomes standby).', { asset_id: ASSET }, ['asset_id'], true),
-  op('assign_pm', 'Assign (delegate) a PM task to a technician/operator code (MT-01..MT-04, OP-01, OP-02); empty assignee unassigns.',
+  op('assign_pm', 'Assign (delegate) a PM task to a technician, engineer or plant supervisor code (MT-01..MT-04, EN-01, EN-02, PS-01, PS-02); empty assignee unassigns.',
     { task_id: { type: 'string', description: 'e.g. PM-02' }, asset_id: ASSET, assignee: { type: 'string' } }, ['task_id', 'assignee']),
   op('add_spare_part', 'Add a spare part to the inventory.',
     { part_name: { type: 'string' }, fits_assets: { type: 'array', items: { type: 'string' } }, qty_on_hand: { type: 'number' }, min_qty: { type: 'number' },
@@ -45,7 +45,10 @@ simulate_fault, clear_fault, reset_simulation, switch_duty, assign_pm, add_spare
 set_check_frequency, start_troubleshoot, create_incident, delete_incident). Use them only when the user asks for an
 action. Call get_app_state first when you need plant names or assignments. Operations run in the user's app; ones that
 need confirmation show a Confirm button — say plainly what will happen and that it waits for their confirmation.
-Never claim an operation is finished unless the tool result says so.`;
+Never claim an operation is finished unless the tool result says so.
+When a user message says a photo is attached and the user asks for an incident report, call create_incident: the app
+adds the photo as Photo 1 of the report (you cannot see the photo; rely on the user's description for "observed").
+Operations the user's role may not run come back as "Not allowed"; tell them who can do it.`;
 
 const system = (asOf: string) => `You are Caster, GearCast's assistant for the Head of Operations of the wastewater treatment plant (WWTP)
 at a coconut processing plant (Franklin Baker – Darong). Tracked assets: transfer pumps P-101A/B (motors M-101A/B),

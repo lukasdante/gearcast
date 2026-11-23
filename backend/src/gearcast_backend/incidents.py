@@ -241,8 +241,9 @@ def build_draft(f: dict, sim: dict | None, use_llm: bool = True) -> dict:
     parts_text = f.get("parts_used") or ("; ".join(f"{p['part_id']} × 1 · PHP {p['cost_php']:,}{' (emergency)' if p['emergency'] else ''}"
                                                for p in parts_rows) or "None")
     sev = _pick(f.get("severity"), PICK[3], _severity(f, g))
-    prod_impact = "Shutdown" if c["pair_down"] and (loss.get("response") or "") == "None" else (
-        "Curtail" if c["pair_down"] else "None")
+    # the loss scenario's own response (Curtail / Bypass / Shutdown) when the whole pair is down
+    prod_impact = "None" if not c["pair_down"] else (
+        loss.get("response") if loss.get("response") in ("Curtail", "Bypass", "Shutdown") else "Curtail")
     resulting = "Shut Down" if f.get("shut_down") else "No change"
 
     def F(no, value, source):

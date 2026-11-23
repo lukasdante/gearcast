@@ -7,6 +7,10 @@ import { openAsset } from '../shell/TopBar';
 import { Modal } from '../shell/Modal';
 import { Icon } from '../shell/icons';
 import type { SparePart, SpareSummary } from '../data';
+import { useCan } from '../store/authStore';
+import { deployedQty, useApprovals, type Approval } from '../api/approvals';
+import { ApprovalQueue } from './Approvals';
+import { MAJOR_SPARE } from '../../../worker/src/rbac';
 import '../styles/pages.css';
 
 const GROUPS = [
@@ -95,8 +99,19 @@ export function SpareReadiness() {
   }, []);
   const [q, setQ] = useState('');
   const [lowOnly, setLowOnly] = useState(false);
-  const parts = useMemo(() => [...OPS.spareInventory, ...extra], [extra]);
+  const approvals = useApprovals(st => st.items);
+  const refreshApprovals = useApprovals(st => st.refresh);
+  useEffect(() => { refreshApprovals(); }, [refreshApprovals]);
+  const issued = useMemo(() => deployedQty(approvals), [approvals]);
+  // stock on hand less what approved deployments issued from the store
+  const parts = useMemo(() => [...OPS.spareInventory, ...extra].map(p => {
+    const n = issued.get(p.part_id);
+    return n ? { ...p, qty_on_hand: Math.max(0, p.qty_on_hand - n), below_min: Math.max(0, p.qty_on_hand - n) < p.min_qty } : p;
+  }), [extra, issued]);
   const units = new Map(OPS.spareSummary.map(s => [s.asset_id, s]));
+  const canAdd = useCan('spare.add');
+  const [deploy, setDeploy] = useState<DeployItem | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -112,8 +127,10 @@ export function SpareReadiness() {
           <h1>Spare Readiness</h1>
           <p>Stored standby units and the critical parts that fit each piece of equipment. Rings show how ready each one is — click for details.</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={14} />Add spare part</button>
+        {canAdd && <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={14} />Add spare part</button>}
       </header>
+      {msg && <div className="alert-box ok">{msg}</div>}
+      <ApprovalQueue kinds={['spare_deploy']} title="Spare deployments" />
 
       <div className="sp-cards">
         {GROUPS.map(g => {
@@ -180,8 +197,13 @@ export function SpareReadiness() {
           </table>
         </div>
       </div>
-      {info && <PartModal p={info} onClose={() => setInfo(null)} />}
-      {unitInfo && <UnitModal u={unitInfo} onClose={() => setUnitInfo(null)} />}
+      {info && <PartModal p={parts.find(x => x.part_id === info.part_id) ?? info} onClose={() => setInfo(null)}
+        onDeploy={() => { setDeploy({ id: info.part_id, name: info.part_name, category: info.category, fits: fits(info), max: (parts.find(x => x.part_id === info.part_id) ?? info).qty_on_hand, unit: info.unit }); setInfo(null); }} />}
+      {unitInfo && <UnitModal u={unitInfo} onClose={() => setUnitInfo(null)}
+        onDeploy={() => { setDeploy({ id: unitInfo.asset_id, name: `Stored spare ${unitInfo.asset_id}`, category: unitInfo.spare_type, fits: spareTargets(unitInfo.asset_id), max: 1, unit: 'unit' }); setUnitInfo(null); }} />}
+      {deploy && <DeployModal item={deploy} onClose={() => setDeploy(null)} onDone={a => setMsg(a.status === 'approved'
+        ? `${a.id}: ${a.payload.qty} × ${a.payload.item_id} deployed${a.payload.asset_id ? ` to ${a.payload.asset_id}` : ''}.`
+        : `${a.id}: deployment of ${a.payload.item_id} sent to a Plant Supervisor or Engineer for approval (major asset).`)} />}
       {adding && <AddPartModal next={nextId(parts)} onClose={() => setAdding(false)} onSave={p => {
         const n = [...extra, p]; setExtra(n); try { localStorage.setItem(XKEY, JSON.stringify(n)); } catch { /* storage unavailable */ } setAdding(false);
       }} />}
@@ -217,7 +239,7 @@ function CheckBlock({ id, c, what }: { id: string; c: Check; what: string }) {
   );
 }
 
-function PartModal({ p, onClose }: { p: SparePart; onClose: () => void }) {
+function PartModal({ p, onClose, onDeploy }: { p: SparePart; onClose: () => void; onDeploy: () => void }) {
   const checks = useChecks(st => st.m);
   const c = partCheck(checks, p);
   const lv = partLevel(p, c);
@@ -234,11 +256,12 @@ function PartModal({ p, onClose }: { p: SparePart; onClose: () => void }) {
       ]} />
       <CheckBlock id={p.part_id} c={c} what="Stock count" />
       {p.qty_on_hand < (p.reorder_point ?? p.min_qty) + 1 && <div className="alert-box warn small">Order {Math.max((p.max_qty || p.reorder_point || p.min_qty) - p.qty_on_hand, 1)} {p.unit} — lead time {p.lead_time_days ?? '?'} days.</div>}
+      <DeployButton id={p.part_id} category={p.category} disabled={p.qty_on_hand <= 0} onClick={onDeploy} />
     </Modal>
   );
 }
 
-function UnitModal({ u, onClose }: { u: SpareSummary; onClose: () => void }) {
+function UnitModal({ u, onClose, onDeploy }: { u: SpareSummary; onClose: () => void; onDeploy: () => void }) {
   const checks = useChecks(st => st.m);
   const c = unitCheck(checks, u);
   const lv = unitLevel(u, c);
@@ -248,6 +271,7 @@ function UnitModal({ u, onClose }: { u: SpareSummary; onClose: () => void }) {
       <KV rows={[['Location', u.location], ['Spare type', u.spare_type], ['Remarks', u.remarks]]} />
       <CheckBlock id={u.asset_id} c={c} what="Storage readiness check" />
       <div className="q-actions"><button type="button" className="btn sm" onClick={() => { onClose(); openAsset(u.asset_id); }}>Open {u.asset_id}</button></div>
+      <DeployButton id={u.asset_id} category={u.spare_type} onClick={onDeploy} />
     </Modal>
   );
 }
@@ -286,6 +310,54 @@ function AddPartModal({ next, onClose, onSave }: { next: string; onClose: () => 
         </div>
       </div>
       <p className="muted small">Saved as {next} in this browser.</p>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------- deployment (RBAC: technicians deploy accessories; major assets need approval)
+interface DeployItem { id: string; name: string; category: string | null; fits: string[]; max: number; unit: string }
+const SPARE_TARGETS: Record<string, string[]> = { 'SP-P01': ['P-101A', 'P-101B'], 'SP-P02': ['P-201A', 'P-201B'], 'SP-M01': ['M-101A', 'M-101B'], 'SP-VM01': ['VM-101A', 'VM-101B'] };
+const spareTargets = (id: string) => SPARE_TARGETS[id] ?? [];
+
+function DeployButton({ id, category, disabled, onClick }: { id: string; category: string | null | undefined; disabled?: boolean; onClick: () => void }) {
+  const direct = useCan('spare.deploy.major') || !MAJOR_SPARE(category, id);
+  return (
+    <div className="sp-deploy">
+      <button type="button" className="btn primary sm" disabled={disabled} onClick={onClick}><Icon name="swap" size={13} />Deploy</button>
+      <span className="muted small">{direct ? 'Issued from the store right away.' : 'Major asset – needs Plant Supervisor or Engineer approval.'}</span>
+    </div>
+  );
+}
+
+function DeployModal({ item, onClose, onDone }: { item: DeployItem; onClose: () => void; onDone: (a: Approval) => void }) {
+  const file = useApprovals(st => st.file);
+  const [qty, setQty] = useState('1');
+  const [asset, setAsset] = useState(item.fits[0] ?? '');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const direct = useCan('spare.deploy.major') || !MAJOR_SPARE(item.category, item.id);
+  const go = async () => {
+    const n = Math.round(Number(qty));
+    if (!(n >= 1) || n > item.max) { setErr(`Quantity must be 1–${item.max}`); return; }
+    if (!reason.trim()) { setErr('Say why it is deployed (e.g. PM-05 greasing, seal replacement on P-101B).'); return; }
+    setBusy(true); setErr(null);
+    try { onDone(await file('spare_deploy', { item_id: item.id, name: item.name, category: item.category, qty: n, asset_id: asset || null, reason })); onClose(); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title={`Deploy ${item.name}`} onClose={onClose} width={460} footer={<>
+      <button type="button" className="btn" onClick={onClose}>Cancel</button>
+      <button type="button" className="btn primary" disabled={busy} onClick={go}>{busy ? 'Saving…' : direct ? 'Deploy' : 'Request approval'}</button>
+    </>}>
+      <p className="muted small">{direct ? 'Recorded and taken off the stock on hand.' : 'Pumps, motors and stored spare units are deployed only after a Plant Supervisor or Engineer approves.'}</p>
+      <div className="form-grid pmf-grid">
+        <label>Quantity ({item.unit})<input type="number" min="1" max={item.max} value={qty} onChange={e => setQty(e.target.value)} /></label>
+        <label className="span2">Install on<select value={asset} onChange={e => setAsset(e.target.value)}>
+          <option value="">— not asset-specific —</option>{item.fits.map(a => <option key={a}>{a}</option>)}</select></label>
+        <label className="span2">Reason<input value={reason} onChange={e => setReason(e.target.value)} placeholder="Work order, PM task or failure it is for" /></label>
+      </div>
+      {err && <div className="alert-box bad">{err}</div>}
     </Modal>
   );
 }

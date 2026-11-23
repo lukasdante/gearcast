@@ -5,6 +5,7 @@ import { CLOCK, D, expandTargets } from './data';
 import { dayNum, dayStr } from './time';
 import { pyRound } from './py';
 import type { Env } from './env';
+import { charge, QuotaError, releaseStorage } from './quota';
 
 const C: any = CORPUS;
 export const EMBED_MODEL = '@cf/baai/bge-small-en-v1.5';
@@ -144,6 +145,7 @@ function bm25Stats(rows: UploadRow[]) {
 }
 
 export async function embed(env: Env, texts: string[]): Promise<Float32Array[]> {
+  await charge(env, 'embed', 'LIMIT_EMBED_TEXTS_DAY', texts.length);
   const out: Float32Array[] = [];
   for (let i = 0; i < texts.length; i += 96) {
     const r: any = await env.AI.run(EMBED_MODEL as any, { text: texts.slice(i, i + 96), pooling: 'cls' } as any);
@@ -203,9 +205,12 @@ export async function search(env: Env, query: string, o: SearchOpts = {}): Promi
   }
   // dense (exact cosine over every candidate, like the backend's full matrix product)
   const dense = new Float64Array(all.length);
+  let haveDense = false;
   if (vecs && vecs.length === nb * DIM) {
-    const [qv] = await embed(env, [query]);
-    for (const i of idx) {
+    // over the embedding cap: fall back to BM25-only ranking instead of failing the search
+    const qv = (await embed(env, [query]).catch(e => { if (e instanceof QuotaError) return [null]; throw e; }))[0];
+    haveDense = !!qv;
+    if (qv) for (const i of idx) {
       let s = 0;
       if (i < nb) { const off = i * DIM; for (let j = 0; j < DIM; j++) s += vecs[off + j] * qv[j]; }
       else { const v = up.rows[i - nb].vec; for (let j = 0; j < DIM; j++) s += v[j] * qv[j]; }
@@ -215,7 +220,7 @@ export async function search(env: Env, query: string, o: SearchOpts = {}): Promi
   const stable = (key: Float64Array) => idx.slice().sort((a, b) => key[b] - key[a] || a - b);
   const fused = new Map<number, number>();
   stable(bm).forEach((i, r) => { if (bm[i] > 0) fused.set(i, (fused.get(i) || 0) + wBm / (rrfK + r + 1)); });
-  if (vecs) stable(dense).forEach((i, r) => { fused.set(i, (fused.get(i) || 0) + wDense / (rrfK + r + 1)); });
+  if (haveDense) stable(dense).forEach((i, r) => { fused.set(i, (fused.get(i) || 0) + wDense / (rrfK + r + 1)); });
   const order = [...fused.keys()];
   const ranked = order.map((i, n) => ({ i, n })).sort((a, b) => fused.get(b.i)! - fused.get(a.i)! || a.n - b.n).map(x => x.i);
   const best: number[] = [], seen = new Set<string>();
@@ -298,6 +303,7 @@ export async function deleteDoc(env: Env, docId: string): Promise<boolean> {
     env.DB.prepare('DELETE FROM upload_chunks WHERE doc_id = ?').bind(docId),
     env.DB.prepare('DELETE FROM docs WHERE doc_id = ?').bind(docId), bumpUploads(env)]);
   await env.FILES.delete(`uploads/${d.stored_as}`);
+  await releaseStorage(env, Number(d.bytes) || 0);
   if (ids.length) { try { await env.VEC.deleteByIds(ids); } catch (e) { console.log('vectorize delete failed', String(e)); } }
   return true;
 }

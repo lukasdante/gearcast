@@ -1,6 +1,6 @@
 /** Incident report (port of backend incidents.py): linked data, costs, LLM narrative fill of the 37 template fields,
  * validation, submission (IR-YYYY-NNN) stored in D1. */
-import { CLOCK, D, SPARE_FOR, StatusCtx, money, nowStr, partnerOf, procedureForText, view } from './data';
+import { CLOCK, D, DRIVER_OF, SPARE_FOR, StatusCtx, money, nowStr, partnerOf, procedureForText, view } from './data';
 import { costEstimate } from './costs';
 import * as rr from './rr';
 import { completeJson } from './llm';
@@ -8,6 +8,7 @@ import { pmFor } from './tools';
 import { fmtComma, fmtInt, num, pct0, pick, pyFloat, pyStr, sortBy, strip, truthy } from './py';
 import { DAY, fmtDate, hourOf, parseDt, yearOf } from './time';
 import type { Env } from './env';
+import { trendsFor } from './trend';
 
 const PICK: Record<number, string[]> = {
   3: ['Minor', 'Major', 'Critical', 'Near miss'],
@@ -77,6 +78,14 @@ function lastAtOrBefore(rows: any[][], col: number, t: number, sh: number, needR
   return last;
 }
 
+/** readingsTable, falling back to the drive motor for assets without sensors (screens → VM-101A/B). */
+export function readingsFor(aid: string, at: number): any[] {
+  const own = readingsTable(aid, at);
+  const drv = DRIVER_OF[aid];
+  if (own.length || !drv) return own;
+  return readingsTable(drv, at).map(r => ({ ...r, indicator: `${drv} ${r.indicator}` }));
+}
+
 export function readingsTable(aid: string, at: number): any[] {
   const end = Math.min(at, parseDt(CLOCK.asOf)!);
   const sh = D.shiftMin;
@@ -134,7 +143,7 @@ function gather(ctx: StatusCtx, f: any) {
   const similar = D.failures.filter(x => base(x.asset_id) === base(aid)).slice(-4);
   return {
     asset: a, node, failure_event: fe, procedure: proc, cost: est, rr: rrOut, standby, spare, partner, partner_status: pv ? pv.status : null,
-    readings: readingsTable(aid, at), alerts: alertsFor(aid, at),
+    readings: readingsFor(aid, at), alerts: alertsFor(aid, at),
     work_orders: wos.slice(0, 3).map(w => pick(w, ['wo_id', 'title', 'reported_at', 'status', 'total_cost_php'])),
     open_work_orders: wos.filter(w => w.status !== 'Closed').map(w => w.wo_id),
     pm: pmFor(aid).slice(0, 4).map(p => pick(p, ['task_id', 'task', 'next_due_date', 'status'])),
@@ -189,7 +198,7 @@ function pickVal(v: any, allowed: string[], def: string): string {
 const shiftName = (at: number) => { const h = hourOf(at); return h >= 6 && h < 14 ? 'Day' : h >= 14 && h < 22 ? 'Swing' : 'Night'; };
 
 export const DRAFT_KEYS = ['asset_id', 'failure_at', 'reported_by', 'shift', 'detected_by', 'operating_condition', 'observed', 'actions_taken',
-  'downtime_h', 'procedure_used', 'parts_used', 'spare_used', 'safety_injury', 'severity', 'shut_down'];
+  'downtime_h', 'procedure_used', 'parts_used', 'spare_used', 'safety_injury', 'severity', 'shut_down', 'trend_days'];
 
 export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Promise<any> {
   const aid = String(f.asset_id || '').toUpperCase();
@@ -209,7 +218,8 @@ export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Pro
   const partsRows = c.part_rows;
   const partsText = f.parts_used || (partsRows.map((p: any) => `${p.part_id} × 1 · PHP ${fmtInt(p.cost_php)}${p.emergency ? ' (emergency)' : ''}`).join('; ') || 'None');
   const sev = pickVal(f.severity, PICK[3], severity(f, g));
-  const prodImpact = c.pair_down && (loss.response || '') === 'None' ? 'Shutdown' : c.pair_down ? 'Curtail' : 'None';
+  // the loss scenario's own response (Curtail / Bypass / Shutdown) when the whole pair is down
+  const prodImpact = !c.pair_down ? 'None' : ['Curtail', 'Bypass', 'Shutdown'].includes(loss.response) ? loss.response : 'Curtail';
   const resulting = f.shut_down ? 'Shut Down' : 'No change';
   const F = (no: number, value: any, source: string) => {
     const t = D.irTemplate.find(x => x.field_no === no);
@@ -234,7 +244,7 @@ export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Pro
     F(16, f.standby_used || g.standby, f.standby_used ? 'user' : 'data'),
     F(17, f.downtime_h !== null && f.downtime_h !== undefined && f.downtime_h !== '' ? `${pyFloat(Number(f.downtime_h))} h (so far)` : 'Not recorded', 'user'),
     F(18, prodImpact, 'data'),
-    F(19, c.explanation, 'data'),
+    F(19, costText(c), 'data'),
     F(20, c.pair_down ? `Bypass 0 h · fine ${money(loss.fine ?? 0)}` : 'None – standby covered (no bypass)', 'data'),
     F(21, pickVal(f.safety_injury, PICK[21], 'None'), f.safety_injury ? 'user' : 'data'),
     F(22, ai.failure_mode || fe.failure_mode || 'Not recorded', ai.failure_mode ? 'ai' : 'data'),
@@ -257,13 +267,32 @@ export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Pro
   return {
     report_id: rid, asset_id: aid, failure_at: f.failure_at ?? null, shut_down: !!f.shut_down,
     inputs: f, fields, summary: ai.summary ?? null, warnings: validate(fields),
-    tables: { readings: g.readings, actions, whys, capa,
+    tables: { readings: g.readings, trends: trendsFor(aid, f.failure_at, f.trend_days ?? undefined), cost: costTable(c), actions, whys, capa,
       parts: partsRows.map((p: any) => ({ part_id: p.part_id, name: p.name, qty: 1, cost_php: p.cost_php })), labour_php: c.labour, repair_php: c.repair },
     linked: { failure_event: g.failure_event, work_orders: g.work_orders, open_work_orders: g.open_work_orders, pm: g.pm, cost: c,
       repair_or_replace: pick(g.rr, ['recommendation', 'confidence', 'factors', 'costs']), standby: g.standby, spare: g.spare },
     llm_used: aiOn,
   };
 }
+
+/** Field 19: the production loss, and when the whole pair (so the plant) is down, its parts and the total with repair. */
+export function costText(c: any): string {
+  if (!c.pair_down || !c.loss) return c.repair ? `${c.explanation}\nTotal cost estimate (repair only): ${money(c.total)}` : c.explanation;
+  return `${c.explanation}\nTotal incl. repair: ${money(c.total)} (breakdown below)`;
+}
+/** Full cost breakdown when both units of the pair are down (the plant stops or curtails): printed as its own table. */
+export function costTable(c: any): any | null {
+  if (!c.pair_down || !c.loss) return null;
+  const l = c.loss;
+  return {
+    title: `Estimated cost of this shutdown – ${l.scenario_title || l.scenario || 'loss scenario'}`,
+    note: `${fixed1(c.outage_h)} h outage · ${l.buffer_text} · ${fixed1(l.hours_beyond_buffer)} h beyond buffer` + (l.lines_curtailed?.length ? ` · lines curtailed: ${l.lines_curtailed.join(', ')}` : ''),
+    rows: [['Lost revenue (lines stopped + restart time)', l.lost_revenue], ['Fines (RA 9275 exposure)', l.fine], ['Restart of curtailed lines', l.restart_cost],
+      ['Overtime', l.overtime], ['Repair – labour', c.labour], ['Repair – parts', c.parts]],
+    total: c.total,
+  };
+}
+const fixed1 = (v: any) => Number(v || 0).toFixed(1);
 
 function validate(fields: any[]): string[] {
   const w: string[] = [];
@@ -310,5 +339,7 @@ export function historyDraft(h: any): any {
   };
   const fields = D.irTemplate.map(t => ({ field_no: t.field_no, section: t.section, field: t.field, value: t.field_no in vals ? vals[t.field_no] : 'Not recorded' }));
   return { report_id: h.report_id ?? null, asset_id: h.asset_id ?? null, fields, inputs: {}, linked: {},
-    tables: { repair_php: Number(h.repair_cost_php || 0) }, summary: h.expected_report_text ?? null };
+    tables: { repair_php: Number(h.repair_cost_php || 0), trends: h.asset_id ? trendsFor(h.asset_id, h.incident_date) : [],
+      readings: h.asset_id && D.asset[h.asset_id] ? readingsFor(h.asset_id, parseDt(h.incident_date) ?? parseDt(CLOCK.asOf)!) : [] },
+    summary: h.expected_report_text ?? null };
 }

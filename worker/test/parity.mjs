@@ -12,7 +12,7 @@ const VERBOSE = process.argv.includes('--verbose');
 const ROOT = new URL('../../', import.meta.url).pathname;
 
 const acct = Object.fromEntries(readFileSync(ROOT + '.accounts', 'utf8').split('\n').filter(l => l && !l.startsWith('#')).map(l => l.trim().split(/\s+/)).map(([u, , p]) => [u, p]));
-const login = await fetch(WK + '/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'OP-01', password: acct['OP-01'] }) });
+const login = await fetch(WK + '/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'PS-01', password: acct['PS-01'] }) });
 const COOKIE = (login.headers.get('set-cookie') || '').split(';')[0];
 if (!login.ok) throw new Error('worker login failed');
 

@@ -28,8 +28,54 @@ interface Resp {
   question?: { id: string; text: string; step: number };
   outcome?: string; why?: string; likely_causes?: string[]; procedure?: Procedure; related_procedures?: { id: string; title: string }[];
   escalate_if?: string; sources?: { kind: string; id: string; label: string }[];
-  asset?: { asset_id: string; status: string; role: string; partner?: string; partner_status?: string; advice?: string } | null;
+  asset?: { asset_id: string; status: string; role: string; partner?: string; partner_status?: string; advice?: string; history?: History } | null;
+  materials?: Material[];
   plan?: PlanItem[];
+}
+interface History {
+  failures: { event_id: string; date: string; symptom: string; failure_mode: string; root_cause: string; repair_action: string; parts: string | null; downtime_h: number | null; repair_cost_php: number | null }[];
+  work_orders: { wo_id: string; date: string; type: string; title: string; status: string }[];
+}
+interface Material { part_id: string; part_name: string; part_number: string | null; qty_on_hand: number; min_qty: number; unit: string; storage_location: string | null; lead_time_days: number | null; supplier: string | null; in_stock: boolean; why: string }
+
+/** Maintenance history of the asset (reviewed before the repair). */
+function HistoryCard({ h, assetId }: { h: History; assetId: string }) {
+  const [all, setAll] = useState(false);
+  if (!h.failures.length && !h.work_orders.length) return null;
+  const fs = all ? h.failures : h.failures.slice(0, 3);
+  return (
+    <details className="card ts-history" open>
+      <summary><b>Maintenance history · {assetId}</b> <span className="muted small">{h.failures.length} recent failures · {h.work_orders.length} work orders</span></summary>
+      {fs.map(f => (
+        <div key={f.event_id} className="ts-hist-row small">
+          <div><span className="mono muted">{f.date} · {f.event_id}</span> <b>{f.failure_mode}</b> <span className="muted">— {f.symptom}</span></div>
+          <div className="muted">Cause: {f.root_cause}. Repair: {f.repair_action}{f.parts ? ` (${f.parts})` : ''}{f.downtime_h != null ? ` · ${f.downtime_h} h down` : ''}</div>
+        </div>
+      ))}
+      {h.failures.length > 3 && <button type="button" className="btn ghost sm" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${h.failures.length}`}</button>}
+      {!!h.work_orders.length && <div className="ts-wos small">{h.work_orders.map(w => <span key={w.wo_id} className="tag-pill"><span className="mono">{w.wo_id}</span> {w.date} · {w.type} · {w.status}</span>)}</div>}
+    </details>
+  );
+}
+
+/** Materials needed for the repair (parts that fit, with stock, location and supplier). */
+function MaterialsCard({ items }: { items: Material[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="card ts-materials">
+      <b>Materials needed</b> <span className="muted small">parts that fit this unit, matched to the job and past repairs</span>
+      <table className="tbl compact">
+        <thead><tr><th>Part</th><th className="num">Stock</th><th>Location</th><th>Supplier · lead</th></tr></thead>
+        <tbody>{items.map(m => (
+          <tr key={m.part_id}>
+            <td><span className="mono muted">{m.part_id}</span> {m.part_name}{m.why && <div className="muted small">{m.why}</div>}</td>
+            <td className={`num mono${!m.in_stock ? ' bad-t' : m.qty_on_hand < m.min_qty ? ' warn-t' : ''}`}>{m.qty_on_hand} {m.unit}{!m.in_stock && <div className="small">order</div>}</td>
+            <td className="small">{m.storage_location ?? '—'}</td>
+            <td className="small">{m.supplier ?? '—'}{m.lead_time_days != null ? ` · ${m.lead_time_days} d` : ''}</td>
+          </tr>))}</tbody>
+      </table>
+    </div>
+  );
 }
 interface ChatMsg { role: 'user' | 'assistant'; content: string }
 interface Session { id: string; query: string; asset_id: string; answers: { question_id: string; answer: string }[]; first: Resp | null; resp: Resp | null; started: string; chat?: ChatMsg[] }
@@ -174,6 +220,7 @@ export function Troubleshoot() {
                   </div>
                 </div>
                 {resp?.asset?.advice && <div className="alert-box info"><Icon name="swap" size={14} /> {resp.asset.advice}</div>}
+                {resp?.asset?.history && <HistoryCard h={resp.asset.history} assetId={resp.asset.asset_id} />}
               </CasterLine>
             )}
 
@@ -202,6 +249,7 @@ export function Troubleshoot() {
               <CasterLine>
                 <p className="caster-says">{proc.generated ? 'No structured procedure for this one, so I drafted steps from the uploaded manual. Please verify.' : <>Here's the job: <b>{resp.outcome}</b>.</>}</p>
                 {resp.why && <p className="small muted why">Path: {resp.why}</p>}
+                {!!resp.materials?.length && <MaterialsCard items={resp.materials} />}
                 <ProcedureView proc={proc} checks={checks} toggle={toggle} stepCheckId={stepCheckId} />
                 {resp.escalate_if && <div className="alert-box bad"><b>Escalate if:</b> {resp.escalate_if}</div>}
                 {!!resp.related_procedures?.length && (

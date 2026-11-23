@@ -1,7 +1,7 @@
 /** Plant layouts (localStorage) with an undo stack for the builder. Save is automatic. */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { blankPlant, buildDefaultPlant, type LayoutDoc } from '../domain/layout';
+import { blankPlant, buildDefaultPlant, PUMP_AREAS, REPLACED_PIPES, type LayoutDoc } from '../domain/layout';
 
 const UNDO_LIMIT = 50;
 
@@ -22,6 +22,17 @@ interface PlantState {
 }
 
 const def = buildDefaultPlant();
+
+/** Add the pump-area pumps (and their pipes) to a saved copy of the seeded plant that predates them. */
+export function withPumpAreas(doc: LayoutDoc): LayoutDoc {
+  const ids = new Set(PUMP_AREAS.flatMap(([t]) => [`${t}A`, `${t}B`]));
+  if (doc.items.some(i => i.assetId && ids.has(i.assetId))) return doc;
+  const fresh = buildDefaultPlant();
+  const items = [...doc.items, ...fresh.items.filter(i => i.assetId && ids.has(i.assetId))];
+  const pipes = [...doc.pipes.filter(p => !REPLACED_PIPES.includes(p.id)),
+    ...fresh.pipes.filter(p => ids.has(p.from.itemId) || ids.has(p.to.itemId))].filter(p => items.some(i => i.id === p.from.itemId) && items.some(i => i.id === p.to.itemId));
+  return { ...doc, items, pipes };
+}
 
 export const usePlantStore = create<PlantState>()(
   persist(
@@ -71,6 +82,13 @@ export const usePlantStore = create<PlantState>()(
     }),
     {
       name: 'gearcast.plants.v3',
+      version: 1,
+      // v1: the seeded plant gains the 3 pump areas (6 transfer pumps)
+      migrate: (persisted: unknown, from: number) => {
+        const st = persisted as { plants?: Record<string, LayoutDoc> };
+        if (from < 1 && st?.plants?.default) st.plants = { ...st.plants, default: withPumpAreas(st.plants.default) };
+        return st as never;
+      },
       partialize: s => ({ plants: s.plants, order: s.order, activeId: s.activeId }),
     },
   ),

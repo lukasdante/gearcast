@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PLANT } from '../data';
 import { downloadBlob, getJSON, postJSON, simPayload } from '../api/client';
-import { draftDocxBlob, draftPdfBlob, reportPdfBlob, storeReportPdf } from '../api/incidentDocs';
+import { draftDocxBlob, draftPdfBlob, photoMeta, preparePhoto, reportPdfBlob, storeReportPdf, uploadReportPhotos, type ReportPhoto } from '../api/incidentDocs';
+import { chartSvg, type TrendSpec } from '../../../worker/src/doc/chart';
+import { CostBreakdown, type CostEst } from '../overview/ShutdownCost';
 import { Icon } from '../shell/icons';
 import { Caster } from '../shell/Caster';
 import { openAsset } from '../shell/TopBar';
 import { useStatusStore } from '../store/statusStore';
 import { useIntent } from '../store/intentStore';
+import { useAuth } from '../store/authStore';
 import { fmtDate, nowStamp } from '../domain/assetInfo';
 import '../styles/pages.css';
 
 interface Field { field_no: number; section: string; field: string; filled_by: string; allowed_values: string; value: string; source: 'data' | 'ai' | 'user' }
 interface Draft {
   report_id: string; asset_id: string; failure_at: string; shut_down: boolean; fields: Field[]; summary?: string; warnings: string[];
-  linked: { cost: { production_loss: number; repair: number; labour: number; parts: number; explanation: string; pair_down: boolean; partner?: string };
+  tables?: { trends?: TrendSpec[] };
+  linked: { cost: CostEst;
     repair_or_replace: { recommendation: string; confidence: number }; standby: string; spare?: string; failure_event?: { event_id: string } | null };
   llm_used: boolean; [k: string]: unknown;
 }
@@ -26,9 +30,74 @@ const CONDITION = ['', 'Running', 'Starting', 'Standby', 'Stopped'];
 const SRC_LABEL = { data: 'Data', ai: 'AI', user: 'User' } as const;
 const php = (n: number) => `PHP ${Math.round(n).toLocaleString('en-US')}`;
 const toLocalInput = (s: string) => s.replace(' ', 'T');
+const MAX_PHOTOS = 4;
+/** The signed-in technician files the report; supervisors and engineers default to the shift technician. */
+const reporterDefault = () => { const u = useAuth.getState().user; return u?.role === 'technician' ? u.username : 'MT-02'; };
+
+const WINDOWS = [{ days: 7, label: '1 week' }, { days: 14, label: '2 weeks' }, { days: 30, label: '1 month' }, { days: 42, label: '6 weeks' }, { days: 182, label: '6 months' }, { days: 365, label: '1 year' }];
+
+/** Section 3 trend charts (same layout as the PDF), with the time range before the failure. */
+function TrendCharts({ trends, days, onDays, busy }: { trends: TrendSpec[]; days?: number; onDays?: (d: number) => void; busy?: boolean }) {
+  const picker = onDays && (
+    <div className="ir-trend-range no-print" role="group" aria-label="Time range before the failure">
+      <span className="muted small">Range before failure</span>
+      {WINDOWS.map(w => <button key={w.days} type="button" className={`btn sm${(days ?? 42) === w.days ? ' primary' : ' ghost'}`} disabled={busy} onClick={() => onDays(w.days)}>{w.label}</button>)}
+      {busy && <span className="spin" />}
+    </div>
+  );
+  if (!trends.length) return <>{picker}<p className="muted small">No condition readings recorded for this asset in this range (no trend chart).</p></>;
+  return (
+    <>{picker}
+    <div className="ir-charts">
+      {trends.map((t, i) => (
+        <figure key={i} className="ir-chart">
+          <div className="ir-chart-svg" dangerouslySetInnerHTML={{ __html: chartSvg(t, 515, 165) }} />
+          <figcaption>{t.start_date} → {t.end_date} (failure){t.window_label ? ` · ${t.window_label}` : ''}: {t.summary}</figcaption>
+        </figure>
+      ))}
+    </div>
+    </>
+  );
+}
+
+/** Section 10 photos: up to 4, resized in the browser, each with a caption. */
+function PhotoPicker({ photos, setPhotos, onError }: { photos: ReportPhoto[]; setPhotos: (f: (p: ReportPhoto[]) => ReportPhoto[]) => void; onError: (m: string) => void }) {
+  const add = async (files: FileList | null) => {
+    if (!files) return;
+    for (const f of [...files].slice(0, MAX_PHOTOS - photos.length)) {
+      try { const p = await preparePhoto(f); setPhotos(ps => (ps.length < MAX_PHOTOS ? [...ps, p] : ps)); } catch { onError(`Could not read ${f.name} (use JPEG or PNG)`); }
+    }
+  };
+  return (
+    <div className="ir-photos">
+      {photos.map((p, i) => (
+        <figure key={p.url} className="ir-photo">
+          <img src={p.url} alt={p.caption || `Photo ${i + 1}`} />
+          <input value={p.caption} placeholder={`Caption for photo ${i + 1}`} aria-label={`Caption for photo ${i + 1}`}
+            onChange={e => { const v = e.target.value; setPhotos(ps => ps.map((x, j) => (j === i ? { ...x, caption: v } : x))); }} />
+          <button type="button" className="btn ghost sm no-print" onClick={() => setPhotos(ps => ps.filter((_, j) => j !== i))}>Remove</button>
+        </figure>
+      ))}
+      {photos.length < MAX_PHOTOS && (
+        <label className="ir-photo-add no-print">
+          <Icon name="plus" size={16} /><span>Attach photo</span><span className="muted small">{photos.length}/{MAX_PHOTOS} · camera or gallery</span>
+          <input type="file" accept="image/*" multiple onChange={e => { add(e.target.files); e.target.value = ''; }} />
+        </label>
+      )}
+    </div>
+  );
+}
+
+/** Photo 1 of a submitted report, shown beside its summary (hidden when the report has no photo). */
+function SummaryPhoto({ reportId }: { reportId: string }) {
+  const [ok, setOk] = useState(true);
+  useEffect(() => setOk(true), [reportId]);
+  if (!ok) return null;
+  return <figure className="ir-summary-photo"><img src={`/api/incidents/${encodeURIComponent(reportId)}/photos/1`} alt="Photo 1" onError={() => setOk(false)} /><figcaption className="small muted">Photo 1</figcaption></figure>;
+}
 
 const blankForm = (asset = 'P-101B') => ({
-  asset_id: asset, failure_at: toLocalInput(nowStamp()), reported_by: 'MT-02', detected_by: '', operating_condition: '',
+  asset_id: asset, failure_at: toLocalInput(nowStamp()), reported_by: reporterDefault(), detected_by: '', operating_condition: '',
   observed: '', actions_taken: '', downtime_h: '', procedure_used: '', parts_used: '', safety_injury: 'None', shut_down: false,
 });
 
@@ -44,6 +113,17 @@ export function Incidents() {
   const [busy, setBusy] = useState<'' | 'draft' | 'docx' | 'submit' | 'pdf'>('');
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<{ report_id: string; shut_down: boolean; asset_id: string } | null>(null);
+  const [photos, setPhotos] = useState<ReportPhoto[]>([]);
+  const [trendBusy, setTrendBusy] = useState(false);
+  const [trendDays, setTrendDays] = useState(42);
+  const changeTrend = async (days: number) => {
+    if (!draft) return;
+    setTrendBusy(true); setTrendDays(days);
+    try {
+      const r = await getJSON<{ trends: TrendSpec[] }>(`/api/incidents/trends?asset_id=${encodeURIComponent(draft.asset_id)}&failure_at=${encodeURIComponent(draft.failure_at)}&days=${days}`);
+      setDraft(d => (d ? { ...d, tables: { ...(d.tables ?? {}), trends: r.trends } } : d));
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load the trend'); } finally { setTrendBusy(false); }
+  };
   const intent = useIntent(s => s.incident);
   const pdfFail = (e: unknown) => setErr(e instanceof Error && /501|LibreOffice/.test(e.message)
     ? 'PDF export needs LibreOffice on the server (sudo apt install libreoffice-writer-nogui). Use Print → Save as PDF meanwhile.'
@@ -57,7 +137,7 @@ export function Incidents() {
   const downloadDraftPdf = async () => {
     if (!draft) return;
     setBusy('pdf'); setErr(null);
-    try { downloadBlob(await draftPdfBlob(draft), `${draft.report_id}.pdf`); } catch (e) { pdfFail(e); } finally { setBusy(''); }
+    try { downloadBlob(await draftPdfBlob(draft, undefined, photos), `${draft.report_id}.pdf`); } catch (e) { pdfFail(e); } finally { setBusy(''); }
   };
   const setStatus = useStatusStore(s => s.setStatus);
 
@@ -66,7 +146,7 @@ export function Incidents() {
   useEffect(() => {
     if (!intent) return;
     const f = { ...blankForm(intent.asset_id), ...(intent.prefill ?? {}) };
-    setForm(f); setDraft(null); setDone(null); setMode('new');
+    setForm(f); setDraft(null); setDone(null); setPhotos([]); setMode('new');
     useIntent.getState().clear('incident');
     if (intent.prefill) generate(f); // arriving from Troubleshoot: let Caster draft straight away
   }, [intent?.seq]);
@@ -75,7 +155,7 @@ export function Incidents() {
   const generate = async (f: typeof form = form) => {
     setBusy('draft'); setErr(null); setDone(null);
     try {
-      const body = { ...f, failure_at: f.failure_at.replace('T', ' '), downtime_h: f.downtime_h === '' ? null : Number(f.downtime_h), sim: simPayload() };
+      const body = { ...f, failure_at: f.failure_at.replace('T', ' '), downtime_h: f.downtime_h === '' ? null : Number(f.downtime_h), trend_days: trendDays, sim: simPayload() };
       setDraft(await postJSON<Draft>('/api/incidents/draft', body));
     } catch (e) { setErr(e instanceof Error ? e.message : 'Draft failed'); } finally { setBusy(''); }
   };
@@ -83,16 +163,19 @@ export function Incidents() {
   const docx = async () => {
     if (!draft) return;
     setBusy('docx');
-    try { downloadBlob(await draftDocxBlob(draft), `${draft.report_id}.docx`); } catch (e) { setErr(e instanceof Error ? e.message : 'Render failed'); } finally { setBusy(''); }
+    try { downloadBlob(await draftDocxBlob(draft, photos), `${draft.report_id}.docx`); } catch (e) { setErr(e instanceof Error ? e.message : 'Render failed'); } finally { setBusy(''); }
   };
   const submit = async () => {
     if (!draft) return;
     setBusy('submit');
     try {
-      const r = await postJSON<{ report_id: string; shut_down: boolean; asset_id: string; status_change?: { new_status: string; reason: string } }>('/api/incidents', { ...draft, shut_down: form.shut_down });
+      const r = await postJSON<{ report_id: string; shut_down: boolean; asset_id: string; status_change?: { new_status: string; reason: string } }>('/api/incidents', { ...draft, shut_down: form.shut_down, photos: photoMeta(photos) });
       if (r.status_change) setStatus(r.asset_id, r.status_change.new_status, r.status_change.reason);
+      let photoErr: string | null = null;
+      if (photos.length) await uploadReportPhotos(r.report_id, photos).catch(e => { photoErr = e instanceof Error ? e.message : 'Photo upload failed'; });
       await storeReportPdf(r.report_id).catch(() => { /* rendered on first download instead */ });
-      setDone(r); setDraft(null); refresh();
+      setDone(r); setDraft(null); setPhotos([]); refresh();
+      if (photoErr) setErr(`${r.report_id} submitted, but a photo was not stored: ${photoErr}`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Submit failed'); } finally { setBusy(''); }
   };
 
@@ -113,7 +196,7 @@ export function Incidents() {
           <p>Incident reports — required before an asset is taken out of service. Caster drafts the 37-field report from the records.</p>
         </div>
         {mode === 'list'
-          ? <button type="button" className="btn primary" onClick={() => { setMode('new'); setDraft(null); setDone(null); }}><Icon name="plus" size={14} />New incident</button>
+          ? <button type="button" className="btn primary" onClick={() => { setMode('new'); setDraft(null); setDone(null); setPhotos([]); }}><Icon name="plus" size={14} />New incident</button>
           : <button type="button" className="btn" onClick={() => setMode('list')}>Back to list</button>}
       </header>
       {err && <div className="alert-box bad no-print">{err}</div>}
@@ -155,7 +238,10 @@ export function Incidents() {
                   {selected.severity && <span className={`sev sev-${String(selected.severity).toLowerCase().replace(' ', '-')}`}>{selected.severity}</span>}
                   <span className="muted">{fmtDate(selected.date)}</span></div>
                 {selected.failure_mode && <p><b>{selected.failure_mode}</b></p>}
-                <p className="ir-summary">{selected.summary || 'No summary recorded.'}</p>
+                <div className="ir-summary-row">
+                  <p className="ir-summary">{selected.summary || 'No summary recorded.'}</p>
+                  {selected.source === 'submitted' && <SummaryPhoto reportId={selected.report_id} />}
+                </div>
                 <div className="q-actions">
                   <button type="button" className="btn sm" onClick={() => openAsset(selected.asset_id)}><Icon name="plant" size={13} />Open {selected.asset_id}</button>
                   <button type="button" className="btn sm" disabled={busy === 'pdf'} onClick={() => downloadPdf(selected.report_id)}><Icon name="download" size={13} />{busy === 'pdf' ? 'Preparing…' : 'Download PDF'}</button>
@@ -190,6 +276,10 @@ export function Incidents() {
               <label>Safety / injury<select value={form.safety_injury} onChange={e => set('safety_injury', e.target.value)}>{['None', 'Near miss', 'Injury'].map(a => <option key={a}>{a}</option>)}</select></label>
               <label className="toggle"><input type="checkbox" checked={form.shut_down} onChange={e => set('shut_down', e.target.checked)} />
                 <span><b>Shut down {form.asset_id}</b><br /><span className="muted small">Submitting sets the asset to Shut Down</span></span></label>
+              <div className="span2 ir-form-photos">
+                <span className="ir-form-label">Photos (up to {MAX_PHOTOS}, printed in section 10 with captions)</span>
+                <PhotoPicker photos={photos} setPhotos={setPhotos} onError={setErr} />
+              </div>
             </div>
             <div className="q-actions">
               <button type="submit" className="btn primary" disabled={busy !== '' || !form.observed.trim()}>
@@ -220,12 +310,18 @@ export function Incidents() {
               </div>
               {!!draft.warnings.length && <div className="alert-box warn no-print">{draft.warnings.join(' · ')}</div>}
               <div className="ir-tiles no-print">
-                <div className="tile"><span>Production loss</span><b>{php(draft.linked.cost.production_loss)}</b><em>{draft.linked.cost.explanation.replace(/^PHP [\d,]+ – /, '')}</em></div>
+                <div className={`tile${draft.linked.cost.pair_down ? ' tile-bad' : ''}`}><span>Total cost estimate</span><b>{php(draft.linked.cost.total)}</b><em>{draft.linked.cost.explanation.replace(/^PHP [\d,]+ – /, '')}</em></div>
                 <div className="tile"><span>Repair estimate</span><b>{php(draft.linked.cost.repair)}</b><em>labour {php(draft.linked.cost.labour)} · parts {php(draft.linked.cost.parts)}</em></div>
                 <div className="tile"><span>Repair or replace</span><b>{draft.linked.repair_or_replace.recommendation}</b><em>RR-Model v1 · {(draft.linked.repair_or_replace.confidence * 100).toFixed(0)}% confidence</em></div>
                 <div className="tile"><span>Standby</span><b>{draft.linked.standby}</b><em>stored spare {draft.linked.spare ?? '—'}</em></div>
               </div>
-              {draft.summary && <div className="ir-summary-box"><span className="muted small">Summary</span><p>{draft.summary}</p></div>}
+              <div className="no-print"><CostBreakdown est={draft.linked.cost} /></div>
+              {(draft.summary || photos[0]) && (
+                <div className={`ir-summary-box${photos[0] ? ' with-photo' : ''}`}>
+                  <div><span className="muted small">Summary</span><p>{draft.summary || '—'}</p></div>
+                  {photos[0] && <figure className="ir-summary-photo"><img src={photos[0].url} alt={photos[0].caption || 'Photo 1'} /><figcaption className="small muted">Photo 1{photos[0].caption ? ` – ${photos[0].caption}` : ''}</figcaption></figure>}
+                </div>
+              )}
               <div className="print-only print-title">INCIDENT REPORT · {draft.report_id} · Franklin Baker – Darong WWTP · Printed from GearCast</div>
               {sections.map(([sec, fs]) => (
                 <section key={sec} className="ir-sec">
@@ -239,6 +335,8 @@ export function Incidents() {
                       <textarea className="ir-value" value={f.value ?? ''} rows={Math.min(6, Math.max(1, String(f.value ?? '').split('\n').length + Math.floor(String(f.value ?? '').length / 90)))}
                         onChange={e => editField(f.field_no, e.target.value)} aria-label={f.field} />
                       <div className="print-only ir-print-val">{f.value}</div>
+                      {f.field_no === 12 && <TrendCharts trends={draft.tables?.trends ?? []} days={draft.tables?.trends?.[0]?.window_days ?? trendDays} onDays={changeTrend} busy={trendBusy} />}
+                      {f.field_no === 35 && <PhotoPicker photos={photos} setPhotos={setPhotos} onError={setErr} />}
                     </div>
                   ))}
                 </section>

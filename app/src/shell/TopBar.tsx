@@ -5,7 +5,7 @@ import { useStatusCtx, useStatusStore } from '../store/statusStore';
 import { usePlantStore } from '../store/plantStore';
 import { useUi } from '../store/uiStore';
 import { navigate } from '../store/route';
-import { useAuth } from '../store/authStore';
+import { useAuth, ROLE_LABEL } from '../store/authStore';
 import { fmtDate, nowStamp } from '../domain/assetInfo';
 
 /** Live "data as of" clock (the dataset is shifted to today; see data/index.ts). */
@@ -94,7 +94,7 @@ function UserChip() {
   if (!user) return null;
   return (
     <span className="user-chip" title={user.name}>
-      <span><b>{user.username}</b> · {user.role === 'technician' ? 'Technician' : 'Operator'}</span>
+      <span><b>{user.username}</b> · {ROLE_LABEL[user.role]}</span>
       <button type="button" className="btn sm ghost" onClick={() => logout()}>Sign out</button>
     </span>
   );

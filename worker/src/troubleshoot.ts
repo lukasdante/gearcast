@@ -1,5 +1,5 @@
 /** Troubleshooter (port of backend troubleshoot.py): classify (retrieval + LLM) → yes/no decision tree → verbatim procedure. */
-import { D, StatusCtx, getStatus, partnerOf, view } from './data';
+import { D, StatusCtx, failuresFor, getStatus, partnerOf, view } from './data';
 import { completeJson } from './llm';
 import { MANUAL_PAGES, getDoc, search } from './rag';
 import { pyStr, strip } from './py';
@@ -84,7 +84,46 @@ function assetContext(ctx: StatusCtx, aid: string | null) {
   let advice: string | null = null;
   if (pv && v.role === 'DUTY' && pv.status === 'In Service') advice = `Start standby ${p} before isolating ${aid}.`;
   else if (pv && pv.status !== 'In Service') advice = `Partner ${p} is ${pv.status} – isolating ${aid} takes the pair down. Inform production / escalate (EM-09).`;
-  return { asset_id: aid, status: v.status, role: v.role, partner: p, partner_status: p ? getStatus(ctx, p) : null, advice };
+  return { asset_id: aid, status: v.status, role: v.role, partner: p, partner_status: p ? getStatus(ctx, p) : null, advice, history: historyFor(aid) };
+}
+
+/** Maintenance history the technician reviews before repairing (Mechanical Leadman story): recent failures with root
+ *  cause, repair and lesson, plus the latest work orders. */
+function historyFor(aid: string) {
+  const failures = failuresFor(aid, false).slice(0, 5).map((f: any) => ({
+    event_id: f.event_id, date: String(f.failure_at).slice(0, 10), symptom: f.symptom, failure_mode: f.failure_mode, root_cause: f.root_cause,
+    repair_action: f.repair_action, parts: f.parts_summary ?? null, downtime_h: f.downtime_h ?? null, repair_cost_php: f.repair_cost_php ?? null,
+  }));
+  const work_orders = D.workOrders.filter((w: any) => w.asset_id === aid).sort((a: any, b: any) => (a.reported_at < b.reported_at ? 1 : -1)).slice(0, 5)
+    .map((w: any) => ({ wo_id: w.wo_id, date: String(w.reported_at).slice(0, 10), type: w.wo_type, title: w.title, status: w.status }));
+  return { failures, work_orders };
+}
+
+const STOP = new Set(['with', 'from', 'that', 'this', 'check', 'replace', 'pump', 'motor', 'unit', 'side', 'set', 'kit', 'and', 'the', 'for', 'verify', 'type']);
+const words = (t: string) => new Set(String(t).toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(w => w.length >= 4 && !STOP.has(w)).map(w => w.replace(/s$/, '')));
+
+/** Materials likely needed for the repair: parts that fit the asset, ranked by overlap with the procedure / outcome /
+ *  causes and by use in this asset's past failures with similar symptoms. Stock, location and supplier included. */
+function materialsFor(aid: string | null, proc: any, outcome: string | null, causes: string[], symptom: string) {
+  if (!aid || !(aid in D.asset)) return [];
+  const want = words([proc?.title, outcome, ...causes, ...(proc?.steps || []).map((s: any) => s.instruction)].join(' '));
+  const symW = words(symptom);
+  const past = new Map<string, string>();
+  for (const f of failuresFor(aid, false)) {
+    const fw = words(`${f.symptom} ${f.failure_mode}`);
+    if (![...fw].some(w => symW.has(w) || want.has(w))) continue;
+    for (const m of String(f.parts_summary || '').matchAll(/(SPP-\d+)/g)) if (!past.has(m[1])) past.set(m[1], `${f.event_id} ${String(f.failure_at).slice(0, 10)}`);
+  }
+  const fits = D.spares.filter((p: any) => String(p.fits_assets ?? '').split(/;\s*/).includes(aid));
+  return fits.map((p: any) => {
+    const hit = [...words(p.part_name)].filter(w => want.has(w));
+    const score = hit.length + (past.has(p.part_id) ? 2 : 0);
+    return { p, score, why: [past.has(p.part_id) ? `used in ${past.get(p.part_id)}` : '', hit.length ? `matches ${hit.join(', ')}` : ''].filter(Boolean).join(' · ') };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 6).map(({ p, why }) => ({
+    part_id: p.part_id, part_name: p.part_name, part_number: p.part_number ?? null, qty_on_hand: p.qty_on_hand, min_qty: p.min_qty, unit: p.unit,
+    storage_location: p.storage_location ?? null, lead_time_days: p.lead_time_days ?? null, unit_cost_php: p.unit_cost_php ?? null,
+    supplier: D.suppliers[p.supplier_id]?.supplier_name ?? null, in_stock: Number(p.qty_on_hand) > 0, why,
+  }));
 }
 
 async function generatedFromUpload(env: Env, query: string, aid: string | null) {
@@ -179,6 +218,7 @@ export async function troubleshoot(env: Env, query: string, assetId: string | nu
     likely_causes: ((cls || {}).likely_causes && (cls || {}).likely_causes.length ? cls.likely_causes : null) || symptomCard(sidv).typical_causes,
     procedure: proc, related_procedures: related.map(r => ({ id: r, title: D.procedures[r].title })),
     escalate_if: sym.escalate_if, sources: sourcesFor(pid, sidv), asset: assetContext(ctx, aid),
+    materials: materialsFor(aid, proc, outcome, symptomCard(sidv).typical_causes || [], sym.symptom),
     plan: buildPlan(sidv, path, null, proc),
   };
 }

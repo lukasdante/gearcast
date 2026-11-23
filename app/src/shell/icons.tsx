@@ -16,6 +16,8 @@ const P: Record<string, string> = {
   pipe: 'M4 8h8a4 4 0 014 4v8M4 4v8M12 20h8',
   undo: 'M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3',
   plus: 'M12 5v14M5 12h14',
+  lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3',
+  camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z',
   cursor: 'M5 3l14 7-6 2-2 6z',
   chevron: 'M9 6l6 6-6 6',
   layers: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',

@@ -4,6 +4,7 @@ import { getJSON } from '../api/client';
 import { Icon } from '../shell/icons';
 import { openAsset } from '../shell/TopBar';
 import { useIntent } from '../store/intentStore';
+import { useCan } from '../store/authStore';
 import '../styles/pages.css';
 
 interface Rule { id: string; label: string; value: number | string; limit: number | string; fired: boolean }
@@ -17,6 +18,14 @@ interface Prediction {
 }
 interface CaseRow { case: Record<string, any>; failure_mode?: string; prediction: Prediction; agrees_with_record: boolean }
 interface ModelInfo { name: string; kind: string; trained_on: string; features: string[] }
+interface Supplier { supplier_id: string; supplier_name: string; supplier_type: string; supplies: string; location: string; phone: string; email: string; lead_time_days: number | null; basis: string; why: string }
+interface Replacement {
+  asset_id: string; asset_type: string; note: string;
+  installed: { brand: string | null; model: string | null; new_unit_cost_php: number | null };
+  options: { kind: string; brand: string | null; model: string | null; suppliers: Supplier[] }[];
+  parts: { part_id: string; part_name: string; part_number: string | null; qty_on_hand: number; min_qty: number; unit: string; unit_cost_php: number | null; lead_time_days: number | null; storage_location: string | null; supplier: string | null }[];
+}
+const contact = (s: Supplier) => [s.phone, s.email].filter(v => v && !/see website|online|to confirm/i.test(v)).join(' · ');
 
 const php = (n: number) => `PHP ${Math.round(n).toLocaleString('en-US')}`;
 const tone = (r: string) => (r.startsWith('Replace') ? 'bad' : r.includes('watch') ? 'warn' : 'ok');
@@ -31,6 +40,7 @@ export function RepairReplace() {
   const [open, setOpen] = useState(false);
   const [live, setLive] = useState<{ asset: string; cost: string; result: (Prediction & { asset_id: string }) | null }>({ asset: 'P-101B', cost: '', result: null });
   const [err, setErr] = useState<string | null>(null);
+  const edit = useCan('rr.edit');
 
   useEffect(() => { getJSON<{ model: ModelInfo; cases: CaseRow[] }>('/api/rr/cases').then(setData).catch(() => setErr('Backend offline – start it on :8000')); }, []);
   const intent = useIntent(s => s.rr);
@@ -91,8 +101,9 @@ export function RepairReplace() {
               <div className="rr-live">
                 <b>Check an asset now</b>
                 <select value={live.asset} onChange={e => setLive(l => ({ ...l, asset: e.target.value }))}>{ASSETS.map(a => <option key={a}>{a}</option>)}</select>
-                <input type="number" min="0" placeholder="Repair quote (PHP), blank = last repair" value={live.cost} onChange={e => setLive(l => ({ ...l, cost: e.target.value }))} />
-                <button type="button" className="btn primary sm" onClick={() => check()}>Run model</button>
+                {edit && <input type="number" min="0" placeholder="Repair quote (PHP), blank = last repair" value={live.cost} onChange={e => setLive(l => ({ ...l, cost: e.target.value }))} />}
+                <button type="button" className="btn primary sm" onClick={() => check()}>{edit ? 'Run model' : 'View'}</button>
+                {!edit && <span className="muted small">View only for technicians</span>}
               </div>
             </div>
             {pred && (
@@ -155,6 +166,45 @@ function RrDetail({ p, title, assetId, actual }: { p: Prediction; title: string;
       <div className={`alert-box ${p.costs.savings_3y_php >= 0 ? 'ok' : 'warn'}`}>{p.costs.savings_note}</div>
       {p.downtime && <p className="small"><b>Downtime:</b> {p.downtime.note}</p>}
       <p className="small muted">Assumptions: {p.costs.assumptions.join(' · ')}</p>
+      {assetId && <ReplacementOptions assetId={assetId} />}
     </div>
+  );
+}
+
+/** Brands and suppliers for a replacement unit, plus the parts (and their suppliers) for a repair. */
+function ReplacementOptions({ assetId }: { assetId: string }) {
+  const [r, setR] = useState<Replacement | null>(null);
+  useEffect(() => { setR(null); getJSON<Replacement>(`/api/rr/replacement/${encodeURIComponent(assetId)}`).then(setR).catch(() => setR(null)); }, [assetId]);
+  if (!r) return null;
+  return (
+    <>
+      <h4>Replacement options · brands &amp; suppliers</h4>
+      <p className="small">Installed: <b>{r.installed.brand ?? '—'}</b> {r.installed.model ?? ''}{r.installed.new_unit_cost_php ? <span className="muted"> · new unit {php(r.installed.new_unit_cost_php)}</span> : null}</p>
+      <div className="rr-opts">
+        {r.options.map((o, i) => (
+          <div key={i} className="rr-opt">
+            <div className="rr-opt-head"><span className="badge">{o.kind}</span><b>{o.brand ?? 'Any brand'}</b><span className="muted small">{o.model}</span></div>
+            {o.suppliers.map(s => (
+              <div key={s.supplier_id} className="rr-sup small">
+                <b>{s.supplier_name}</b> <span className="muted">· {s.location}{s.lead_time_days != null ? ` · ~${s.lead_time_days} d lead time` : ''}</span>
+                <div className="muted">{s.supplies}{contact(s) ? ` · ${contact(s)}` : ''}{s.basis === 'Assumed' ? ' · (to confirm)' : ''}</div>
+              </div>
+            ))}
+            {!o.suppliers.length && <div className="muted small">No supplier on file.</div>}
+          </div>
+        ))}
+        {!r.options.length && <p className="muted small">No replacement brands on file for this asset type.</p>}
+      </div>
+      {r.parts.length > 0 && <>
+        <h4>Parts for a repair</h4>
+        <table className="tbl compact">
+          <thead><tr><th>Part</th><th>Supplier</th><th className="num">Stock</th><th className="num">Lead</th></tr></thead>
+          <tbody>{r.parts.map(p => (
+            <tr key={p.part_id}><td>{p.part_name}{p.part_number && <div className="muted small">{p.part_number}</div>}</td><td className="small">{p.supplier ?? '—'}</td>
+              <td className={`num mono${p.qty_on_hand < p.min_qty ? ' bad-t' : ''}`}>{p.qty_on_hand} {p.unit}</td><td className="num mono">{p.lead_time_days != null ? `${p.lead_time_days} d` : '—'}</td></tr>))}</tbody>
+        </table>
+      </>}
+      <p className="small muted">{r.note}</p>
+    </>
   );
 }

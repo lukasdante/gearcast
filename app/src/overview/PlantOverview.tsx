@@ -7,6 +7,10 @@ import { useLive, type Live } from './live';
 import { areaName } from '../domain/layout';
 import { STATUS_COLORS } from '../domain/status';
 import { useActivePlant, usePlantStore } from '../store/plantStore';
+import { useCan } from '../store/authStore';
+import { discardDraft, usePlantAccess } from '../api/plants';
+import { useApprovals } from '../api/approvals';
+import { dialog } from '../shell/Modal';
 import { useStatusStore } from '../store/statusStore';
 import { useUi } from '../store/uiStore';
 import { Icon } from '../shell/icons';
@@ -99,6 +103,7 @@ function Toolbar() {
   const undo = usePlantStore(s => s.undo);
   const hasSim = useStatusStore(s => s.appended.length > 0 || Object.keys(s.roleOverrides).length > 0);
   const resetSim = useStatusStore(s => s.resetSimulation);
+  const canEdit = useCan('layout.edit');
   return (
     <div className="ov-toolbar">
       <PlantsMenu />
@@ -109,9 +114,46 @@ function Toolbar() {
         <button type="button" className="btn glass" onClick={resetSim} title="Discard all simulated status changes">Reset simulation</button>
       )}
       <button type="button" className="btn glass" onClick={fit} title="Frame the whole plant"><Icon name="fit" />Fit</button>
-      <button type="button" className={`btn glass${editMode ? ' on' : ''}`} onClick={() => setEditMode(!editMode)}>
+      {canEdit && <button type="button" className={`btn glass${editMode ? ' on' : ''}`} onClick={() => setEditMode(!editMode)}>
         <Icon name={editMode ? 'check' : 'edit'} />{editMode ? 'Done editing' : 'Edit layout'}
-      </button>
+      </button>}
+    </div>
+  );
+}
+
+/** Engineer: layout edits are a draft until a Plant Supervisor approves them. */
+function DraftBanner() {
+  const doc = useActivePlant();
+  const draft = usePlantAccess(s => (doc ? s.drafts[doc.id] : undefined));
+  const setDraft = usePlantAccess(s => s.setDraft);
+  const items = useApprovals(s => s.items);
+  const file = useApprovals(s => s.file);
+  const refresh = useApprovals(s => s.refresh);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const publishes = useCan('layout.publish');
+  useEffect(() => { if (draft) refresh(); }, [draft, refresh]);
+  if (publishes || draft === undefined || !doc) return null;
+  const ap = draft ? items.find(a => a.id === draft) : undefined;
+  const submit = async () => {
+    const note = await dialog.prompt({ title: 'Submit layout for approval', label: 'What changed? (for the Plant Supervisor)', initial: '', action: 'Submit' });
+    if (note === null) return;
+    setBusy(true); setErr(null);
+    try { const a = await file('layout_change', { plant_id: doc.id, plant_name: doc.name, note, doc }); setDraft(doc.id, a.id); useUi.getState().setEditMode(false); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Submit failed'); } finally { setBusy(false); }
+  };
+  const discard = async () => {
+    if (await dialog.confirm({ title: 'Discard layout draft', danger: true, action: 'Discard draft', body: <p>Your unapproved edits to <b>{doc.name}</b> are removed and the shared layout is restored.</p> })) discardDraft(doc.id);
+  };
+  return (
+    <div className="draft-banner glass small">
+      {!draft && <><b>Draft</b> — your layout edits are only on this device until a Plant Supervisor approves them.
+        <button type="button" className="btn primary sm" disabled={busy} onClick={submit}>Submit for approval</button></>}
+      {draft && ap?.status !== 'rejected' && <><b>{draft} pending</b> — waiting for a Plant Supervisor to approve these layout edits.</>}
+      {draft && ap?.status === 'rejected' && <><b>{draft} rejected</b>{ap.review_note ? ` — ${ap.review_note}` : ''}. Edit and submit again.
+        <button type="button" className="btn primary sm" disabled={busy} onClick={submit}>Resubmit</button></>}
+      <button type="button" className="btn ghost sm" onClick={discard}>Discard draft</button>
+      {err && <span className="chat-err">{err}</span>}
     </div>
   );
 }
@@ -144,6 +186,7 @@ export function PlantOverview() {
   const selectedAssetId = useUi(s => s.selectedAssetId);
   const item = doc.items.find(i => i.id === selectedItemId) ?? null;
   useBuilderKeys();
+  const publishes = useCan('layout.publish');
 
   // Drop a selection that no longer exists in this document.
   useEffect(() => {
@@ -165,7 +208,8 @@ export function PlantOverview() {
           <span className="muted">{editMode ? 'Pick an asset from the palette and click the ground to place it.' : 'Use Edit layout to start building this plant.'}</span>
         </div>
       )}
-      {editMode && <div className="edit-hint glass small">Drag to move · <kbd>R</kbd> rotate · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · saved automatically</div>}
+      {editMode && <div className="edit-hint glass small">Drag to move · <kbd>R</kbd> rotate · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · {publishes ? 'saved and shared automatically' : 'saved as a draft for approval'}</div>}
+      <DraftBanner />
     </div>
   );
 }

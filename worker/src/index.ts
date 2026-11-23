@@ -10,9 +10,14 @@ import { troubleshoot } from './troubleshoot';
 import { runChat } from './chat';
 import { model } from './llm';
 import { UploadError, extractText, suffixStem } from './uploads';
-import { renderDocx, loadTemplate, filledTree, Template } from './doc/render';
+import { renderDocx, loadTemplate, filledTree, photoRid, Template, type DocImage } from './doc/render';
 import { docToPdf, PdfFonts } from './doc/pdf';
-import { auth, sessionUser, technicianBlocked } from './auth';
+import { auth, sessionUser, type User } from './auth';
+import { blocked } from './rbac';
+import { trendsFor, trendDays, TREND_WINDOWS } from './trend';
+import * as ap from './approvals';
+import * as pl from './plants';
+import { QuotaError, charge, chargeStorage, releaseStorage, usage } from './quota';
 
 class HTTP extends Error { constructor(public status: number, public detail: any) { super(typeof detail === 'string' ? detail : 'error'); } }
 const json = (o: any, status = 200, headers: Record<string, string> = {}) =>
@@ -39,14 +44,33 @@ async function docAssets(env: Env) {
 }
 async function draftPdf(env: Env, draft: any): Promise<Uint8Array> {
   const { tpl, fonts } = await docAssets(env);
-  return docToPdf(filledTree(tpl, draft), fonts, `GearCast · ${draft.report_id ?? ''} · generated ${nowStr()}`);
+  const images: Record<string, DocImage> = {};
+  for (const [i, ph] of (draft.photos || []).entries()) {
+    const o = draft.report_id ? await env.FILES.get(photoKey(draft.report_id, i + 1)) : null;
+    if (o) images[photoRid(i)] = { w: ph.w, h: ph.h, ext: ph.ext, bytes: new Uint8Array(await o.arrayBuffer()) };
+  }
+  return docToPdf(filledTree(tpl, draft, { images, vectorCharts: true }), fonts, `GearCast · ${draft.report_id ?? ''} · generated ${nowStr()}`, true,
+    { images, charts: draft.tables?.trends || [] });
 }
-const pdfKey = (id: string) => `pdfs/${id}.pdf`;
+// v2: reports carry trend charts and photos; PDFs stored before that are re-rendered on first download
+const pdfKey = (id: string) => `pdfs/v2/${id}.pdf`;
+const photoKey = (id: string, n: number) => `photos/${id}/${n}`;
+const MAX_PHOTOS = 4, MAX_PHOTO_BYTES = 3 * 1024 * 1024;
+const cleanPhotos = (v: any) => (Array.isArray(v) ? v : []).slice(0, MAX_PHOTOS).map((p: any) => ({
+  caption: String(p?.caption ?? '').slice(0, 300), w: Math.max(1, Number(p?.w) || 4), h: Math.max(1, Number(p?.h) || 3), ext: p?.ext === 'png' ? 'png' : 'jpeg' }));
 const pdfResp = (data: Uint8Array | ArrayBuffer, name: string) =>
   new Response(data, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${name}.pdf"` } });
 
+/** Side effects of an approved record. PM findings and spare deployments are read from the approvals table by the app
+ *  (last-done dates, stock issued); an approved layout change is published as the plant's shared layout. */
+async function applyApproval(env: Env, a: ap.Approval) {
+  if (a.kind === 'layout_change') {
+    await pl.publish(env, a.payload.plant_id, a.payload.doc, `${a.created_by} (approved by ${a.reviewed_by})`);
+  }
+}
+
 // ------------------------------------------------------------------ routes
-async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
+async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, user: User | null): Promise<Response> {
   const p = url.pathname, m = req.method, q = url.searchParams;
   const seg = p.split('/').slice(2).map(decodeURIComponent); // after /api
 
@@ -55,6 +79,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     return json({ ok: true, model: model(env), llm_configured: !!env.DEEPSEEK_API_KEY, kb_ready: kb.ready, kb_chunks: kb.chunks, pdf_export: false });
   }
   if (seg[0] === 'auth') return auth(req, env, seg.slice(1));
+  if (p === '/api/usage' && m === 'GET') return json(await usage(env));
 
   if (seg[0] === 'tools' && seg.length === 2 && m === 'POST') {
     const b = await body(req);
@@ -98,13 +123,28 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     const [ext, stem] = suffixStem(filename);
     let pages: string[];
     try { pages = await extractText(filename, data); } catch (e) { if (e instanceof UploadError) throw new HTTP(400, e.message); throw e; }
+    await charge(env, 'upload', 'LIMIT_UPLOADS_DAY');
+    await chargeStorage(env, data.length, 'upload_bytes');
     const docId = 'DOC-' + crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
     const stored = `${docId}${ext.toLowerCase()}`;
     await env.FILES.put(`uploads/${stored}`, data);
     const d: any = { doc_id: docId, filename, stored_as: stored, title: (form.get('title') as string) || stem,
       asset_id: assetId || null, equipment_model: (form.get('equipment_model') as string) || null, uploaded_at: nowStr(), bytes: data.length };
-    await rag.indexUpload(env, d, pages);
+    try { await rag.indexUpload(env, d, pages); } catch (e) { // e.g. embedding cap reached: don't leave an orphan file in R2
+      await env.FILES.delete(`uploads/${stored}`); await releaseStorage(env, data.length); throw e;
+    }
     return json(d);
+  }
+  if (seg[0] === 'knowledge' && seg[1] === 'docs' && seg.length === 4 && seg[3] === 'file' && m === 'GET') {
+    // open an uploaded manual (Knowledge base → Open, and from retrieval hits)
+    const d = await rag.getDoc(env, seg[2]);
+    const o = d?.stored_as ? await env.FILES.get(`uploads/${d.stored_as}`) : null;
+    if (!o) throw new HTTP(404, 'not found');
+    const ext = String(d.stored_as).split('.').pop()!.toLowerCase();
+    const type = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'text/plain; charset=utf-8';
+    const name = String(d.filename || d.stored_as).replace(/[^\w.\- ]+/g, '_');
+    return new Response(o.body, { headers: { 'Content-Type': type, 'Content-Disposition': `${ext === 'docx' ? 'attachment' : 'inline'}; filename="${name}"`,
+      'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' } });
   }
   if (seg[0] === 'knowledge' && seg[1] === 'docs' && seg.length === 3 && m === 'DELETE') {
     if (!(await rag.deleteDoc(env, seg[2]))) throw new HTTP(404, 'not found');
@@ -125,6 +165,12 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
       throw e;
     }
   }
+  if (p === '/api/incidents/trends' && m === 'GET') {
+    // Field 3 time range picker: re-chart the readings without re-drafting the report
+    const aid = (q.get('asset_id') || '').toUpperCase();
+    if (!D.asset[aid]) throw new HTTP(400, `Unknown asset ${aid}`);
+    return json({ asset_id: aid, days: trendDays(q.get('days')), windows: TREND_WINDOWS, trends: trendsFor(aid, q.get('failure_at'), trendDays(q.get('days'))) });
+  }
   if (p === '/api/incidents/render' && m === 'POST') {
     const draft = await body(req);
     const name = draft.report_id ?? 'IR-draft';
@@ -138,6 +184,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     if (!obj(draft) || !draft.asset_id || !draft.fields || !draft.fields.length) throw new HTTP(400, 'draft with asset_id and fields required');
     // The PDF is rendered from the stored record by the app right after submission (worker/src/doc, in the browser:
     // too CPU-heavy for the Workers free plan) and uploaded with PUT /api/incidents/{id}/pdf.
+    draft.photos = cleanPhotos(draft.photos);
     const { out } = await inc.submit(env, draft);
     return json(out);
   }
@@ -146,7 +193,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     if (m === 'GET') { const r = await inc.getReport(env, seg[1]); if (!r) throw new HTTP(404, 'not found'); return json(r); }
     if (m === 'DELETE') {
       if (!(await inc.deleteReport(env, seg[1]))) throw new HTTP(404, 'Only reports submitted in GearCast can be deleted');
-      await env.FILES.delete(pdfKey(seg[1]));
+      const objs = [...(await env.FILES.list({ prefix: `photos/${seg[1]}/` })).objects];
+      const old = await env.FILES.head(pdfKey(seg[1]));
+      if (old) objs.push(old);
+      if (objs.length) await env.FILES.delete(objs.map(o => o.key));
+      await releaseStorage(env, objs.reduce((a, o) => a + o.size, 0));
       return json({ ok: true });
     }
   }
@@ -158,10 +209,32 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     if (!r) throw new HTTP(404, 'not found');
     if (q.get('render') === 'server') { // CPU-heavy (hundreds of ms): only for paid plans / local dev
       const data = await draftPdf(env, 'history' in r ? inc.historyDraft(r.history) : r);
-      ctx.waitUntil(env.FILES.put(pdfKey(id), data));
+      ctx.waitUntil(chargeStorage(env, data.length, null).then(() => env.FILES.put(pdfKey(id), data)).catch(() => {}));
       return pdfResp(data, id);
     }
     return json({ detail: 'PDF not generated yet', render: `/api/incidents/${encodeURIComponent(id)}/pdf-source` }, 409);
+  }
+  if (seg[0] === 'incidents' && seg.length === 4 && seg[2] === 'photos') {
+    const id = seg[1], n = parseInt(seg[3], 10);
+    if (!(n >= 1 && n <= MAX_PHOTOS)) throw new HTTP(404, 'not found');
+    if (m === 'GET') {
+      const o = await env.FILES.get(photoKey(id, n));
+      if (!o) throw new HTTP(404, 'not found');
+      return new Response(o.body, { headers: { 'Content-Type': o.httpMetadata?.contentType || 'image/jpeg', 'Cache-Control': 'private, max-age=86400' } });
+    }
+    if (m === 'PUT') {
+      const r = await inc.getReport(env, id);
+      if (!r || 'history' in r) throw new HTTP(404, 'not found');
+      if (!(r.photos || [])[n - 1]) throw new HTTP(400, `report has no photo ${n}`);
+      if (await env.FILES.head(photoKey(id, n))) return json({ ok: true, stored: false, note: 'already stored' });
+      const data = new Uint8Array(await req.arrayBuffer());
+      const png = data[0] === 0x89 && data[1] === 0x50, jpg = data[0] === 0xff && data[1] === 0xd8;
+      if (!(png || jpg) || data.length > MAX_PHOTO_BYTES) throw new HTTP(400, 'expected a JPEG or PNG photo (max 3 MB)');
+      await charge(env, 'photo', 'LIMIT_PHOTOS_DAY');
+      await chargeStorage(env, data.length, null);
+      await env.FILES.put(photoKey(id, n), data, { httpMetadata: { contentType: png ? 'image/png' : 'image/jpeg' } });
+      return json({ ok: true, stored: true });
+    }
   }
   if (seg[0] === 'incidents' && seg.length === 3 && seg[2] === 'pdf-source' && m === 'GET') {
     const r = await inc.getReport(env, seg[1]);
@@ -175,14 +248,18 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     if (await env.FILES.head(pdfKey(id))) return json({ ok: true, stored: false, note: 'already generated' });
     const data = new Uint8Array(await req.arrayBuffer());
     if (data.length > 8 * 1024 * 1024 || data.length < 5 || String.fromCharCode(...data.slice(0, 5)) !== '%PDF-') throw new HTTP(400, 'expected a PDF (max 8 MB)');
+    await charge(env, 'pdf', 'LIMIT_PDF_WRITES_DAY');
+    await chargeStorage(env, data.length, null);
     await env.FILES.put(pdfKey(id), data, { httpMetadata: { contentType: 'application/pdf' } });
     return json({ ok: true, stored: true });
   }
 
-  // PM task assignments (shared so technicians see the tasks the operator assigned to them)
+  // PM task assignments (shared so technicians see the tasks a supervisor or engineer assigned to them)
   if (p === '/api/pm/assignments' && m === 'GET') {
     const v = await env.DB.prepare("SELECT v FROM kv WHERE k = 'pm_assign'").first<string>('v');
-    return json({ assignments: v ? JSON.parse(v) : {} });
+    const a: Record<string, string> = v ? JSON.parse(v) : {};
+    for (const k of Object.keys(a)) a[k] = a[k].replace(/^OP-(\d{2})$/, 'PS-$1'); // operators were renamed plant supervisors
+    return json({ assignments: a });
   }
   if (p === '/api/pm/assignments' && m === 'PUT') {
     const b = await body(req);
@@ -193,12 +270,77 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
     return json({ assignments: a });
   }
 
+  // approvals: PM findings, spare deployments, layout changes
+  if (p === '/api/approvals' && m === 'GET') return json({ approvals: await ap.list(env, q.get('kind'), q.get('status'), true) });
+  if (p === '/api/approvals' && m === 'POST') {
+    let kind = '', payload: any = null, file: File | null = null;
+    if ((req.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+      const form = await req.formData();
+      kind = String(form.get('kind') || '');
+      try { payload = JSON.parse(String(form.get('payload') || '{}')); } catch { throw bad('payload must be JSON', ['body', 'payload']); }
+      const f = form.get('file') as unknown as File | null;
+      if (f && typeof f !== 'string' && f.size) file = f;
+    } else { const b = await body(req); kind = String(b?.kind || ''); payload = b?.payload; }
+    let meta: { type: string; name: string; bytes: number } | null = null, data: Uint8Array | null = null;
+    if (file) {
+      data = new Uint8Array(await file.arrayBuffer());
+      const pdf = String.fromCharCode(...data.slice(0, 5)) === '%PDF-', png = data[0] === 0x89 && data[1] === 0x50, jpg = data[0] === 0xff && data[1] === 0xd8;
+      if (!(pdf || png || jpg) || data.length > ap.MAX_SCAN_BYTES) throw new HTTP(400, 'Scanned job sheet must be a PDF, JPEG or PNG (max 8 MB)');
+      meta = { type: pdf ? 'application/pdf' : png ? 'image/png' : 'image/jpeg', name: (file.name || 'scan').slice(0, 120), bytes: data.length };
+      await charge(env, 'upload', 'LIMIT_UPLOADS_DAY');
+      await chargeStorage(env, data.length, 'upload_bytes');
+    }
+    try {
+      const a = await ap.create(env, user!, kind, payload, meta);
+      if (data) await env.FILES.put(ap.fileKey(a.id), data, { httpMetadata: { contentType: meta!.type } });
+      if (a.status === 'approved') await applyApproval(env, a);
+      return json(a);
+    } catch (e) { if (data) await releaseStorage(env, data.length); throw e; }
+  }
+  if (seg[0] === 'approvals' && seg.length === 2 && m === 'GET') {
+    const a = await ap.get(env, seg[1]);
+    if (!a) throw new HTTP(404, 'not found');
+    return json(a);
+  }
+  if (seg[0] === 'approvals' && seg.length === 3 && seg[2] === 'file' && m === 'GET') {
+    const a = await ap.get(env, seg[1]);
+    const o = a?.file ? await env.FILES.get(ap.fileKey(a.id)) : null;
+    if (!o || !a?.file) throw new HTTP(404, 'not found');
+    return new Response(o.body, { headers: { 'Content-Type': a.file.type, 'Content-Disposition': `inline; filename="${a.file.name.replace(/[^\w.\- ]+/g, '_')}"`,
+      'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' } });
+  }
+  if (seg[0] === 'approvals' && seg.length === 3 && seg[2] === 'review' && m === 'POST') {
+    const b = await body(req);
+    const a = await ap.review(env, user!, seg[1], String(b?.decision || ''), String(b?.note || ''));
+    if (a.status === 'approved') await applyApproval(env, a);
+    return json(a);
+  }
+
+  // plants: shared layouts + access (Plant Supervisor publishes and grants; others read)
+  if (p === '/api/plants' && m === 'GET') return json(await pl.list(env, user!));
+  if (p === '/api/plants/access' && m === 'GET') {
+    const mine = !(user!.role === 'supervisor');
+    return json({ grants: await pl.grants(env, mine ? user!.username : undefined), users: mine ? [] : await pl.users(env) });
+  }
+  if (p === '/api/plants/access' && m === 'POST') return json(await pl.grant(env, user!, await body(req)));
+  if (p === '/api/plants/access' && m === 'DELETE') { await pl.revoke(env, q.get('username') || '', q.get('plant_id') || ''); return json({ ok: true }); }
+  if (seg[0] === 'plants' && seg.length === 2 && seg[1] !== 'access') {
+    if (m === 'PUT') { const b = await body(req); await pl.publish(env, seg[1], b?.doc, user!.username); return json({ ok: true }); }
+    if (m === 'DELETE') { await pl.remove(env, seg[1]); return json({ ok: true }); }
+  }
+
   // repair or replace
   if (p === '/api/rr/cases' && m === 'GET') return json({ model: rr.MODEL_INFO, cases: rr.cases() });
   if (seg[0] === 'rr' && seg[1] === 'predict' && seg.length === 3 && m === 'GET') {
     const rc = q.get('repair_cost_php');
     if (rc !== null && Number.isNaN(Number(rc))) throw bad('Input should be a valid number', ['query', 'repair_cost_php']);
     return json(tools.repairOrReplace(seg[2], null, rc === null || rc === '' ? null : Number(rc)));
+  }
+
+  if (seg[0] === 'rr' && seg[1] === 'replacement' && seg.length === 3 && m === 'GET') {
+    const r = rr.replacementOptions(seg[2].toUpperCase());
+    if (!r) throw new HTTP(404, `Unknown asset ${seg[2]}`);
+    return json(r);
   }
 
   // admin: seed the built-in vectors (Workers AI → R2 + Vectorize)
@@ -212,20 +354,27 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
+    if (url.pathname.startsWith('/docs/')) { // built-in manuals: signed-in users only
+      if (!(await sessionUser(req, env))) return new Response('Sign in to GearCast to open this document.', { status: 401 });
+      return env.ASSETS.fetch(req);
+    }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     const t0 = Date.now();
     const devAsOf = env.DEV_MODE === '1' ? req.headers.get('x-gearcast-as-of') : null;
     setContext(makeClock(devAsOf, Number(env.TZ_OFFSET_MIN || 480)));
     void D;
     try {
+      let u: User | null = null;
       if (!url.pathname.startsWith('/api/auth/') && url.pathname !== '/api/health') {
-        const u = await sessionUser(req, env);
+        u = await sessionUser(req, env);
         if (!u) return json({ detail: 'Not signed in' }, 401);
-        if (u.role === 'technician' && technicianBlocked(req.method, url.pathname)) return json({ detail: 'Operators only' }, 403);
+        if (blocked(u.role, req.method, url.pathname)) return json({ detail: 'Your role does not have access to this action' }, 403);
       }
-      return await route(req, env, ctx, url);
+      return await route(req, env, ctx, url, u);
     } catch (e: any) {
       if (e instanceof HTTP) return json({ detail: e.detail }, e.status);
+      if (e instanceof QuotaError) return json({ detail: e.message }, 429);
+      if (e instanceof ap.ApprovalError || e instanceof pl.PlantError) return json({ detail: e.message }, e.status);
       console.log('error', url.pathname, e?.stack || String(e));
       return json({ detail: 'Internal Server Error' }, 500);
     } finally {

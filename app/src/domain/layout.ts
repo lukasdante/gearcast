@@ -48,6 +48,11 @@ export const areaName = (nodeId: string) => AREA_NAMES[nodeId] ?? nodeById.get(n
  * Production → W01 sump → W02 screens → W03 separator → W04 EQ tank → W05 pump room → W06 → W07 → W08,
  * spares store beside the pump room.
  */
+/** Pump areas added with the MVP changes (tag prefix, x position); see ref/data_patches/pump_areas.json. */
+export const PUMP_AREAS: [string, number][] = [['P-301', -7.97], ['P-401', 18.7], ['P-501', 30.47]];
+/** Direct pipes the pump areas replaced (the flow now goes through the pumps). */
+export const REPLACED_PIPES = ['pipe-W03-W04', 'pipe-W06-W07', 'pipe-W07-W08'];
+
 export function buildDefaultPlant(): LayoutDoc {
   const items: LayoutItem[] = [];
   const pipes: LayoutPipe[] = [];
@@ -97,6 +102,9 @@ export function buildDefaultPlant(): LayoutDoc {
   area('W07', 'clarifier', 'Clarifier', [24.5, 0]);
   area('W08', 'discharge', 'Treated effluent discharge', [34.5, 0]);
 
+  // Pump areas 1–3 (2 centrifugal transfer pumps each, duty/standby) in the gaps W03→W04, W06→W07, W07→W08
+  for (const [tag, x] of PUMP_AREAS) { asset(`${tag}A`, 'pump_end_suction', [x, -1.0]); asset(`${tag}B`, 'pump_end_suction', [x, 1.0]); }
+
   // Spares store beside the pump room
   area('rack', 'spare_rack', 'Spares rack', [3.5, 7.5], 'STORE');
   ([['SP-P01', 'pump_end_suction', 1.9], ['SP-P02', 'pump_submersible', 3.3], ['SP-M01', 'motor', 4.4], ['SP-VM01', 'vibrator_motor', 5.3]] as const)
@@ -109,13 +117,22 @@ export function buildDefaultPlant(): LayoutDoc {
   pipe('W01', 'SC-101B');
   pipe('SC-101A', 'W03');
   pipe('SC-101B', 'W03');
-  pipe('W03', 'W04');
+  pipe('W03', 'P-301A');
+  pipe('W03', 'P-301B');
+  pipe('P-301A', 'W04');
+  pipe('P-301B', 'W04');
   pipe('W04', 'P-101A');
   pipe('W04', 'P-101B');
   pipe('P-101A', 'W06');
   pipe('P-101B', 'W06');
-  pipe('W06', 'W07');
-  pipe('W07', 'W08');
+  pipe('W06', 'P-401A');
+  pipe('W06', 'P-401B');
+  pipe('P-401A', 'W07');
+  pipe('P-401B', 'W07');
+  pipe('W07', 'P-501A');
+  pipe('W07', 'P-501B');
+  pipe('P-501A', 'W08');
+  pipe('P-501B', 'W08');
   pipe('W07', 'W06', 'sludge');
 
   return { id: 'default', name: 'Franklin Baker WWTP', items, pipes };

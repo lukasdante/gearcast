@@ -1,6 +1,6 @@
 import { Icon } from './icons';
 import { navigate, type Route } from '../store/route';
-import { useAuth, TECH_ROUTES } from '../store/authStore';
+import { useAuth } from '../store/authStore';
 
 const NAV: { route: Route; label: string; icon: string; soon?: boolean }[] = [
   { route: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -16,7 +16,7 @@ const NAV: { route: Route; label: string; icon: string; soon?: boolean }[] = [
 
 export function Sidebar({ route }: { route: Route }) {
   const tech = useAuth(s => s.user?.role === 'technician');
-  const nav = tech ? NAV.filter(n => (TECH_ROUTES as readonly string[]).includes(n.route)).map(n => (n.route === 'pm' ? { ...n, label: 'My tasks' } : n)) : NAV;
+  const nav = tech ? NAV.map(n => (n.route === 'pm' ? { ...n, label: 'My tasks' } : n)) : NAV;
   return (
     <nav className="sidebar" aria-label="Main">
       {nav.map(n => (

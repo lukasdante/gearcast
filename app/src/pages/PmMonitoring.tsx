@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NOW_DATE, OPS } from '../data';
 import { openAsset } from '../shell/TopBar';
-import { useAuth } from '../store/authStore';
+import { useAuth, useCan } from '../store/authStore';
 import { pushAssignments } from '../api/assignments';
+import { approvedPm, useApprovals, STATUS_LABEL, type Approval } from '../api/approvals';
+import { ApprovalQueue, FindingsModal } from './Approvals';
 import '../styles/pages.css';
 
 export type Band = 'overdue' | 'due' | 'soon' | 'later';
@@ -12,7 +14,7 @@ const BANDS: { id: Band; label: string; hint: string }[] = [
   { id: 'soon', label: 'Coming up', hint: 'next 7 days' },
   { id: 'later', label: 'Planning', hint: 'beyond 7 days' },
 ];
-const TECHS = ['', 'MT-01', 'MT-02', 'MT-03', 'MT-04', 'OP-01', 'OP-02'];
+const TECHS = ['', 'MT-01', 'MT-02', 'MT-03', 'MT-04', 'EN-01', 'EN-02', 'PS-01', 'PS-02'];
 const AKEY = 'gearcast.pm.assign.v1';
 
 const DAY = 86400000;
@@ -26,9 +28,14 @@ export interface Row {
   due: string; days: number; band: Band; est_h: number | null; role: string | null; stop: boolean; procs: string[];
 }
 
-export function buildRows(): Row[] {
+/** PM rows. `done` = approved PM findings (status_id → record): an approved completion newer than the data's
+ *  last-done date moves last done and the due date. */
+export function buildRows(done?: Map<string, Approval>): Row[] {
   const tasks = new Map(OPS.pmTasks.map(t => [t.task_id, t]));
-  return OPS.pmStatus.map(r => {
+  return OPS.pmStatus.map(r0 => {
+    const ap = done?.get(r0.status_id);
+    const apDate = ap ? String(ap.payload.done_at).slice(0, 10) : null;
+    const r = apDate && (!r0.last_done_date || apDate > r0.last_done_date.slice(0, 10)) ? { ...r0, last_done_date: apDate } : r0;
     // Same rule as the prototype: due = last done + interval; fall back to the scheduled next due date.
     const due = r.last_done_date && r.interval_days != null
       ? iso(new Date(toDay(r.last_done_date).getTime() + r.interval_days * DAY))
@@ -45,9 +52,22 @@ export function buildRows(): Row[] {
 }
 
 export function PmMonitoring() {
-  const allRows = useMemo(buildRows, []);
+  const approvals = useApprovals(s => s.items);
+  const refreshApprovals = useApprovals(s => s.refresh);
+  useEffect(() => { refreshApprovals(); }, [refreshApprovals]);
+  const done = useMemo(() => approvedPm(approvals), [approvals]);
+  const allRows = useMemo(() => buildRows(done), [done]);
   const me = useAuth(s => s.user);
   const tech = me?.role === 'technician';
+  const canAssign = useCan('pm.assign');
+  const [filing, setFiling] = useState<Row | null>(null);
+  const [filedMsg, setFiledMsg] = useState<string | null>(null);
+  /** Latest findings record per PM row (any status), for the status chip. */
+  const latest = useMemo(() => {
+    const m = new Map<string, Approval>();
+    for (const a of approvals) if (a.kind === 'pm_findings' && !m.has(a.payload.status_id)) m.set(a.payload.status_id, a);
+    return m;
+  }, [approvals]);
   const [band, setBand] = useState<Band | null>(null);
   const [q, setQ] = useState('');
   const [day, setDay] = useState<string | null>(null);
@@ -125,6 +145,9 @@ export function PmMonitoring() {
         </div>
       </div>
 
+      {filedMsg && <div className="alert-box ok">{filedMsg}</div>}
+      <ApprovalQueue kinds={['pm_findings']} title={tech ? 'My PM findings' : 'PM findings to approve'} />
+
       <div className="card pm-table-card">
         <div className="pm-table-head">
           <b>{day ? `Due ${fmt(day)}` : band ? BANDS.find(b => b.id === band)!.label : 'All PM tasks'}</b>
@@ -134,7 +157,7 @@ export function PmMonitoring() {
         </div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Due</th><th>Task</th><th>Asset</th><th>Interval</th><th>Last done</th><th>Time</th><th>Stop?</th><th>Procedure</th><th>Role</th><th>Assigned to</th></tr></thead>
+            <thead><tr><th>Due</th><th>Task</th><th>Asset</th><th>Interval</th><th>Last done</th><th>Time</th><th>Stop?</th><th>Procedure</th><th>Role</th><th>Assigned to</th><th>Findings</th></tr></thead>
             <tbody>
               {shown.map(r => (
                 <tr key={r.id} className={`b-${r.band}`}>
@@ -148,20 +171,26 @@ export function PmMonitoring() {
                   <td className="mono">{r.est_h != null ? `${r.est_h} h` : '—'}</td>
                   <td>{r.stop ? <span className="badge warn">Stop</span> : <span className="muted">No</span>}</td>
                   <td className="mono small">{r.procs.join(', ') || '—'}</td>
-                  <td className="small">{r.role ?? '—'}</td>
+                  <td className="small">{r.role === 'Operator' ? 'Supervisor' : r.role ?? '—'}</td>
                   <td>
-                    <select className="pm-assign" disabled={tech} value={assign[r.id] ?? ''} onChange={e => setTech(r.id, e.target.value)} aria-label={`Assign ${r.task_id} ${r.asset_id}`}>
+                    <select className="pm-assign" disabled={!canAssign} value={assign[r.id] ?? ''} onChange={e => setTech(r.id, e.target.value)} aria-label={`Assign ${r.task_id} ${r.asset_id}`}>
                       {TECHS.map(t => <option key={t} value={t}>{t || 'Unassigned'}</option>)}
                     </select>
                   </td>
+                  <td className="pm-find-cell">
+                    {(() => { const a = latest.get(r.id); return a && <span className={`badge ap-${a.status}`} title={a.review_note ?? ''}>{STATUS_LABEL[a.status]}</span>; })()}
+                    {(!tech || assign[r.id] === me?.username) && <button type="button" className="btn ghost sm" onClick={() => setFiling(r)}>Record findings</button>}
+                  </td>
                 </tr>
               ))}
-              {!shown.length && <tr><td colSpan={10} className="muted">{tech && !rows.length ? 'No tasks are assigned to you yet.' : 'No tasks match.'}</td></tr>}
+              {!shown.length && <tr><td colSpan={11} className="muted">{tech && !rows.length ? 'No tasks are assigned to you yet.' : 'No tasks match.'}</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      <p className="muted small pm-foot">Due date = last done + interval (plant rule). Assignments are shared: each technician sees the tasks assigned to them under My tasks.</p>
+      <p className="muted small pm-foot">Due date = last done + interval (plant rule); an approved PM findings record counts as the last done date. Assignments are shared: each technician sees the tasks assigned to them under My tasks.</p>
+      {filing && <FindingsModal row={filing} onClose={() => setFiling(null)}
+        onFiled={a => setFiledMsg(a.status === 'approved' ? `${a.id} recorded – ${a.payload.task_id} ${a.payload.asset_id} counts as done.` : `${a.id} sent for approval to a Plant Supervisor or Engineer.`)} />}
     </div>
   );
 }

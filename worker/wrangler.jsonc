@@ -10,12 +10,15 @@
     "directory": "../app/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/docs/*"]
   },
   "ai": { "binding": "AI", "remote": true },
   "d1_databases": [{ "binding": "DB", "database_name": "gearcast-db", "database_id": "f81ddecd-dbf5-43ce-8a9e-8d2c9f7b6d02" }],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "gearcast-files" }],
   "vectorize": [{ "binding": "VEC", "index_name": "gearcast-kb", "remote": true }],
-  "vars": { "DEEPSEEK_BASE_URL": "https://api.deepseek.com", "DEEPSEEK_MODEL": "deepseek-flash", "TZ_OFFSET_MIN": "480" },
+  "vars": { "DEEPSEEK_BASE_URL": "https://api.deepseek.com", "DEEPSEEK_MODEL": "deepseek-flash", "TZ_OFFSET_MIN": "480",
+    // hard daily caps (src/quota.ts): requests past these get 429 instead of costing money / exhausting free tiers
+    "LIMIT_LLM_CALLS_DAY": "300", "LIMIT_EMBED_TEXTS_DAY": "5000", "LIMIT_UPLOADS_DAY": "30", "LIMIT_UPLOAD_MB_DAY": "200",
+    "LIMIT_PDF_WRITES_DAY": "300", "LIMIT_PHOTOS_DAY": "100", "LIMIT_STORAGE_MB": "2048" },
   "observability": { "enabled": true }
 }

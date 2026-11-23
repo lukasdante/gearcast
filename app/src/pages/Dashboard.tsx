@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { NOW_DATE, OPS, PLANT } from '../data';
@@ -13,6 +13,8 @@ import { navigate } from '../store/route';
 import { openAsset } from '../shell/TopBar';
 import { Icon } from '../shell/icons';
 import { buildRows, type Band } from './PmMonitoring';
+import { approvedPm, useApprovals } from '../api/approvals';
+import { PlantDownBanner } from '../overview/ShutdownCost';
 import { Ring, partCheck, partLevel, unitCheck, unitLevel, useChecks } from './SpareReadiness';
 import '../styles/pages.css';
 
@@ -51,7 +53,10 @@ export function Dashboard() {
   const ranked = useMemo(() => pickAttention(views), [views]);
   const [pick, setPick] = useState(0);
   const att = ranked[Math.min(pick, ranked.length - 1)];
-  const pm = useMemo(buildRows, []);
+  const approvals = useApprovals(s => s.items);
+  const refreshApprovals = useApprovals(s => s.refresh);
+  useEffect(() => { refreshApprovals(); }, [refreshApprovals]);
+  const pm = useMemo(() => buildRows(approvedPm(approvals)), [approvals]);
 
   // KPIs
   const installed = views.filter(v => v.key !== 'stored');
@@ -78,6 +83,7 @@ export function Dashboard() {
 
   return (
     <div className="page dash">
+      <PlantDownBanner />
       <div className="dash-kpis">
         <Kpi label="Asset availability" value={`${Math.round((avail / Math.max(1, installed.length)) * 100)}%`} sub={`${avail}/${installed.length} installed units available`} tone={avail === installed.length ? 'ok' : 'warn'} />
         <Kpi label="Active alarms" value={String(sum.fault)} sub={`${sum.maintenance} in maintenance`} tone={sum.fault ? 'bad' : 'ok'} onClick={() => navigate('overview')} />

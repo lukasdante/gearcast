@@ -1,5 +1,6 @@
 /** DeepSeek via the OpenAI-compatible API (port of backend llm.py; same request parameters). */
 import type { Env } from './env';
+import { charge } from './quota';
 
 export const model = (env: Env) => env.DEEPSEEK_MODEL || 'deepseek-flash';
 const base = (env: Env) => (env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
@@ -11,6 +12,7 @@ export class LLMError extends Error {
 /** POST /chat/completions with one retry on network errors, 408/409/429 and 5xx (like openai max_retries=1). */
 export async function chatCompletions(env: Env, body: any, signal?: AbortSignal): Promise<Response> {
   if (!env.DEEPSEEK_API_KEY) throw new LLMError('AuthenticationError', 'DEEPSEEK_API_KEY not set');
+  await charge(env, 'llm', 'LIMIT_LLM_CALLS_DAY');
   let last: any;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
