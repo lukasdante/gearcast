@@ -4,7 +4,7 @@
  * organised as Overview · Readings · Maintenance · History · Parts.
  */
 import { useState, type ReactNode } from 'react';
-import { OPS, PLANT, assetById, type Procedure } from '../data';
+import { OPS, PLANT, assetById, roleWord, type Procedure } from '../data';
 import { backupInfo, changeoverOffer, isDown, lastChangeover, viewAsset, type AssetView } from '../domain/status';
 import {
   checksFor, dateMs, figureFor, fmtDate, historyFor, incidentsFor, kindForAsset, partsFor, pmFor, proceduresFor,
@@ -294,17 +294,17 @@ export function ReadingsTab({ id }: { id: string }) {
 
 // ---------------------------------------------------------------- maintenance tab
 
-function ProcedureModal({ p, assetId, onClose }: { p: Procedure; assetId: string; onClose: () => void }) {
+export function ProcedureModal({ p, assetId, onClose }: { p: Procedure; assetId?: string | null; onClose: () => void }) {
   return (
     <Modal title={`${p.procedure_id} · ${p.title}`} onClose={onClose} width={560} footer={<>
       <button type="button" className="btn" onClick={onClose}>Close</button>
-      <button type="button" className="btn primary" onClick={() => { useIntent.getState().setTroubleshoot(p.title, assetId); navigate('troubleshoot'); onClose(); }}>
+      <button type="button" className="btn primary" onClick={() => { useIntent.getState().setTroubleshoot(p.title, assetId ?? null); navigate('troubleshoot'); onClose(); }}>
         <Icon name="wrench" />Open in Troubleshoot
       </button>
     </>}>
       <KV rows={[
         ['Category', p.category], ['Purpose', p.purpose], ['When used', p.when_used], ['Prerequisites', p.prerequisites],
-        ['Skills / crew', [p.skills, p.crew_size ? `${p.crew_size} person(s)` : null].filter(Boolean).join(' · ')],
+        ['Skills / crew', [roleWord(p.skills), p.crew_size ? `${p.crew_size} person(s)` : null].filter(Boolean).join(' · ')],
         ['Tools', p.tools], ['PPE', p.ppe], ['Permits', p.permits], ['Parts', p.parts],
         ['Est. time', p.est_time_h != null ? `${p.est_time_h} h` : null], ['Steps', p.step_count], ['Revision', p.revision],
       ]} />

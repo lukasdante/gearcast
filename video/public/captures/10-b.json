@@ -1,0 +1,116 @@
+{
+ "shot": "10-b",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 16.266,
+ "trim": {
+  "inSec": 0.81,
+  "outSec": 15.76
+ },
+ "events": [
+  {
+   "t": 2.811,
+   "x": 419,
+   "y": 200,
+   "type": "hover",
+   "label": "AP-0001 layout change \u00b7 EN-01",
+   "box": {
+    "x": 297,
+    "y": 190,
+    "w": 244,
+    "h": 19
+   }
+  },
+  {
+   "t": 4.541,
+   "x": 375,
+   "y": 290,
+   "type": "hover",
+   "label": "Added: End-suction pump",
+   "box": {
+    "x": 234,
+    "y": 281,
+    "w": 282,
+    "h": 17
+   }
+  },
+  {
+   "t": 6.648,
+   "x": 293,
+   "y": 319,
+   "type": "click",
+   "label": "Preview in 3D",
+   "box": {
+    "x": 234,
+    "y": 306,
+    "w": 117,
+    "h": 26
+   }
+  },
+  {
+   "t": 8.571,
+   "x": 1262,
+   "y": 907,
+   "type": "hover",
+   "label": "Proposed pump",
+   "box": {
+    "x": 1195,
+    "y": 895,
+    "w": 133,
+    "h": 24
+   }
+  },
+  {
+   "t": 11.14,
+   "x": 278,
+   "y": 360,
+   "type": "click",
+   "label": "Approve",
+   "box": {
+    "x": 234,
+    "y": 347,
+    "w": 88,
+    "h": 26
+   }
+  },
+  {
+   "t": 13.255,
+   "x": 1262,
+   "y": 907,
+   "type": "hover",
+   "label": "Published",
+   "box": {
+    "x": 1195,
+    "y": 895,
+    "w": 133,
+    "h": 24
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 3.711,
+   "name": "queue-layout-change"
+  },
+  {
+   "t": 7.029,
+   "name": "preview-on"
+  },
+  {
+   "t": 11.14,
+   "name": "toast-approved",
+   "approval": "AP-0001"
+  },
+  {
+   "t": 12.326,
+   "name": "layout-published"
+  }
+ ],
+ "frameStats": {
+  "frames": 475,
+  "firstFrameOffsetMs": 30
+ }
+}

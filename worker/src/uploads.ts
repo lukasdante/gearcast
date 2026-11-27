@@ -44,9 +44,11 @@ export async function extractText(filename: string, data: Uint8Array): Promise<s
   const e = ext.toLowerCase();
   if (e === '.pdf') {
     const { extractText: pdfText, getDocumentProxy } = await import('unpdf');
-    const pdf = await getDocumentProxy(new Uint8Array(data));
-    const { text } = await pdfText(pdf, { mergePages: false });
-    return text as string[];
+    try {
+      const pdf = await getDocumentProxy(new Uint8Array(data));
+      const { text } = await pdfText(pdf, { mergePages: false });
+      return text as string[];
+    } catch (e: any) { throw new UploadError(`Could not read this PDF (${e?.name || 'invalid file'})`); }
   }
   if (e === '.docx') return docxText(data);
   if (['.txt', '.md', '.markdown'].includes(e)) return [new TextDecoder('utf-8').decode(data)];

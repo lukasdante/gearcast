@@ -34,6 +34,7 @@ const P: Record<string, string> = {
   upload: 'M12 20V9M7 14l5-5 5 5M5 4h14',
   file: 'M6 3h8l4 4v14H6zM14 3v4h4',
   spark: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM6.5 6.5h1v1h-1zM16.5 6.5h1v1h-1zM6.5 16.5h1v1h-1z',
 };
 
 export function Icon({ name, size = 16, stroke = 1.7 }: { name: keyof typeof P | string; size?: number; stroke?: number }) {

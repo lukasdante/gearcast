@@ -19,7 +19,7 @@ for (const r of [...list.history, ...list.submitted]) {
   const head = await fetch(`${base}/api/incidents/${r.report_id}/pdf`, { headers: { cookie } });
   if (head.status !== 409) continue;
   const { draft, footer }: any = await (await fetch(`${base}/api/incidents/${r.report_id}/pdf-source`, { headers: { cookie } })).json();
-  const pdf = await docToPdf(filledTree(tpl, draft), fonts, footer);
+  const pdf = await docToPdf(filledTree(tpl, draft, { vectorCharts: true }), fonts, footer, true, { charts: draft.tables?.trends || [] });
   const put = await fetch(`${base}/api/incidents/${r.report_id}/pdf`, { method: 'PUT', headers: { cookie, 'content-type': 'application/pdf' }, body: pdf });
   if (put.ok) made++; else console.log(r.report_id, put.status, await put.text());
 }

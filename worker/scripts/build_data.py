@@ -143,10 +143,30 @@ corpus = {
 }
 
 OUT.mkdir(parents=True, exist_ok=True)
+# QR tags + pilot scan log (sheets 2.F; not in prototype_data_extracted.json): read from the data workbook.
+def _xlsx_rows(sheet: str) -> list[dict]:
+    import openpyxl  # noqa: E402
+    path = next((ROOT / "ref" / "data_package" / "01_Data (for the software)").glob("GearCast_Data_*.xlsx"))
+    ws = openpyxl.load_workbook(path, read_only=True, data_only=True)[sheet]
+    rows = list(ws.iter_rows(values_only=True))
+    keys = [str(k) for k in rows[0]]
+    out = []
+    for r in rows[1:]:
+        if r[0] is None:
+            continue
+        d = {k: (v.strftime("%Y-%m-%d %H:%M") if isinstance(v, datetime) else v) for k, v in zip(keys, r) if k != "version"}
+        out.append(d)
+    return out
+
+
+data["qrTags"] = _xlsx_rows("QR_Tags")
+data["scanLog"] = _xlsx_rows("Scan_Log")
 # 3 pumping areas (placeholder rows until the raw data update): ref/data_patches/pump_areas.json
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from apply_pump_areas import patch_data  # noqa: E402
 patch_data(data)
+# Replacement brands + suppliers per asset class (mined from the data + guide workbooks): Repair/Replace page.
+data["replacementBrands"] = json.loads((ROOT / "ref" / "data_patches" / "replacement_brands.json").read_text())
 
 for name, obj in (("data", data), ("readings", readings), ("corpus", corpus)):
     p = OUT / f"{name}.json"

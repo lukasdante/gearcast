@@ -28,6 +28,12 @@ async function accessible(env: Env, u: User): Promise<{ all: boolean; ids: Map<s
   return { all: false, ids };
 }
 
+/** May this user open (and so propose layout changes to) this plant? */
+export async function canOpen(env: Env, u: User, id: string): Promise<boolean> {
+  const acc = await accessible(env, u);
+  return acc.all || acc.ids.has(id);
+}
+
 export async function list(env: Env, u: User) {
   const acc = await accessible(env, u);
   const rs = await env.DB.prepare('SELECT id, name, doc, updated_at, updated_by FROM plants ORDER BY seq').all();
@@ -44,7 +50,7 @@ export async function list(env: Env, u: User) {
 
 export async function publish(env: Env, id: string, doc: any, by: string) {
   if (!id || !doc || typeof doc !== 'object' || !Array.isArray(doc.items)) throw new PlantError(422, 'layout doc with items required');
-  const text = JSON.stringify({ ...doc, id });
+  const text = JSON.stringify({ ...doc, pipes: Array.isArray(doc.pipes) ? doc.pipes : [], id }); // the app expects both arrays
   if (text.length > 900_000) throw new PlantError(413, 'layout too large');
   const name = String(doc.name || id).slice(0, 80);
   const seq = ((await env.DB.prepare('SELECT MAX(seq) AS n FROM plants').first<number>('n')) || 0) + 1;

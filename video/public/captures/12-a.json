@@ -1,0 +1,150 @@
+{
+ "shot": "12-a",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 19.933,
+ "trim": {
+  "inSec": 1.19,
+  "outSec": 18.7
+ },
+ "events": [
+  {
+   "t": 3.195,
+   "x": 1619,
+   "y": 82,
+   "type": "click",
+   "label": "Plants",
+   "box": {
+    "x": 1521,
+    "y": 66,
+    "w": 196,
+    "h": 32
+   }
+  },
+  {
+   "t": 4.537,
+   "x": 1666,
+   "y": 264,
+   "type": "click",
+   "label": "Plant access…",
+   "box": {
+    "x": 1528,
+    "y": 246,
+    "w": 276,
+    "h": 36
+   }
+  },
+  {
+   "t": 6.392,
+   "x": 827,
+   "y": 570,
+   "type": "click",
+   "label": "Person · MT-03 Technician",
+   "box": {
+    "x": 699,
+    "y": 554,
+    "w": 255,
+    "h": 32
+   }
+  },
+  {
+   "t": 8.217,
+   "x": 1094,
+   "y": 570,
+   "type": "click",
+   "label": "Plant 2",
+   "box": {
+    "x": 966,
+    "y": 554,
+    "w": 255,
+    "h": 32
+   }
+  },
+  {
+   "t": 10.107,
+   "x": 827,
+   "y": 632,
+   "type": "click",
+   "label": "Duration · 8 hours (shift)",
+   "box": {
+    "x": 699,
+    "y": 616,
+    "w": 255,
+    "h": 32
+   }
+  },
+  {
+   "t": 11.903,
+   "x": 1094,
+   "y": 627,
+   "type": "click",
+   "label": "Reason field",
+   "box": {
+    "x": 966,
+    "y": 616,
+    "w": 255,
+    "h": 21
+   }
+  },
+  {
+   "t": 11.923,
+   "x": 1094,
+   "y": 627,
+   "type": "type",
+   "label": "Reason",
+   "box": {
+    "x": 966,
+    "y": 616,
+    "w": 255,
+    "h": 21
+   }
+  },
+  {
+   "t": 14.854,
+   "x": 744,
+   "y": 669,
+   "type": "click",
+   "label": "Give access",
+   "box": {
+    "x": 699,
+    "y": 656,
+    "w": 90,
+    "h": 26
+   }
+  },
+  {
+   "t": 16.2,
+   "x": 960,
+   "y": 716,
+   "type": "hover",
+   "label": "MT-03 · Plant 2 · until expiry",
+   "box": {
+    "x": 699,
+    "y": 692,
+    "w": 522,
+    "h": 47
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 5.254,
+   "name": "access-modal"
+  },
+  {
+   "t": 10.855,
+   "name": "expiry-picked"
+  },
+  {
+   "t": 15.25,
+   "name": "access-granted"
+  }
+ ],
+ "frameStats": {
+  "frames": 631,
+  "firstFrameOffsetMs": 25
+ }
+}

@@ -1,0 +1,150 @@
+{
+ "shot": "05-a",
+ "device": "phone",
+ "viewport": {
+  "w": 390,
+  "h": 844
+ },
+ "durationSec": 33.233,
+ "events": [
+  {
+   "t": 5.902,
+   "type": "click",
+   "x": 342,
+   "y": 795,
+   "label": "Ask Caster",
+   "box": {
+    "x": 312,
+    "y": 762,
+    "w": 60,
+    "h": 66
+   },
+   "tap": true
+  },
+  {
+   "t": 7.504,
+   "type": "type",
+   "x": 195,
+   "y": 734,
+   "label": "P-101A vibration is rising. What should I check, and do we have the parts?",
+   "box": {
+    "x": 63,
+    "y": 717,
+    "w": 264,
+    "h": 34
+   }
+  },
+  {
+   "t": 13.935,
+   "type": "click",
+   "x": 347,
+   "y": 731,
+   "label": "Send",
+   "box": {
+    "x": 333,
+    "y": 717,
+    "w": 28,
+    "h": 28
+   },
+   "tap": true
+  },
+  {
+   "t": 22.685,
+   "type": "scroll",
+   "x": 195,
+   "y": 483,
+   "dy": -920,
+   "label": "Reply top"
+  },
+  {
+   "t": 25.617,
+   "type": "scroll",
+   "x": 195,
+   "y": 483,
+   "dy": 920,
+   "label": "Answer"
+  }
+ ],
+ "videoSize": {
+  "w": 1170,
+  "h": 2532
+ },
+ "trim": {
+  "inSec": 2.72,
+  "outSec": 32.65
+ },
+ "marks": [
+  {
+   "t": 2.522,
+   "name": "app-ready"
+  },
+  {
+   "t": 6.379,
+   "name": "caster-open"
+  },
+  {
+   "t": 12.981,
+   "name": "typed"
+  },
+  {
+   "t": 14.07,
+   "name": "sent"
+  },
+  {
+   "t": 14.741,
+   "name": "preamble"
+  },
+  {
+   "t": 15.295,
+   "name": "tool:Looking up P-101A"
+  },
+  {
+   "t": 15.295,
+   "name": "tool-done:Looking up P-101A"
+  },
+  {
+   "t": 15.295,
+   "name": "tool:Searching manuals & procedures"
+  },
+  {
+   "t": 15.647,
+   "name": "tool-done:Searching manuals & procedures"
+  },
+  {
+   "t": 15.648,
+   "name": "tool:Checking spare stock"
+  },
+  {
+   "t": 15.648,
+   "name": "tool-done:Checking spare stock"
+  },
+  {
+   "t": 17.206,
+   "name": "tool:Checking alarms"
+  },
+  {
+   "t": 17.206,
+   "name": "tool-done:Checking alarms"
+  },
+  {
+   "t": 19.0,
+   "name": "answer-start"
+  },
+  {
+   "t": 21.338,
+   "name": "answer-done"
+  },
+  {
+   "t": 23.585,
+   "name": "reply-top"
+  },
+  {
+   "t": 29.617,
+   "name": "reply-bottom"
+  },
+  {
+   "t": 31.151,
+   "name": "end-action"
+  }
+ ]
+}

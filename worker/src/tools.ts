@@ -27,7 +27,7 @@ export function listAlarms(ctx: StatusCtx) {
     const v = view(ctx, a.asset_id);
     if (DOWN.has(v.status) || v.note) alarms.push({ type: 'status', asset_id: v.asset_id, severity: 'high', text: `${v.asset_id} ${v.status}` + (v.note ? ` – ${v.note}` : ''), simulated: v.simulated });
   }
-  for (const p of D.pmStatus) {
+  for (const p of pmRows()) {
     if ((num(p.days_until_due, 99) || 0) < 0) alarms.push({ type: 'pm_overdue', asset_id: p.asset_id, severity: 'medium', text: `PM ${p.task_id} ${p.task} overdue ${-Math.trunc(Number(p.days_until_due))} d` });
   }
   for (const [sid, s] of Object.entries<any>(D.spareSummary)) {
@@ -55,8 +55,38 @@ export function latestReadings(aid: string) {
 }
 export const latestReadingsAll = () => D.equipment.filter(a => !a.asset_id.startsWith('SP-')).map(a => latestReadings(a.asset_id));
 
+/** Approved PM findings (approvals table): status_id → latest done date. Loaded per tool call (runTool), so Caster
+ *  sees a PM as done once a Plant Supervisor or Engineer approved it, like the PM page does. */
+let PM_DONE = new Map<string, string>();
+export async function loadPmDone(env: Env) {
+  const m = new Map<string, string>();
+  try {
+    const rs = await env.DB.prepare("SELECT payload FROM approvals WHERE kind = 'pm_findings' AND status = 'approved'").all();
+    for (const r of rs.results as any[]) {
+      const p = JSON.parse(r.payload), d = String(p.done_at || '').slice(0, 10);
+      if (p.status_id && d && d > (m.get(p.status_id) || '')) m.set(p.status_id, d);
+    }
+  } catch { /* no approvals table (parity runs): plain schedule */ }
+  PM_DONE = m;
+}
+const dayNum = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / DAY_MS;
+const DAY_MS = 86400000;
+const pmStatusText = (d: number) => (d < 0 ? 'Overdue' : d <= 7 ? 'Coming up (7 days)' : d <= 30 ? 'Planning (30 days)' : 'OK');
+/** PM schedule with approved completions applied (last done → due = done + interval). */
+export function pmRows(): any[] {
+  if (!PM_DONE.size) return D.pmStatus;
+  return D.pmStatus.map(p => {
+    const done = PM_DONE.get(p.status_id);
+    if (!done || (p.last_done_date && done <= String(p.last_done_date).slice(0, 10)) || p.interval_days == null) return p;
+    const due = dayNum(done) + Number(p.interval_days);
+    const days = Math.round(due - dayNum(CLOCK.asOfDate));
+    return { ...p, last_done_date: done, last_done_source: 'GearCast PM findings (approved)', next_due_date: new Date(due * DAY_MS).toISOString().slice(0, 10),
+      days_until_due: days, status: pmStatusText(days) };
+  });
+}
+
 export function pmFor(aid: string): any[] {
-  return sortBy(D.pmStatus.filter(p => expandTargets(p.asset_id).includes(aid)), p => num(p.days_until_due, 9999));
+  return sortBy(pmRows().filter(p => expandTargets(p.asset_id).includes(aid)), p => num(p.days_until_due, 9999));
 }
 
 export function getAsset(ctx: StatusCtx, assetId: any) {
@@ -79,7 +109,7 @@ export function getAsset(ctx: StatusCtx, assetId: any) {
 }
 
 export function pmDue(assetId: any = null, days = 7) {
-  let rows = assetId ? pmFor(String(assetId).toUpperCase()) : D.pmStatus;
+  let rows = assetId ? pmFor(String(assetId).toUpperCase()) : pmRows();
   rows = sortBy(rows.filter(r => (num(r.days_until_due, 9999) || 0) <= days), r => num(r.days_until_due, 9999));
   return { as_of: CLOCK.asOfDate, window_days: days, count: rows.length,
     tasks: rows.slice(0, 25).map(r => pick(r, ['task_id', 'task', 'asset_id', 'next_due_date', 'days_until_due', 'status'])) };
@@ -136,7 +166,8 @@ export function repairOrReplace(assetId: any = null, caseId: any = null, repairC
   const aid = assetOk(assetId);
   if (!aid) return { error: 'Give asset_id or case_id' };
   const p = rr.predict(rr.liveFeatures(aid, repairCostPhp === null || repairCostPhp === undefined ? null : Number(repairCostPhp)));
-  return { asset_id: aid, ...pick(p, ['recommendation', 'confidence', 'rules', 'factors', 'costs', 'features']), model: p.model.name };
+  // replace_with: brand + supplier + lead time + new-unit cost for a replacement (Worker-only field; parity ignores it)
+  return { asset_id: aid, ...pick(p, ['recommendation', 'confidence', 'rules', 'factors', 'costs', 'features']), model: p.model.name, replace_with: rr.replaceWith(aid) };
 }
 
 // --------------------------------------------------------------------------- OpenAI tool schemas
@@ -154,7 +185,7 @@ export const TOOL_SCHEMAS = [
     { asset_id: ASSET, asset_group_name: { type: 'string', enum: ['Transfer pumps', 'Sump pumps', 'Screens'] }, outage_h: { type: 'number' }, pair_down: { type: 'boolean' } }),
   fn('search_knowledge', 'Search procedures, symptoms, failure lessons, the WWTP maintenance manual and uploaded manuals. Returns cited chunks.',
     { query: { type: 'string' }, asset_id: ASSET }, ['query']),
-  fn('repair_or_replace', 'Repair-or-replace model output (GearCast RR-Model v1) for an asset or a recorded case RR-01..RR-11.',
+  fn('repair_or_replace', 'Repair-or-replace model output (GearCast RR-Model v1) for an asset or a recorded case RR-01..RR-11. For an asset, replace_with names the replacement brand/model, supplier, lead time and new-unit cost – quote it when the answer is Replace.',
     { asset_id: ASSET, case_id: { type: 'string' }, repair_cost_php: { type: 'number' } }),
 ];
 
@@ -171,6 +202,7 @@ export function labelFor(name: string, args: any): string {
 export async function runTool(env: Env, ctx: StatusCtx, name: string, args: any): Promise<any> {
   const a: any = {};
   for (const [k, v] of Object.entries(args || {})) if (v !== null && v !== undefined) a[k] = v;
+  if (['list_alarms', 'get_asset', 'pm_due'].includes(name)) await loadPmDone(env);
   switch (name) {
     case 'get_plant_status': return getPlantStatus(ctx);
     case 'list_alarms': return listAlarms(ctx);

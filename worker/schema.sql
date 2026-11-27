@@ -14,3 +14,7 @@ CREATE INDEX IF NOT EXISTS approvals_kind ON approvals (kind, status);
 CREATE TABLE IF NOT EXISTS plants (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, name TEXT NOT NULL, doc TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS plant_access (username TEXT NOT NULL, plant_id TEXT NOT NULL, expires_at TEXT, granted_by TEXT NOT NULL, granted_at TEXT NOT NULL, reason TEXT,
   PRIMARY KEY (username, plant_id));
+-- QR scans made in GearCast (src/scans.ts); merged with the workbook's pilot Scan_Log in the asset scan history
+CREATE TABLE IF NOT EXISTS scan_log (scan_id TEXT PRIMARY KEY, seq INTEGER NOT NULL, scanned_at TEXT NOT NULL, tag_id TEXT, asset_id TEXT NOT NULL,
+  username TEXT NOT NULL, user_role TEXT, device_id TEXT, purpose TEXT, action TEXT, linked_wo_id TEXT, online INTEGER NOT NULL DEFAULT 1, code TEXT);
+CREATE INDEX IF NOT EXISTS scan_log_asset ON scan_log (asset_id, scanned_at);

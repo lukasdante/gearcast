@@ -1,0 +1,150 @@
+{
+ "shot": "07-a",
+ "device": "phone",
+ "viewport": {
+  "w": 390,
+  "h": 844
+ },
+ "durationSec": 30,
+ "events": [
+  {
+   "t": 5.579,
+   "type": "click",
+   "x": 342,
+   "y": 795,
+   "label": "Ask Caster",
+   "box": {
+    "x": 312,
+    "y": 762,
+    "w": 60,
+    "h": 66
+   },
+   "tap": true
+  },
+  {
+   "t": 7.361,
+   "type": "click",
+   "x": 43,
+   "y": 731,
+   "label": "Attach photo",
+   "box": {
+    "x": 29,
+    "y": 717,
+    "w": 28,
+    "h": 28
+   },
+   "tap": true
+  },
+  {
+   "t": 11.443,
+   "type": "type",
+   "x": 195,
+   "y": 734,
+   "label": "write an incident report for P-101A",
+   "box": {
+    "x": 63,
+    "y": 717,
+    "w": 264,
+    "h": 34
+   }
+  },
+  {
+   "t": 14.983,
+   "type": "click",
+   "x": 347,
+   "y": 731,
+   "label": "Send",
+   "box": {
+    "x": 333,
+    "y": 717,
+    "w": 28,
+    "h": 28
+   },
+   "tap": true
+  },
+  {
+   "t": 22.14,
+   "type": "click",
+   "x": 301,
+   "y": 660,
+   "label": "Confirm",
+   "box": {
+    "x": 267,
+    "y": 647,
+    "w": 67,
+    "h": 26
+   },
+   "tap": true
+  }
+ ],
+ "videoSize": {
+  "w": 1170,
+  "h": 2532
+ },
+ "trim": {
+  "inSec": 2.45,
+  "outSec": 29.41
+ },
+ "marks": [
+  {
+   "t": 2.245,
+   "name": "app-ready"
+  },
+  {
+   "t": 6.047,
+   "name": "caster-open"
+  },
+  {
+   "t": 9.53,
+   "name": "photo-attached"
+  },
+  {
+   "t": 14.161,
+   "name": "typed"
+  },
+  {
+   "t": 15.095,
+   "name": "sent"
+  },
+  {
+   "t": 16.304,
+   "name": "tool:Looking up P-101A"
+  },
+  {
+   "t": 16.304,
+   "name": "tool-done:Looking up P-101A"
+  },
+  {
+   "t": 16.304,
+   "name": "tool:Checking alarms"
+  },
+  {
+   "t": 16.304,
+   "name": "tool-done:Checking alarms"
+  },
+  {
+   "t": 18.243,
+   "name": "op-card"
+  },
+  {
+   "t": 19.102,
+   "name": "answer-start"
+  },
+  {
+   "t": 20.163,
+   "name": "answer-done"
+  },
+  {
+   "t": 22.585,
+   "name": "confirmed"
+  },
+  {
+   "t": 26.413,
+   "name": "incident-filed"
+  },
+  {
+   "t": 27.914,
+   "name": "end-action"
+  }
+ ]
+}

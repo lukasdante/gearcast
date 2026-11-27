@@ -14,9 +14,10 @@ import { renderDocx, loadTemplate, filledTree, photoRid, Template, type DocImage
 import { docToPdf, PdfFonts } from './doc/pdf';
 import { auth, sessionUser, type User } from './auth';
 import { blocked } from './rbac';
-import { trendsFor, trendDays, TREND_WINDOWS } from './trend';
+import { trendsFor, trendOpts, trendIndicators, withDefaults, TREND_WINDOWS } from './trend';
 import * as ap from './approvals';
 import * as pl from './plants';
+import * as qr from './scans';
 import { QuotaError, charge, chargeStorage, releaseStorage, usage } from './quota';
 
 class HTTP extends Error { constructor(public status: number, public detail: any) { super(typeof detail === 'string' ? detail : 'error'); } }
@@ -52,8 +53,8 @@ async function draftPdf(env: Env, draft: any): Promise<Uint8Array> {
   return docToPdf(filledTree(tpl, draft, { images, vectorCharts: true }), fonts, `GearCast · ${draft.report_id ?? ''} · generated ${nowStr()}`, true,
     { images, charts: draft.tables?.trends || [] });
 }
-// v2: reports carry trend charts and photos; PDFs stored before that are re-rendered on first download
-const pdfKey = (id: string) => `pdfs/v2/${id}.pdf`;
+// v3: Field 3 charts with selectable range/indicators, aggregation and failure marker; older PDFs re-render on first download
+const pdfKey = (id: string) => `pdfs/v3/${id}.pdf`;
 const photoKey = (id: string, n: number) => `photos/${id}/${n}`;
 const MAX_PHOTOS = 4, MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 const cleanPhotos = (v: any) => (Array.isArray(v) ? v : []).slice(0, MAX_PHOTOS).map((p: any) => ({
@@ -146,6 +147,12 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, us
     return new Response(o.body, { headers: { 'Content-Type': type, 'Content-Disposition': `${ext === 'docx' ? 'attachment' : 'inline'}; filename="${name}"`,
       'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' } });
   }
+  if (seg[0] === 'knowledge' && seg[1] === 'source' && seg.length === 4 && m === 'GET') {
+    // open a structured retrieval hit (procedure, symptom, failure record) in full
+    const r = seg[2] === 'upload' ? await rag.uploadRecord(env, seg[3]) : rag.sourceRecord(seg[2], seg[3]);
+    if (!r) throw new HTTP(404, 'not found');
+    return json(r);
+  }
   if (seg[0] === 'knowledge' && seg[1] === 'docs' && seg.length === 3 && m === 'DELETE') {
     if (!(await rag.deleteDoc(env, seg[2]))) throw new HTTP(404, 'not found');
     return json({ ok: true });
@@ -166,10 +173,25 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, us
     }
   }
   if (p === '/api/incidents/trends' && m === 'GET') {
-    // Field 3 time range picker: re-chart the readings without re-drafting the report
+    // Field 3 time range + indicator picker: re-chart the readings without re-drafting the report.
+    // ?report_id= charts a stored report (its saved choice unless days/from/indicators are given).
+    const given = q.has('days') || q.has('from') || q.has('indicators');
+    const asked = given ? trendOpts({ days: q.get('days'), from: q.get('from'), indicators: q.get('indicators') }) : null;
+    const rid = q.get('report_id');
+    if (rid) {
+      const src = await inc.trendSource(env, rid);
+      if (!src) throw new HTTP(404, 'not found');
+      const known = !!D.asset[src.asset_id];
+      const t0 = asked ?? src.trend ?? trendOpts({ days: src.rec?.tables?.trends?.[0]?.window_days }), trend = known ? withDefaults(src.asset_id, t0) : t0;
+      // a submitted report shows the charts stored with it (as submitted, or as last saved with PUT …/trend)
+      const trends = !asked && src.rec?.tables?.trends ? src.rec.tables.trends : known ? trendsFor(src.asset_id, src.failure_at, trend, src.frame) : [];
+      return json({ report_id: rid, asset_id: src.asset_id, failure_at: src.failure_at, saved: src.trend, trend, windows: TREND_WINDOWS,
+        indicators: known ? trendIndicators(src.asset_id) : [], trends });
+    }
     const aid = (q.get('asset_id') || '').toUpperCase();
     if (!D.asset[aid]) throw new HTTP(400, `Unknown asset ${aid}`);
-    return json({ asset_id: aid, days: trendDays(q.get('days')), windows: TREND_WINDOWS, trends: trendsFor(aid, q.get('failure_at'), trendDays(q.get('days'))) });
+    const trend = withDefaults(aid, asked ?? trendOpts(null));
+    return json({ asset_id: aid, days: trend.days, trend, windows: TREND_WINDOWS, indicators: trendIndicators(aid), trends: trendsFor(aid, q.get('failure_at'), trend) });
   }
   if (p === '/api/incidents/render' && m === 'POST') {
     const draft = await body(req);
@@ -208,7 +230,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, us
     const r = await inc.getReport(env, id);
     if (!r) throw new HTTP(404, 'not found');
     if (q.get('render') === 'server') { // CPU-heavy (hundreds of ms): only for paid plans / local dev
-      const data = await draftPdf(env, 'history' in r ? inc.historyDraft(r.history) : r);
+      const data = await draftPdf(env, 'history' in r ? inc.historyDraft(r.history, await inc.historyTrend(env, id)) : r);
       ctx.waitUntil(chargeStorage(env, data.length, null).then(() => env.FILES.put(pdfKey(id), data)).catch(() => {}));
       return pdfResp(data, id);
     }
@@ -239,8 +261,17 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, us
   if (seg[0] === 'incidents' && seg.length === 3 && seg[2] === 'pdf-source' && m === 'GET') {
     const r = await inc.getReport(env, seg[1]);
     if (!r) throw new HTTP(404, 'not found');
-    const draft = 'history' in r ? inc.historyDraft(r.history) : r;
+    const draft = 'history' in r ? inc.historyDraft(r.history, await inc.historyTrend(env, seg[1])) : r;
     return json({ draft, footer: `GearCast · ${draft.report_id ?? ''} · generated ${nowStr()}` });
+  }
+  if (seg[0] === 'incidents' && seg.length === 3 && seg[2] === 'trend' && m === 'PUT') {
+    // save Field 3's range + indicators with a stored report; its PDF is re-rendered by the app (old one dropped)
+    const b = await body(req);
+    const out = await inc.setReportTrend(env, seg[1], obj(b) ? b : {});
+    if (!out) throw new HTTP(404, 'not found');
+    const old = await env.FILES.head(pdfKey(seg[1]));
+    if (old) { await env.FILES.delete(old.key); await releaseStorage(env, old.size); }
+    return json({ ok: true, ...out });
   }
   if (seg[0] === 'incidents' && seg.length === 3 && seg[2] === 'pdf' && m === 'PUT') {
     const id = seg[1];
@@ -273,29 +304,57 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, us
   // approvals: PM findings, spare deployments, layout changes
   if (p === '/api/approvals' && m === 'GET') return json({ approvals: await ap.list(env, q.get('kind'), q.get('status'), true) });
   if (p === '/api/approvals' && m === 'POST') {
+    // multipart: kind, payload (JSON), optional `file` (scanned job sheet: PDF/JPEG/PNG) and `photo1`..`photoN` (JPEG/PNG)
     let kind = '', payload: any = null, file: File | null = null;
+    const photoFiles: File[] = [];
     if ((req.headers.get('Content-Type') || '').includes('multipart/form-data')) {
       const form = await req.formData();
       kind = String(form.get('kind') || '');
       try { payload = JSON.parse(String(form.get('payload') || '{}')); } catch { throw bad('payload must be JSON', ['body', 'payload']); }
       const f = form.get('file') as unknown as File | null;
       if (f && typeof f !== 'string' && f.size) file = f;
+      for (let i = 1; i <= ap.MAX_PHOTOS; i++) {
+        const ph = form.get(`photo${i}`) as unknown as File | null;
+        if (ph && typeof ph !== 'string' && ph.size) photoFiles.push(ph);
+      }
     } else { const b = await body(req); kind = String(b?.kind || ''); payload = b?.payload; }
-    let meta: { type: string; name: string; bytes: number } | null = null, data: Uint8Array | null = null;
+    if ((file || photoFiles.length) && kind !== 'pm_findings') throw new HTTP(400, 'Files can only be attached to PM findings');
+    if (kind === 'layout_change' && !(await pl.canOpen(env, user!, String(payload?.plant_id || '')))) throw new HTTP(403, 'You do not have access to this plant');
+    const sniff = (d: Uint8Array) => (String.fromCharCode(...d.slice(0, 5)) === '%PDF-' ? 'application/pdf'
+      : d[0] === 0x89 && d[1] === 0x50 ? 'image/png' : d[0] === 0xff && d[1] === 0xd8 ? 'image/jpeg' : null);
+    let meta: ap.FileMeta | null = null, data: Uint8Array | null = null;
+    const photos: { meta: ap.FileMeta; data: Uint8Array }[] = [];
     if (file) {
       data = new Uint8Array(await file.arrayBuffer());
-      const pdf = String.fromCharCode(...data.slice(0, 5)) === '%PDF-', png = data[0] === 0x89 && data[1] === 0x50, jpg = data[0] === 0xff && data[1] === 0xd8;
-      if (!(pdf || png || jpg) || data.length > ap.MAX_SCAN_BYTES) throw new HTTP(400, 'Scanned job sheet must be a PDF, JPEG or PNG (max 8 MB)');
-      meta = { type: pdf ? 'application/pdf' : png ? 'image/png' : 'image/jpeg', name: (file.name || 'scan').slice(0, 120), bytes: data.length };
+      const type = sniff(data);
+      if (!type || data.length > ap.MAX_SCAN_BYTES) throw new HTTP(400, 'Scanned job sheet must be a PDF, JPEG or PNG (max 8 MB)');
+      meta = { type, name: (file.name || 'scan').slice(0, 120), bytes: data.length };
+    }
+    for (const f of photoFiles) {
+      const d = new Uint8Array(await f.arrayBuffer()), type = sniff(d);
+      if (!type || type === 'application/pdf' || d.length > ap.MAX_PHOTO_BYTES) throw new HTTP(400, 'Photos must be JPEG or PNG (max 4 MB each)');
+      photos.push({ meta: { type, name: (f.name || 'photo').slice(0, 120), bytes: d.length }, data: d });
+    }
+    const total = (data?.length ?? 0) + photos.reduce((n, x) => n + x.data.length, 0);
+    if (total) {
       await charge(env, 'upload', 'LIMIT_UPLOADS_DAY');
-      await chargeStorage(env, data.length, 'upload_bytes');
+      await chargeStorage(env, total, 'upload_bytes');
     }
     try {
-      const a = await ap.create(env, user!, kind, payload, meta);
+      const a = await ap.create(env, user!, kind, payload, meta, photos.map(x => x.meta));
       if (data) await env.FILES.put(ap.fileKey(a.id), data, { httpMetadata: { contentType: meta!.type } });
+      for (const [i, x] of photos.entries()) await env.FILES.put(ap.photoKey(a.id, i + 1), x.data, { httpMetadata: { contentType: x.meta.type } });
       if (a.status === 'approved') await applyApproval(env, a);
       return json(a);
-    } catch (e) { if (data) await releaseStorage(env, data.length); throw e; }
+    } catch (e) { if (total) await releaseStorage(env, total); throw e; }
+  }
+  if (seg[0] === 'approvals' && seg.length === 4 && seg[2] === 'photos' && m === 'GET') {
+    // photos taken during the PM (findings form), viewable by the approver and the technician
+    const a = await ap.get(env, seg[1]), n = parseInt(seg[3], 10);
+    const ph = (a?.payload?.photos || []).find((x: any) => x.n === n);
+    const o = ph ? await env.FILES.get(ap.photoKey(a!.id, n)) : null;
+    if (!o) throw new HTTP(404, 'not found');
+    return new Response(o.body, { headers: { 'Content-Type': ph.type, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' } });
   }
   if (seg[0] === 'approvals' && seg.length === 2 && m === 'GET') {
     const a = await ap.get(env, seg[1]);
@@ -328,6 +387,17 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL, us
     if (m === 'PUT') { const b = await body(req); await pl.publish(env, seg[1], b?.doc, user!.username); return json({ ok: true }); }
     if (m === 'DELETE') { await pl.remove(env, seg[1]); return json({ ok: true }); }
   }
+
+  // QR scanning: label lookup, scan log (D1 + the workbook's pilot Scan_Log), print labels
+  if (p === '/api/qr/tags' && m === 'GET') return json({ tags: qr.tags() });
+  if (p === '/api/qr/resolve' && m === 'GET') return json(await qr.resolve(env, user!, q.get('code') || ''));
+  if (p === '/api/scans' && m === 'POST') return json(await qr.log(env, user!, await body(req)));
+  if (p === '/api/scans' && m === 'GET') {
+    const aid = (q.get('asset_id') || '').toUpperCase() || null;
+    if (aid) await qr.resolve(env, user!, aid); // plant access
+    return json({ scans: await qr.history(env, aid, parseInt(q.get('limit') || '50', 10)) });
+  }
+  if (seg[0] === 'scans' && seg.length === 2 && m === 'PATCH') return json(await qr.update(env, user!, seg[1], await body(req)));
 
   // repair or replace
   if (p === '/api/rr/cases' && m === 'GET') return json({ model: rr.MODEL_INFO, cases: rr.cases() });
@@ -374,7 +444,7 @@ export default {
     } catch (e: any) {
       if (e instanceof HTTP) return json({ detail: e.detail }, e.status);
       if (e instanceof QuotaError) return json({ detail: e.message }, 429);
-      if (e instanceof ap.ApprovalError || e instanceof pl.PlantError) return json({ detail: e.message }, e.status);
+      if (e instanceof ap.ApprovalError || e instanceof pl.PlantError || e instanceof qr.ScanError) return json({ detail: e.message }, e.status);
       console.log('error', url.pathname, e?.stack || String(e));
       return json({ detail: 'Internal Server Error' }, 500);
     } finally {

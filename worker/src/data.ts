@@ -42,6 +42,7 @@ export class Data {
   get params(): Record<string, any> { return this.t('prm', () => byKey(this.s('params'), 'param_id')); }
   get plantParams(): Record<string, any> { return this.t('pprm', () => byKey(this.s('plantParams'), 'param_id')); }
   get irTemplate(): any[] { return R.irTemplate; }
+  get replacementBrands(): any { return (R as any).replacementBrands ?? { classes: [], sources: {}, extra_suppliers: [] }; }
   get symptomAliases(): Record<string, string> { return R.symptomAliases; }
 
   param(pid: string, def = 0.0): number {

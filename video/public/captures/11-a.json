@@ -1,0 +1,293 @@
+{
+ "shot": "11-a",
+ "device": "tablet",
+ "viewport": {
+  "w": 1280,
+  "h": 800
+ },
+ "durationSec": 36.066,
+ "events": [
+  {
+   "t": 7.172,
+   "type": "click",
+   "x": 98,
+   "y": 193,
+   "label": "My tasks",
+   "box": {
+    "x": 10,
+    "y": 175,
+    "w": 175,
+    "h": 35
+   },
+   "tap": true
+  },
+  {
+   "t": 9.442,
+   "type": "click",
+   "x": 1184,
+   "y": 677,
+   "label": "Record findings",
+   "box": {
+    "x": 1129,
+    "y": 664,
+    "w": 110,
+    "h": 26
+   },
+   "tap": true
+  },
+  {
+   "t": 11.241,
+   "type": "click",
+   "x": 815,
+   "y": 342,
+   "label": "Check 1 OK",
+   "box": {
+    "x": 783,
+    "y": 323,
+    "w": 64,
+    "h": 38
+   },
+   "tap": true
+  },
+  {
+   "t": 11.959,
+   "type": "click",
+   "x": 815,
+   "y": 401,
+   "label": "Check 2 OK",
+   "box": {
+    "x": 783,
+    "y": 382,
+    "w": 64,
+    "h": 38
+   },
+   "tap": true
+  },
+  {
+   "t": 12.682,
+   "type": "click",
+   "x": 815,
+   "y": 460,
+   "label": "Check 3 OK",
+   "box": {
+    "x": 783,
+    "y": 441,
+    "w": 64,
+    "h": 38
+   },
+   "tap": true
+  },
+  {
+   "t": 13.467,
+   "type": "click",
+   "x": 954,
+   "y": 295,
+   "label": "All OK",
+   "box": {
+    "x": 926,
+    "y": 282,
+    "w": 55,
+    "h": 26
+   },
+   "tap": true
+  },
+  {
+   "t": 13.818,
+   "type": "scroll",
+   "x": 640,
+   "y": 463,
+   "dy": 1011,
+   "label": "Readings"
+  },
+  {
+   "t": 15.25,
+   "type": "type",
+   "x": 410,
+   "y": 189,
+   "label": "Vibration DE 1.4",
+   "box": {
+    "x": 299,
+    "y": 170,
+    "w": 221,
+    "h": 38
+   }
+  },
+  {
+   "t": 15.378,
+   "type": "scroll",
+   "x": 640,
+   "y": 463,
+   "dy": 0,
+   "label": "Photos"
+  },
+  {
+   "t": 16.925,
+   "type": "click",
+   "x": 363,
+   "y": 377,
+   "label": "Take / add photo",
+   "box": {
+    "x": 299,
+    "y": 329,
+    "w": 128,
+    "h": 96
+   },
+   "tap": true
+  },
+  {
+   "t": 18.69,
+   "type": "scroll",
+   "x": 640,
+   "y": 463,
+   "dy": 35,
+   "label": "Findings"
+  },
+  {
+   "t": 19.891,
+   "type": "type",
+   "x": 640,
+   "y": 591,
+   "label": "Findings",
+   "box": {
+    "x": 299,
+    "y": 550,
+    "w": 682,
+    "h": 81
+   }
+  },
+  {
+   "t": 23.07,
+   "type": "scroll",
+   "x": 640,
+   "y": 463,
+   "dy": -986,
+   "label": "How to file"
+  },
+  {
+   "t": 24.694,
+   "type": "click",
+   "x": 505,
+   "y": 111,
+   "label": "Upload scanned job sheet",
+   "box": {
+    "x": 416,
+    "y": 92,
+    "w": 178,
+    "h": 38
+   },
+   "tap": true
+  },
+  {
+   "t": 25.914,
+   "type": "click",
+   "x": 640,
+   "y": 275,
+   "label": "Scan job sheet",
+   "box": {
+    "x": 299,
+    "y": 220,
+    "w": 682,
+    "h": 110
+   },
+   "tap": true
+  },
+  {
+   "t": 28.688,
+   "type": "click",
+   "x": 358,
+   "y": 111,
+   "label": "Fill in on tablet",
+   "box": {
+    "x": 303,
+    "y": 92,
+    "w": 110,
+    "h": 38
+   },
+   "tap": true
+  },
+  {
+   "t": 30.647,
+   "type": "click",
+   "x": 931,
+   "y": 748,
+   "label": "File findings",
+   "box": {
+    "x": 881,
+    "y": 733,
+    "w": 100,
+    "h": 30
+   },
+   "tap": true
+  },
+  {
+   "t": 31.003,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": -221,
+   "label": "My PM findings"
+  }
+ ],
+ "videoSize": {
+  "w": 2560,
+  "h": 1600
+ },
+ "trim": {
+  "inSec": 3.29,
+  "outSec": 35.51
+ },
+ "marks": [
+  {
+   "t": 3.09,
+   "name": "app-ready"
+  },
+  {
+   "t": 7.669,
+   "name": "my-tasks"
+  },
+  {
+   "t": 9.771,
+   "name": "findings-form"
+  },
+  {
+   "t": 13.794,
+   "name": "checklist"
+  },
+  {
+   "t": 15.355,
+   "name": "reading"
+  },
+  {
+   "t": 17.462,
+   "name": "photos"
+  },
+  {
+   "t": 22.255,
+   "name": "findings-text"
+  },
+  {
+   "t": 25.028,
+   "name": "inset-scan-start"
+  },
+  {
+   "t": 26.263,
+   "name": "inset-scan-attached"
+  },
+  {
+   "t": 29.017,
+   "name": "inset-scan-end"
+  },
+  {
+   "t": 30.975,
+   "name": "filed"
+  },
+  {
+   "t": 31.803,
+   "name": "pending-approval"
+  },
+  {
+   "t": 34.008,
+   "name": "end-action"
+  }
+ ]
+}

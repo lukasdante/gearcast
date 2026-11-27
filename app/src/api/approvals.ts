@@ -14,7 +14,7 @@ interface State {
   items: Approval[];
   loaded: boolean;
   refresh: () => Promise<void>;
-  file: (kind: Kind, payload: unknown, scan?: File | null) => Promise<Approval>;
+  file: (kind: Kind, payload: unknown, scan?: File | null, photos?: File[]) => Promise<Approval>;
   review: (id: string, decision: 'approve' | 'reject', note?: string) => Promise<Approval>;
 }
 
@@ -24,11 +24,13 @@ export const useApprovals = create<State>()((set, get) => ({
   refresh: async () => {
     try { set({ items: (await getJSON<{ approvals: Approval[] }>('/api/approvals')).approvals, loaded: true }); } catch { /* offline: keep */ }
   },
-  file: async (kind, payload, scan) => {
+  file: async (kind, payload, scan, photos = []) => {
     let a: Approval;
-    if (scan) {
+    if (scan || photos.length) {
       const fd = new FormData();
-      fd.append('kind', kind); fd.append('payload', JSON.stringify(payload)); fd.append('file', scan);
+      fd.append('kind', kind); fd.append('payload', JSON.stringify(payload));
+      if (scan) fd.append('file', scan);
+      photos.forEach((ph, i) => fd.append(`photo${i + 1}`, ph));
       a = await upload<Approval>('/api/approvals', fd);
     } else a = await postJSON<Approval>('/api/approvals', { kind, payload });
     set({ items: [a, ...get().items.filter(x => x.id !== a.id)] });
@@ -44,6 +46,7 @@ export const useApprovals = create<State>()((set, get) => ({
 }));
 
 export const fileUrl = (id: string) => `/api/approvals/${encodeURIComponent(id)}/file`;
+export const photoUrl = (id: string, n: number) => `/api/approvals/${encodeURIComponent(id)}/photos/${n}`;
 
 /** Latest approved PM completion per PM status row (moves "last done" and the due date). */
 export function approvedPm(items: Approval[]): Map<string, Approval> {

@@ -18,6 +18,10 @@ export function Modal({ title, onClose, children, footer, width = 440 }: {
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // latest onClose without re-running the focus effect: callers pass a new function every render, and re-running it
+  // re-focused the autofocus field on each keystroke (a prompt's select-on-focus then kept only the last character)
+  const close = useRef(onClose);
+  useEffect(() => { close.current = onClose; }, [onClose]);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const el = ref.current;
@@ -25,7 +29,7 @@ export function Modal({ title, onClose, children, footer, width = 440 }: {
       .filter(f => !f.hasAttribute('disabled'));
     (el?.querySelector<HTMLElement>('[data-autofocus]') ?? focusables()[0])?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); close.current(); return; }
       if (e.key !== 'Tab') return;
       const f = focusables();
       if (!f.length) return;
@@ -35,7 +39,7 @@ export function Modal({ title, onClose, children, footer, width = 440 }: {
     };
     window.addEventListener('keydown', onKey, true);
     return () => { window.removeEventListener('keydown', onKey, true); prev?.focus?.(); };
-  }, [onClose]);
+  }, []);
   return (
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={ref} style={{ width }}>

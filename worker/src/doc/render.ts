@@ -35,9 +35,9 @@ function drawingPara(rid: string, descr: string, wPt: number, hPt: number, cente
   const pPr = el('w:pPr', {}, [el('w:spacing', { 'w:before': '40', 'w:after': '40' }), ...(center ? [el('w:jc', { 'w:val': 'center' })] : [])]);
   return el('w:p', {}, [pPr, el('w:r', {}, [el('w:drawing', {}, [inline])])]);
 }
-function textPara(text: string, size = 8.5, bold = false, color = '101010', jc = ''): El {
+function textPara(text: string, size = 8.5, bold = false, color = '101010', jc = '', keepNext = false): El {
   const rPr = el('w:rPr', {}, [el('w:rFonts', { 'w:ascii': 'Arial', 'w:hAnsi': 'Arial' }), ...(bold ? [el('w:b')] : []), el('w:color', { 'w:val': color }), el('w:sz', { 'w:val': String(Math.round(size * 2)) })]);
-  const pPr = el('w:pPr', {}, [el('w:spacing', { 'w:before': '20', 'w:after': '40' }), ...(jc ? [el('w:jc', { 'w:val': jc })] : [])]);
+  const pPr = el('w:pPr', {}, [...(keepNext ? [el('w:keepNext')] : []), el('w:spacing', { 'w:before': '20', 'w:after': '40' }), ...(jc ? [el('w:jc', { 'w:val': jc })] : [])]);
   return el('w:p', {}, [pPr, el('w:r', {}, [rPr, el('w:t', { 'xml:space': 'preserve' }, [text])])]);
 }
 /** Full-width 2-column table: shaded title row, item rows, bold TOTAL row (the shutdown cost breakdown). */
@@ -217,7 +217,7 @@ export function fillDocument(doc: Doc, draft: any, opts: FillOptions = {}): Doc 
       const add: El[] = [];
       trends.forEach((tr, i) => {
         if (!opts.vectorCharts && !images[chartRid(i)]) return;
-        add.push(textPara(`Trend ${tr.start_date} to ${tr.end_date}: ${tr.summary}`, 7.5, true, '1f3864'));
+        add.push(textPara(`Trend – ${tr.window_label ?? '6 weeks'} before the failure (${tr.start_date} to ${tr.end_date}${tr.agg ? `, ${tr.agg}` : ''}): ${tr.summary}`, 7.5, true, '1f3864', '', true));
         add.push(drawingPara(chartRid(i), `gc-chart:${i}`, CHART_W, CHART_H, true));
       });
       if (add.length) insertAfter(t, add);

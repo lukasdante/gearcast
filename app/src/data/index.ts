@@ -91,7 +91,7 @@ export interface OpsData {
   procedureFigures: ProcedureFigure[];
   procedureKeyPoints: { procedure_id: string; point_order: number; point_type: string; text: string }[];
   procedureSelfCheck: { procedure_id: string; question_order: number; question: string; answer: string }[];
-  procedureSteps: { procedure_id: string; step_no: number; phase: string; instruction: string; acceptance_criteria: string | null; safety_note: string | null }[];
+  procedureSteps: { procedure_id: string; step_no: number; phase: string; instruction: string; acceptance_criteria: string | null; safety_note: string | null; photo_required?: boolean; sign_off_required?: boolean }[];
   dailyChecks: DailyCheck[];
   manualRounds: ManualRound[];
   pmTasks: PmTask[];
@@ -133,6 +133,8 @@ function shiftDates<T>(o: T, days = OFFSET_DAYS): T {
 
 export const PLANT = shiftDates(plantRaw as PlantData);
 export const OPS = shiftDates(opsRaw as OpsData);
+/** The dataset's "Operator" role (who does a task) is the app's Plant Supervisor role (MVP Changes rename). */
+export const roleWord = (s: string | null | undefined) => (s ? s.replace(/\bOperator(s?)\b/g, 'Supervisor$1') : s ?? null);
 
 export const assetById = new Map(PLANT.equipment.map(a => [a.asset_id, a]));
 export const nodeById = new Map(PLANT.nodes.map(n => [n.node_id, n]));

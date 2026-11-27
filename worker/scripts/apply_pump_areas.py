@@ -38,12 +38,22 @@ def _tags(nodes: list, patch: dict) -> None:
         n["equipment_tags"] = "; ".join(cur + [t for t in add if t not in cur])
 
 
+def _qr_tags(tags: list, patch: dict) -> None:
+    """QR tags for the new pumps (same label spec as the existing transfer pumps; placeholder until the raw data update)."""
+    tmpl = next((t for t in tags if t["asset_id"] == "P-101A"), {})
+    new = [{**tmpl, "tag_id": e.get("qr_tag_id") or f"QR-{e['asset_id']}", "asset_id": e["asset_id"], "qr_payload": f"gearcast://asset/{e['asset_id']}",
+            "location_node": e.get("location_node"), "installed_date": None, "last_verified": None, "basis": e.get("basis")} for e in patch["equipment"]]
+    _upsert(tags, new, "tag_id")
+
+
 def patch_data(data: dict, patch: dict | None = None) -> dict:
     patch = patch or json.loads(PATCH.read_text())
     _upsert(data["equipment"], patch["equipment"])
     _upsert(data["equipmentStatus"], patch["equipmentStatus"])
     _rotation(data["dutyRotation"], patch)
     _tags(data["nodes"], patch)
+    if "qrTags" in data:  # Worker data.json only (the app reads tags from /api/qr/tags)
+        _qr_tags(data["qrTags"], patch)
     return data
 
 

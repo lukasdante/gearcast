@@ -1,0 +1,175 @@
+{
+ "shot": "05-b",
+ "device": "tablet",
+ "viewport": {
+  "w": 1280,
+  "h": 800
+ },
+ "durationSec": 30.166,
+ "events": [
+  {
+   "t": 6.205,
+   "type": "click",
+   "x": 98,
+   "y": 266,
+   "label": "Troubleshoot",
+   "box": {
+    "x": 10,
+    "y": 248,
+    "w": 175,
+    "h": 35
+   },
+   "tap": true
+  },
+  {
+   "t": 7.164,
+   "type": "type",
+   "x": 462,
+   "y": 187,
+   "label": "P-101A vibration rising",
+   "box": {
+    "x": 263,
+    "y": 170,
+    "w": 397,
+    "h": 34
+   }
+  },
+  {
+   "t": 8.807,
+   "type": "click",
+   "x": 719,
+   "y": 187,
+   "label": "Asset: P-101A",
+   "box": {
+    "x": 668,
+    "y": 171,
+    "w": 101,
+    "h": 32
+   },
+   "tap": true
+  },
+  {
+   "t": 10.089,
+   "type": "click",
+   "x": 830,
+   "y": 187,
+   "label": "Troubleshoot",
+   "box": {
+    "x": 777,
+    "y": 172,
+    "w": 106,
+    "h": 30
+   },
+   "tap": true
+  },
+  {
+   "t": 14.058,
+   "type": "click",
+   "x": 809,
+   "y": 521,
+   "label": "Skip to procedure",
+   "box": {
+    "x": 743,
+    "y": 506,
+    "w": 132,
+    "h": 30
+   },
+   "tap": true
+  },
+  {
+   "t": 15.197,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": 371,
+   "label": "Procedure"
+  },
+  {
+   "t": 17.718,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": 63,
+   "label": "Materials needed"
+  },
+  {
+   "t": 18.627,
+   "type": "hover",
+   "x": 578,
+   "y": 108,
+   "label": "Materials needed",
+   "box": {
+    "x": 264,
+    "y": 68,
+    "w": 628,
+    "h": 433
+   }
+  },
+  {
+   "t": 21.641,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": 686,
+   "label": "Steps"
+  },
+  {
+   "t": 24.864,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": 322,
+   "label": "Sources"
+  }
+ ],
+ "videoSize": {
+  "w": 2560,
+  "h": 1600
+ },
+ "trim": {
+  "inSec": 2.45,
+  "outSec": 29.57
+ },
+ "marks": [
+  {
+   "t": 2.249,
+   "name": "app-ready"
+  },
+  {
+   "t": 6.607,
+   "name": "troubleshoot-page"
+  },
+  {
+   "t": 10.403,
+   "name": "submitted"
+  },
+  {
+   "t": 11.692,
+   "name": "symptom"
+  },
+  {
+   "t": 14.372,
+   "name": "procedure"
+  },
+  {
+   "t": 16.297,
+   "name": "steps-from-manuals"
+  },
+  {
+   "t": 18.618,
+   "name": "materials"
+  },
+  {
+   "t": 22.841,
+   "name": "steps"
+  },
+  {
+   "t": 26.264,
+   "name": "sources"
+  },
+  {
+   "t": 28.065,
+   "name": "end-action"
+  }
+ ]
+}

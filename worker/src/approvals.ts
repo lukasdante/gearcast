@@ -4,7 +4,7 @@
 import type { Env } from './env';
 import type { User } from './auth';
 import { REVIEWERS, can, MAJOR_SPARE } from './rbac';
-import { nowStr } from './data';
+import { D, nowStr } from './data';
 
 export type Kind = 'pm_findings' | 'spare_deploy' | 'layout_change';
 export const KINDS: Kind[] = ['pm_findings', 'spare_deploy', 'layout_change'];
@@ -26,13 +26,20 @@ const bool = (v: any) => v === true || v === 'true' || v === '1' || v === 1;
 function clean(kind: Kind, p: any): { title: string; payload: any } {
   if (!p || typeof p !== 'object') throw new ApprovalError(422, 'payload required');
   if (kind === 'pm_findings') {
-    const status_id = str(p.status_id, 40), task_id = str(p.task_id, 20).toUpperCase(), asset_id = str(p.asset_id, 40).toUpperCase();
-    if (!status_id || !task_id) throw new ApprovalError(422, 'status_id and task_id required');
+    const status_id = str(p.status_id, 40);
+    // task and asset come from the PM schedule, not from the client
+    const pm = D.pmStatus.find((r: any) => r.status_id === status_id);
+    if (!pm) throw new ApprovalError(422, `Unknown PM task ${status_id || '(status_id required)'}`);
+    const task_id = String(pm.task_id), asset_id = String(pm.asset_id);
     const done_at = /^\d{4}-\d{2}-\d{2}/.test(str(p.done_at)) ? str(p.done_at, 16) : nowStr();
+    if (done_at.slice(0, 10) > nowStr().slice(0, 10)) throw new ApprovalError(422, 'done_at cannot be in the future');
+    const readings = (Array.isArray(p.readings) ? p.readings : []).slice(0, 12).map((r: any) => ({
+      label: str(r?.label, 60), unit: str(r?.unit, 12), value: r?.value === '' || r?.value == null || !Number.isFinite(Number(r.value)) ? null : Number(r.value) }))
+      .filter((r: any) => r.label && r.value !== null);
     const checklist = (Array.isArray(p.checklist) ? p.checklist : []).slice(0, 40).map((c: any) => ({ item: str(c?.item, 300), result: ['ok', 'not_ok', 'na'].includes(c?.result) ? c.result : 'na', note: str(c?.note, 300) }));
     return {
       title: `${task_id} ${asset_id} – PM findings`,
-      payload: { status_id, task_id, asset_id, task: str(p.task, 200), done_at, mode: p.mode === 'scan' ? 'scan' : 'form', checklist,
+      payload: { status_id, task_id, asset_id, task: String(pm.task ?? str(p.task, 200)), done_at, mode: p.mode === 'scan' ? 'scan' : 'form', checklist, readings,
         measurements: str(p.measurements), findings: str(p.findings), parts_used: str(p.parts_used, 500), hours: Number(p.hours) || null,
         followup: bool(p.followup), followup_note: str(p.followup_note, 500) },
     };
@@ -40,10 +47,14 @@ function clean(kind: Kind, p: any): { title: string; payload: any } {
   if (kind === 'spare_deploy') {
     const item_id = str(p.item_id, 40).toUpperCase(), qty = Math.max(1, Math.round(Number(p.qty) || 1));
     if (!item_id) throw new ApprovalError(422, 'item_id required');
+    // major/accessory is decided from the server's spare register (a client cannot relabel a pump part as a valve);
+    // only parts added in the app (not in the register) fall back to the category the client sends
+    const known = D.spares.find((x: any) => String(x.part_id).toUpperCase() === item_id);
+    const category = known ? String(known.category ?? '') : str(p.category, 60);
     return {
       title: `Deploy ${qty} × ${item_id}${p.asset_id ? ` → ${str(p.asset_id, 40).toUpperCase()}` : ''}`,
-      payload: { item_id, name: str(p.name, 200), category: str(p.category, 60), qty, asset_id: str(p.asset_id, 40).toUpperCase() || null, reason: str(p.reason, 500),
-        major: MAJOR_SPARE(p.category, item_id) },
+      payload: { item_id, name: known ? String(known.part_name) : str(p.name, 200), category, qty, asset_id: str(p.asset_id, 40).toUpperCase() || null, reason: str(p.reason, 500),
+        major: MAJOR_SPARE(category, item_id) || (!known && !category) },
     };
   }
   // layout_change
@@ -83,11 +94,16 @@ export async function get(env: Env, id: string): Promise<Approval | null> {
   return r ? row2(r) : null;
 }
 
-export async function create(env: Env, u: User, kind: string, payload: any, file: { type: string; name: string; bytes: number } | null): Promise<Approval> {
+export interface FileMeta { type: string; name: string; bytes: number }
+export const MAX_PHOTOS = 6, MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+export const photoKey = (id: string, n: number) => `approvals/${id}/photo/${n}`;
+
+export async function create(env: Env, u: User, kind: string, payload: any, file: FileMeta | null, photos: FileMeta[] = []): Promise<Approval> {
   if (!KINDS.includes(kind as Kind)) throw new ApprovalError(422, `kind must be one of ${KINDS.join(', ')}`);
   if (kind === 'layout_change' && !can(u.role, 'layout.edit')) throw new ApprovalError(403, 'Your role cannot edit plant layouts');
   const k = kind as Kind;
   const c = clean(k, payload);
+  if (k === 'pm_findings') c.payload.photos = photos.slice(0, MAX_PHOTOS).map((ph, i) => ({ n: i + 1, ...ph, caption: str(payload?.photo_captions?.[i], 200) }));
   const review = needsReview(k, u, c.payload);
   const seq = ((await env.DB.prepare('SELECT MAX(seq) AS n FROM approvals').first<number>('n')) || 0) + 1;
   const id = `AP-${String(seq).padStart(4, '0')}`;

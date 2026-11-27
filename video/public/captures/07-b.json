@@ -1,0 +1,170 @@
+{
+ "shot": "07-b",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 26.066,
+ "trim": {
+  "inSec": 1.16,
+  "outSec": 25.98
+ },
+ "events": [
+  {
+   "t": 3.161,
+   "x": 632,
+   "y": 250,
+   "type": "click",
+   "label": "New report · P-101A",
+   "box": {
+    "x": 574,
+    "y": 232,
+    "w": 116,
+    "h": 36
+   }
+  },
+  {
+   "t": 5.122,
+   "x": 1616,
+   "y": 346,
+   "type": "hover",
+   "label": "Summary",
+   "box": {
+    "x": 1477,
+    "y": 169,
+    "w": 277,
+    "h": 354
+   }
+  },
+  {
+   "t": 6.778,
+   "x": 1834,
+   "y": 209,
+   "type": "hover",
+   "label": "Photo 1",
+   "box": {
+    "x": 1764,
+    "y": 156,
+    "w": 140,
+    "h": 106
+   }
+  },
+  {
+   "t": 9.022,
+   "x": 1691,
+   "y": 607,
+   "type": "hover",
+   "label": "Field 3 · Readings before the failure",
+   "box": {
+    "x": 1477,
+    "y": 597,
+    "w": 427,
+    "h": 19
+   }
+  },
+  {
+   "t": 10.545,
+   "x": 1621,
+   "y": 634,
+   "type": "click",
+   "label": "1 week",
+   "box": {
+    "x": 1591,
+    "y": 621,
+    "w": 59,
+    "h": 26
+   }
+  },
+  {
+   "t": 12.88,
+   "x": 1759,
+   "y": 634,
+   "type": "click",
+   "label": "1 month",
+   "box": {
+    "x": 1726,
+    "y": 621,
+    "w": 65,
+    "h": 26
+   }
+  },
+  {
+   "t": 15.178,
+   "x": 1582,
+   "y": 667,
+   "type": "click",
+   "label": "1 year",
+   "box": {
+    "x": 1555,
+    "y": 654,
+    "w": 53,
+    "h": 26
+   }
+  },
+  {
+   "t": 17.403,
+   "x": 1852,
+   "y": 922,
+   "type": "hover",
+   "label": "Failure date",
+   "box": {
+    "x": 1846,
+    "y": 861,
+    "w": 12,
+    "h": 111
+   }
+  },
+  {
+   "t": 20.343,
+   "x": 1659,
+   "y": 559,
+   "type": "click",
+   "label": "Download PDF",
+   "box": {
+    "x": 1597,
+    "y": 546,
+    "w": 123,
+    "h": 26
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 4.271,
+   "name": "photo-beside-summary"
+  },
+  {
+   "t": 9.623,
+   "name": "field3"
+  },
+  {
+   "t": 10.934,
+   "name": "range-1w"
+  },
+  {
+   "t": 13.263,
+   "name": "range-1m"
+  },
+  {
+   "t": 15.576,
+   "name": "range-1y"
+  },
+  {
+   "t": 16.598,
+   "name": "failure-marker"
+  },
+  {
+   "t": 20.525,
+   "name": "pdf-downloaded"
+  },
+  {
+   "t": 23.483,
+   "name": "pdf-open"
+  }
+ ],
+ "frameStats": {
+  "frames": 1263,
+  "firstFrameOffsetMs": 20
+ }
+}

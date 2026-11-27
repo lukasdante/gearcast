@@ -1,0 +1,137 @@
+{
+ "shot": "11-b",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 16.666,
+ "trim": {
+  "inSec": 1,
+  "outSec": 16.3
+ },
+ "events": [
+  {
+   "t": 3.005,
+   "x": 405,
+   "y": 120,
+   "type": "hover",
+   "label": "PM-09 P-101A findings · MT-02",
+   "box": {
+    "x": 315,
+    "y": 110,
+    "w": 179,
+    "h": 19
+   }
+  },
+  {
+   "t": 4.488,
+   "x": 570,
+   "y": 253,
+   "type": "hover",
+   "label": "Readings",
+   "box": {
+    "x": 252,
+    "y": 243,
+    "w": 635,
+    "h": 19
+   }
+  },
+  {
+   "t": 6.171,
+   "x": 570,
+   "y": 380,
+   "type": "hover",
+   "label": "Photos",
+   "box": {
+    "x": 252,
+    "y": 323,
+    "w": 635,
+    "h": 113
+   }
+  },
+  {
+   "t": 8.095,
+   "x": 296,
+   "y": 464,
+   "type": "click",
+   "label": "Approve",
+   "box": {
+    "x": 252,
+    "y": 451,
+    "w": 88,
+    "h": 26
+   }
+  },
+  {
+   "t": 10.242,
+   "x": 519,
+   "y": 514,
+   "type": "click",
+   "label": "Search PM-09 field",
+   "box": {
+    "x": 329,
+    "y": 498,
+    "w": 380,
+    "h": 32
+   }
+  },
+  {
+   "t": 10.247,
+   "x": 519,
+   "y": 514,
+   "type": "type",
+   "label": "Search PM-09",
+   "box": {
+    "x": 329,
+    "y": 498,
+    "w": 380,
+    "h": 32
+   }
+  },
+  {
+   "t": 11.804,
+   "x": 925,
+   "y": 653,
+   "type": "hover",
+   "label": "Last done 28 Nov",
+   "box": {
+    "x": 866,
+    "y": 627,
+    "w": 118,
+    "h": 51
+   }
+  },
+  {
+   "t": 13.805,
+   "x": 1674,
+   "y": 653,
+   "type": "hover",
+   "label": "Approved",
+   "box": {
+    "x": 1638,
+    "y": 644,
+    "w": 71,
+    "h": 17
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 7.171,
+   "name": "findings-with-photos"
+  },
+  {
+   "t": 8.478,
+   "name": "toast-approved"
+  },
+  {
+   "t": 13.004,
+   "name": "last-done-today"
+  }
+ ],
+ "frameStats": {
+  "frames": 995,
+  "firstFrameOffsetMs": 20
+ }
+}

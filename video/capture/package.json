@@ -1,0 +1,16 @@
+{
+  "name": "gearcast-capture-env",
+  "private": true,
+  "type": "module",
+  "description": "Local demo environment for the promo captures (see README.md). Deps for capture-side scripts only.",
+  "scripts": {
+    "up": "./up.sh",
+    "down": "./down.sh",
+    "reset": "./reset.sh",
+    "state": "node scripts/story_state.mjs",
+    "smoke": "node scripts/smoke.mjs --reset"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1"
+  }
+}

@@ -1,0 +1,199 @@
+{
+ "shot": "02-a",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 33.066,
+ "trim": {
+  "inSec": 0,
+  "outSec": 33.07
+ },
+ "events": [
+  {
+   "t": 3.18,
+   "x": 852,
+   "y": 520,
+   "type": "click",
+   "label": "Supervisor",
+   "box": {
+    "x": 799,
+    "y": 505,
+    "w": 105,
+    "h": 30
+   }
+  },
+  {
+   "t": 4.389,
+   "x": 960,
+   "y": 637,
+   "type": "move",
+   "label": "Account PS-01"
+  },
+  {
+   "t": 5.816,
+   "x": 960,
+   "y": 705,
+   "type": "click",
+   "label": "password field",
+   "box": {
+    "x": 795,
+    "y": 688,
+    "w": 330,
+    "h": 34
+   }
+  },
+  {
+   "t": 5.822,
+   "x": 960,
+   "y": 705,
+   "type": "type",
+   "label": "password",
+   "box": {
+    "x": 795,
+    "y": 688,
+    "w": 330,
+    "h": 34
+   }
+  },
+  {
+   "t": 7.238,
+   "x": 960,
+   "y": 756,
+   "type": "click",
+   "label": "Sign in",
+   "box": {
+    "x": 795,
+    "y": 738,
+    "w": 330,
+    "h": 36
+   }
+  },
+  {
+   "t": 13.37,
+   "x": 359,
+   "y": 118,
+   "type": "hover",
+   "label": "KPI row",
+   "box": {
+    "x": 224,
+    "y": 74,
+    "w": 270,
+    "h": 87
+   }
+  },
+  {
+   "t": 15.804,
+   "x": 1198,
+   "y": 118,
+   "type": "hover",
+   "label": "PM KPIs",
+   "box": {
+    "x": 1063,
+    "y": 74,
+    "w": 270,
+    "h": 87
+   }
+  },
+  {
+   "t": 18.203,
+   "x": 1757,
+   "y": 118,
+   "type": "hover",
+   "label": "KPI row end",
+   "box": {
+    "x": 1622,
+    "y": 74,
+    "w": 270,
+    "h": 87
+   }
+  },
+  {
+   "t": 20.625,
+   "x": 1058,
+   "y": 195,
+   "type": "hover",
+   "label": "Process strip",
+   "box": {
+    "x": 224,
+    "y": 171,
+    "w": 1668,
+    "h": 48
+   }
+  },
+  {
+   "t": 23.97,
+   "x": 541,
+   "y": 657,
+   "type": "hover",
+   "label": "Needs attention · P-101A",
+   "box": {
+    "x": 239,
+    "y": 271,
+    "w": 604,
+    "h": 772
+   }
+  },
+  {
+   "t": 26.503,
+   "x": 541,
+   "y": 1068,
+   "type": "hover",
+   "label": "P-101A",
+   "box": {
+    "x": 239,
+    "y": 1053,
+    "w": 604,
+    "h": 29
+   }
+  },
+  {
+   "t": 29.303,
+   "x": 1122,
+   "y": 767,
+   "type": "hover",
+   "label": "Condition watch P-101A 1.6 mm/s",
+   "box": {
+    "x": 883,
+    "y": 751,
+    "w": 477,
+    "h": 32
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 1.802,
+   "name": "login-page"
+  },
+  {
+   "t": 7.623,
+   "name": "sign-in"
+  },
+  {
+   "t": 9.446,
+   "name": "dashboard-shown"
+  },
+  {
+   "t": 10.654,
+   "name": "dashboard-ready"
+  },
+  {
+   "t": 18.704,
+   "name": "kpi-pan-done"
+  },
+  {
+   "t": 25.171,
+   "name": "flagged-p101a"
+  },
+  {
+   "t": 31.503,
+   "name": "watch-p101a"
+  }
+ ],
+ "frameStats": {
+  "frames": 1508,
+  "firstFrameOffsetMs": 303
+ }
+}

@@ -263,6 +263,26 @@ export async function listDocs(env: Env) {
   };
 }
 
+/** Every built-in chunk of one structured source record (procedure, its steps, symptom, failure): the "file" a
+ *  retrieval hit opens when it is not a PDF. */
+export function sourceRecord(sourceType: string, sourceId: string) {
+  const types = sourceType === 'procedure' || sourceType === 'procedure_steps' ? ['procedure', 'procedure_steps'] : [sourceType];
+  const chunks = BUILTIN.filter(c => types.includes(c.source_type) && c.source_id === sourceId);
+  if (!chunks.length) return null;
+  return { source_type: sourceType, source_id: sourceId, label: LABELS[sourceType] ?? sourceType,
+    title: chunks.find(c => c.source_type === sourceType)?.title ?? chunks[0].title,
+    chunks: chunks.map(c => ({ id: c.id, source_type: c.source_type, title: c.title, page: c.page ?? null, text: c.text })) };
+}
+
+/** Text of an uploaded document, chunk by chunk (to read a DOCX in the browser, which cannot display it). */
+export async function uploadRecord(env: Env, docId: string) {
+  const d = await getDoc(env, docId);
+  if (!d) return null;
+  const rs = await env.DB.prepare('SELECT chunk FROM upload_chunks WHERE doc_id = ? ORDER BY seq').bind(docId).all();
+  return { source_type: 'upload', source_id: docId, label: d.filename, title: d.title,
+    chunks: (rs.results as any[]).map(r => { const c = JSON.parse(r.chunk); return { id: c.id, source_type: 'upload', title: c.title, page: c.page ?? null, text: c.text }; }) };
+}
+
 export async function getDoc(env: Env, docId: string): Promise<any | null> {
   const r = await env.DB.prepare('SELECT meta FROM docs WHERE doc_id = ?').bind(docId).first<string>('meta');
   return r ? JSON.parse(r) : null;

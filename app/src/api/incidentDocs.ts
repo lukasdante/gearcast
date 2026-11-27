@@ -112,6 +112,36 @@ export async function storeReportPdf(reportId: string): Promise<Blob> {
   return blob;
 }
 
+/** DOCX of a stored report (submitted or historical), with its photos and its Field 3 charts. */
+export async function reportDocxBlob(reportId: string): Promise<Blob> {
+  const src = await fetch(`/api/incidents/${encodeURIComponent(reportId)}/pdf-source`);
+  if (!src.ok) throw new Error(`${src.status} ${await src.text()}`);
+  const { draft } = await src.json();
+  const photos = draft.photos?.length ? await storedPhotos(reportId, draft.photos) : [];
+  return draftDocxBlob(draft, photos);
+}
+
+/** Field 3 range + indicators of a report (the picker's value). */
+export interface TrendOpts { days: number; from: string | null; indicators: string[] | null }
+export interface TrendIndicator { key: string; label: string; available: boolean; source: string }
+export interface TrendView { trend: TrendOpts; indicators: TrendIndicator[]; trends: TrendSpec[]; saved?: TrendOpts | null }
+const trendQuery = (o: TrendOpts) => `days=${o.days}${o.from ? `&from=${o.from}` : ''}${o.indicators?.length ? `&indicators=${o.indicators.join(',')}` : ''}`;
+/** Charts for a draft (asset + failure time) or a stored report (report_id), for the given options (or the saved ones). */
+export async function fetchTrends(q: { asset_id?: string; failure_at?: string; report_id?: string }, o?: TrendOpts): Promise<TrendView> {
+  const base = q.report_id ? `report_id=${encodeURIComponent(q.report_id)}` : `asset_id=${encodeURIComponent(q.asset_id ?? '')}&failure_at=${encodeURIComponent(q.failure_at ?? '')}`;
+  const r = await fetch(`/api/incidents/trends?${base}${o ? `&${trendQuery(o)}` : ''}`);
+  if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail ?? `${r.status}`);
+  return r.json();
+}
+/** Save the options with a stored report; its PDF is re-rendered and stored again. */
+export async function saveReportTrend(reportId: string, o: TrendOpts): Promise<TrendView> {
+  const r = await fetch(`/api/incidents/${encodeURIComponent(reportId)}/trend`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) });
+  if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail ?? `${r.status}`);
+  const out = await r.json();
+  await storeReportPdf(reportId).catch(() => { /* rendered on first download instead */ });
+  return out;
+}
+
 /** The stored PDF; produced (and stored) on first request if it does not exist yet. */
 export async function reportPdfBlob(reportId: string): Promise<Blob> {
   const r = await fetch(`/api/incidents/${encodeURIComponent(reportId)}/pdf`);

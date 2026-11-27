@@ -10,6 +10,8 @@ import { useActivePlant, usePlantStore } from '../store/plantStore';
 import { useCan } from '../store/authStore';
 import { discardDraft, usePlantAccess } from '../api/plants';
 import { useApprovals } from '../api/approvals';
+import { ApprovalQueue } from '../pages/Approvals';
+import { useLayoutPreview } from './layoutDiff';
 import { dialog } from '../shell/Modal';
 import { useStatusStore } from '../store/statusStore';
 import { useUi } from '../store/uiStore';
@@ -44,6 +46,24 @@ function SummaryOverlay({ live }: { live: Live }) {
           </div>
         </div>
       )}
+      <ApprovalQueue kinds={['layout_change']} title="Layout changes" className="ov-approvals glass"
+        ownFilter={a => a.status !== 'approved'} />
+    </div>
+  );
+}
+
+/** Supervisor previewing an engineer's proposed layout: banner + exit; cleared once the change is reviewed. */
+function PreviewBanner() {
+  const id = useLayoutPreview(s => s.id);
+  const clear = useLayoutPreview(s => s.clear);
+  const ap = useApprovals(s => s.items.find(a => a.id === id));
+  useEffect(() => { if (id && ap && ap.status !== 'pending') clear(); }, [id, ap, clear]);
+  useEffect(() => () => clear(), [clear]); // leaving Plant Overview ends the preview
+  if (!id) return null;
+  return (
+    <div className="draft-banner preview-banner glass small">
+      <Icon name="layers" size={14} /><b>Previewing {id}</b> — proposed by {ap?.created_by ?? 'an engineer'}, not published yet.
+      <button type="button" className="btn ghost sm" onClick={clear}>Exit preview</button>
     </div>
   );
 }
@@ -103,7 +123,8 @@ function Toolbar() {
   const undo = usePlantStore(s => s.undo);
   const hasSim = useStatusStore(s => s.appended.length > 0 || Object.keys(s.roleOverrides).length > 0);
   const resetSim = useStatusStore(s => s.resetSimulation);
-  const canEdit = useCan('layout.edit');
+  const previewing = useLayoutPreview(s => s.id !== null);
+  const canEdit = useCan('layout.edit') && !previewing;
   return (
     <div className="ov-toolbar">
       <PlantsMenu />
@@ -179,7 +200,9 @@ function useBuilderKeys() {
 }
 
 export function PlantOverview() {
-  const doc = useActivePlant();
+  const active = useActivePlant();
+  const preview = useLayoutPreview(s => s.doc);
+  const doc = preview && preview.id === active.id ? preview : active; // proposed layout while a supervisor previews it
   const live = useLive();
   const editMode = useUi(s => s.editMode);
   const selectedItemId = useUi(s => s.selectedItemId);
@@ -210,6 +233,7 @@ export function PlantOverview() {
       )}
       {editMode && <div className="edit-hint glass small">Drag to move · <kbd>R</kbd> rotate · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · {publishes ? 'saved and shared automatically' : 'saved as a draft for approval'}</div>}
       <DraftBanner />
+      <PreviewBanner />
     </div>
   );
 }

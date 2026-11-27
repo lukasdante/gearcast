@@ -1,0 +1,88 @@
+{
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 13.2,
+ "events": [
+  {
+   "t": 2.061,
+   "type": "move",
+   "x": 700,
+   "y": 520
+  },
+  {
+   "t": 2.967,
+   "type": "click",
+   "x": 345,
+   "y": 303,
+   "label": "Simulate fault",
+   "box": {
+    "x": 269,
+    "y": 281,
+    "w": 151,
+    "h": 44
+   }
+  },
+  {
+   "t": 4.963,
+   "type": "hover",
+   "x": 1066,
+   "y": 233,
+   "label": "Shutdown cost",
+   "box": {
+    "x": 822,
+    "y": 201,
+    "w": 487,
+    "h": 64
+   }
+  },
+  {
+   "t": 6.6,
+   "type": "type",
+   "x": 1618,
+   "y": 235,
+   "label": "bearing replacement",
+   "box": {
+    "x": 1374,
+    "y": 213,
+    "w": 487,
+    "h": 44
+   }
+  },
+  {
+   "t": 8.66,
+   "type": "click",
+   "x": 1424,
+   "y": 295,
+   "label": "Search",
+   "box": {
+    "x": 1374,
+    "y": 273,
+    "w": 99,
+    "h": 44
+   }
+  },
+  {
+   "t": 9.591,
+   "type": "scroll",
+   "x": 1100,
+   "y": 900,
+   "dy": 300
+  },
+  {
+   "t": 11.621,
+   "type": "click",
+   "x": 909,
+   "y": 303,
+   "label": "Reset simulation",
+   "box": {
+    "x": 822,
+    "y": 281,
+    "w": 174,
+    "h": 44
+   }
+  }
+ ]
+}

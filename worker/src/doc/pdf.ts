@@ -240,7 +240,8 @@ function drawChart(page: PDFPage, F: Fonts, spec: TrendSpec, x: number, top: num
     if (o.t === 'rect') page.drawRectangle({ x: x + o.x, y: Y(o.y + o.h), width: o.w, height: o.h, color: hex(o.fill), borderWidth: 0 });
     else if (o.t === 'line') page.drawLine({ start: { x: x + o.x1, y: Y(o.y1) }, end: { x: x + o.x2, y: Y(o.y2) }, thickness: o.width, color: hex(o.stroke), dashArray: o.dash });
     else if (o.t === 'poly') page.drawSvgPath('M ' + o.pts.map(p => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L '), { x, y: top, borderColor: hex(o.stroke), borderWidth: o.width, borderLineCap: 1 as any });
-    else if (o.t === 'dot') page.drawCircle({ x: x + o.x, y: Y(o.y), size: o.r, color: hex(o.fill), borderWidth: 0 });
+    else if (o.t === 'area') page.drawSvgPath('M ' + o.pts.map(p => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L ') + ' Z', { x, y: top, color: hex(o.fill), opacity: o.opacity, borderWidth: 0 });
+    else if (o.t === 'dot') page.drawCircle({ x: x + o.x, y: Y(o.y), size: o.r, color: hex(o.fill), ...(o.ring ? { borderColor: hex(o.ring), borderWidth: 1.1 } : { borderWidth: 0 }) });
     else {
       const tw = strW(F, o.s, !!o.bold, o.size);
       const tx = o.anchor === 'end' ? o.x - tw : o.anchor === 'middle' ? o.x - tw / 2 : o.x;
@@ -266,7 +267,8 @@ export async function docToPdf(doc: Doc, fonts: PdfFonts, footer = '', skipInstr
   const imgs = new Map<string, PDFImage>();
   for (const [rid, im] of Object.entries(extras.images || {})) {
     if (!im.bytes) continue;
-    try { imgs.set(rid, im.ext === 'png' ? await pdf.embedPng(im.bytes) : await pdf.embedJpg(im.bytes)); } catch { /* unreadable image: left out */ }
+    const b = new Uint8Array(im.bytes); // plain copy: pdf-lib misreads Node Buffers / views into a larger buffer
+    try { imgs.set(rid, im.ext === 'png' ? await pdf.embedPng(b) : await pdf.embedJpg(b)); } catch { /* unreadable image: left out */ }
   }
   pdf.registerFontkit(fontkit);
   const F: Fonts = {

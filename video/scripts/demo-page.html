@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>GearCast demo capture</title>
+<style>
+  :root { --bg:#0b0f14; --bg2:#0e131a; --panel:#121821; --panel2:#161e29; --line:rgba(160,180,205,.12); --text:#e6ebf2; --text2:#a7b2c1; --accent:#2fd0c1; --fault:#f05252; --ok:#3ccf73; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font: 15px/1.45 Inter, system-ui, sans-serif; }
+  .top { height:56px; display:flex; align-items:center; gap:12px; padding:0 20px; background:var(--bg2); border-bottom:1px solid var(--line); font-size:18px; }
+  .top b { color:var(--accent); }
+  .side { position:fixed; top:56px; bottom:0; left:0; width:210px; background:var(--bg2); border-right:1px solid var(--line); padding:14px 10px; }
+  .side div { padding:10px 12px; border-radius:6px; color:var(--text2); margin-bottom:4px; }
+  .side .on { background:rgba(47,208,193,.14); color:var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+  main { margin-left:210px; padding:28px 36px; }
+  h1 { margin:0 0 20px; font-size:26px; }
+  .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px; min-height:170px; }
+  .card h2 { margin:0 0 10px; font-size:18px; }
+  .big { font-size:44px; font-weight:800; font-family: ui-monospace, monospace; }
+  .btn { display:inline-block; margin-top:16px; padding:12px 22px; border-radius:8px; border:1px solid rgba(47,208,193,.5); background:rgba(47,208,193,.12); color:var(--text); font-size:16px; font-weight:600; cursor:pointer; }
+  .btn.red { border-color: rgba(240,82,82,.6); background: rgba(240,82,82,.12); }
+  .state-fault { border-color: var(--fault); box-shadow: 0 0 0 3px rgba(240,82,82,.25); }
+  .state-fault .big { color: var(--fault); }
+  .state-ok .big { color: var(--ok); }
+  input { width:100%; margin-top:12px; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg2); color:var(--text); font-size:16px; }
+  .rows div { padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; }
+  #log { font-family: ui-monospace, monospace; color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="top">⚙ Gear<b>Cast</b> <span style="color:var(--text2);margin-left:16px">Demo capture · sync test</span><span id="log" style="margin-left:auto">ready</span></div>
+  <div class="side"><div>Dashboard</div><div class="on">Plant overview</div><div>Incidents</div><div>Spares</div><div>Approvals</div></div>
+  <main>
+    <h1>Pump P-101B</h1>
+    <div class="grid">
+      <div class="card" id="pump"><h2>Status</h2><div class="big" id="status">RUNNING</div><button class="btn red" id="sim">Simulate fault</button></div>
+      <div class="card"><h2>Shutdown cost</h2><div class="big" id="cost">—</div><button class="btn" id="reset">Reset simulation</button></div>
+      <div class="card"><h2>Search manuals</h2><input id="q" placeholder="Search…" /><button class="btn" id="go">Search</button></div>
+    </div>
+    <div class="card rows" style="margin-top:20px" id="rows">
+      <h2>Readings</h2>
+      <div><span>Vibration</span><span>4.8 mm/s</span></div><div><span>Bearing temp</span><span>71 °C</span></div><div><span>Flow</span><span>42 m³/h</span></div>
+      <div><span>Run hours</span><span>12,480 h</span></div><div><span>Last PM</span><span>2026-10-14</span></div><div><span>Supplier</span><span>—</span></div>
+      <div><span>Lead time</span><span>—</span></div><div><span>Spare stock</span><span>2</span></div><div><span>Location</span><span>Store B · Rack 3</span></div>
+    </div>
+  </main>
+<script>
+  const log = (s) => (document.getElementById('log').textContent = s);
+  document.getElementById('sim').onclick = () => { const p = document.getElementById('pump'); p.className = 'card state-fault'; document.getElementById('status').textContent = 'FAULT'; document.getElementById('cost').textContent = '₱590,740/h'; log('fault simulated'); };
+  document.getElementById('reset').onclick = () => { const p = document.getElementById('pump'); p.className = 'card state-ok'; document.getElementById('status').textContent = 'RUNNING'; document.getElementById('cost').textContent = '—'; log('reset'); };
+  document.getElementById('go').onclick = () => log('search: ' + document.getElementById('q').value);
+  // big click flash to verify sync visually
+  document.addEventListener('mousedown', (e) => { const d = document.createElement('div'); d.style.cssText = `position:fixed;left:${e.clientX - 6}px;top:${e.clientY - 6}px;width:12px;height:12px;border-radius:50%;background:#ff0;z-index:99;pointer-events:none`; document.body.appendChild(d); setTimeout(() => d.remove(), 250); });
+</script>
+</body>
+</html>

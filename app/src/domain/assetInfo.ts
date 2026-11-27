@@ -1,5 +1,6 @@
 /** Read-only lookups for the Asset Inspector (port of renderAssetPanelImpl helpers). */
 import { NOW_DATE, OPS, assetById, type StatusHistoryRow } from '../data';
+import { approvedPm, useApprovals } from '../api/approvals';
 
 const FIG_FOR_PREFIX: [RegExp, string][] = [
   [/^(P-101|SP-P01)/, 'FIG-01'],
@@ -24,8 +25,17 @@ export function pmFor(id: string) {
     const m = target.match(/^(.*?)([A-Z])\/([A-Z])$/);
     return !!m && [m[1] + m[2], m[1] + m[3]].includes(id);
   };
+  // an approved PM findings record moves last done and the due date (same rule as PM Monitoring)
+  const done = approvedPm(useApprovals.getState().items);
+  const day = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 86400000;
   return OPS.pmStatus
     .filter(r => matches(r.asset_id))
+    .map(r => {
+      const d = done.get(r.status_id)?.payload.done_at?.slice(0, 10) as string | undefined;
+      if (!d || r.interval_days == null || (r.last_done_date && d <= r.last_done_date.slice(0, 10))) return r;
+      const due = day(d) + r.interval_days;
+      return { ...r, last_done_date: d, next_due_date: new Date(due * 86400000).toISOString().slice(0, 10), days_until_due: Math.round(due - day(NOW_DATE)) };
+    })
     .sort((a, b) => (a.days_until_due ?? 9999) - (b.days_until_due ?? 9999));
 }
 

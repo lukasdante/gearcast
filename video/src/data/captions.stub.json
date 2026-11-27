@@ -1,0 +1,2464 @@
+{
+ "fps": 30,
+ "generatedBy": "stub (scripts/make-caption-stub.mjs)",
+ "scenes": [
+  {
+   "id": "00",
+   "audio": "audio/00.wav",
+   "durationSec": 18.16,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Six",
+     "start": 0.2,
+     "end": 0.458,
+     "emphasis": false
+    },
+    {
+     "text": "in",
+     "start": 0.498,
+     "end": 0.696,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 0.736,
+     "end": 0.994,
+     "emphasis": false
+    },
+    {
+     "text": "morning.",
+     "start": 1.034,
+     "end": 1.828,
+     "emphasis": false
+    },
+    {
+     "text": "Pump",
+     "start": 1.868,
+     "end": 2.185,
+     "emphasis": false
+    },
+    {
+     "text": "P-101A",
+     "start": 2.225,
+     "end": 2.661,
+     "emphasis": true
+    },
+    {
+     "text": "trips.",
+     "start": 2.701,
+     "end": 3.376,
+     "emphasis": true
+    },
+    {
+     "text": "The",
+     "start": 3.416,
+     "end": 3.674,
+     "emphasis": false
+    },
+    {
+     "text": "standby,",
+     "start": 3.714,
+     "end": 4.508,
+     "emphasis": false
+    },
+    {
+     "text": "P-101B,",
+     "start": 4.548,
+     "end": 5.282,
+     "emphasis": true
+    },
+    {
+     "text": "skipped",
+     "start": 5.322,
+     "end": 5.818,
+     "emphasis": false
+    },
+    {
+     "text": "its",
+     "start": 5.858,
+     "end": 6.116,
+     "emphasis": false
+    },
+    {
+     "text": "rotation",
+     "start": 6.156,
+     "end": 6.711,
+     "emphasis": false
+    },
+    {
+     "text": "6",
+     "start": 6.751,
+     "end": 6.95,
+     "emphasis": true
+    },
+    {
+     "text": "weeks",
+     "start": 6.99,
+     "end": 7.366,
+     "emphasis": false
+    },
+    {
+     "text": "ago.",
+     "start": 7.406,
+     "end": 7.962,
+     "emphasis": false
+    },
+    {
+     "text": "It",
+     "start": 8.002,
+     "end": 8.2,
+     "emphasis": false
+    },
+    {
+     "text": "doesn't",
+     "start": 8.24,
+     "end": 8.736,
+     "emphasis": false
+    },
+    {
+     "text": "start.",
+     "start": 8.776,
+     "end": 9.451,
+     "emphasis": false
+    },
+    {
+     "text": "10",
+     "start": 9.491,
+     "end": 9.689,
+     "emphasis": true
+    },
+    {
+     "text": "hours",
+     "start": 9.729,
+     "end": 10.106,
+     "emphasis": false
+    },
+    {
+     "text": "later,",
+     "start": 10.146,
+     "end": 10.821,
+     "emphasis": false
+    },
+    {
+     "text": "3",
+     "start": 10.861,
+     "end": 11.059,
+     "emphasis": true
+    },
+    {
+     "text": "production",
+     "start": 11.099,
+     "end": 11.774,
+     "emphasis": false
+    },
+    {
+     "text": "lines",
+     "start": 11.814,
+     "end": 12.191,
+     "emphasis": false
+    },
+    {
+     "text": "are",
+     "start": 12.231,
+     "end": 12.488,
+     "emphasis": false
+    },
+    {
+     "text": "down,",
+     "start": 12.528,
+     "end": 13.144,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 13.184,
+     "end": 13.441,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 13.481,
+     "end": 13.739,
+     "emphasis": false
+    },
+    {
+     "text": "bill",
+     "start": 13.779,
+     "end": 14.097,
+     "emphasis": false
+    },
+    {
+     "text": "is",
+     "start": 14.137,
+     "end": 14.335,
+     "emphasis": false
+    },
+    {
+     "text": "₱5.9",
+     "start": 14.375,
+     "end": 14.692,
+     "emphasis": true
+    },
+    {
+     "text": "million.",
+     "start": 14.732,
+     "end": 15.526,
+     "emphasis": false
+    },
+    {
+     "text": "All",
+     "start": 15.566,
+     "end": 15.824,
+     "emphasis": false
+    },
+    {
+     "text": "from",
+     "start": 15.864,
+     "end": 16.181,
+     "emphasis": false
+    },
+    {
+     "text": "one",
+     "start": 16.221,
+     "end": 16.479,
+     "emphasis": false
+    },
+    {
+     "text": "missed",
+     "start": 16.519,
+     "end": 16.955,
+     "emphasis": false
+    },
+    {
+     "text": "check.",
+     "start": 16.995,
+     "end": 17.67,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "01",
+   "audio": "audio/01.wav",
+   "durationSec": 10.16,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "That's",
+     "start": 0.2,
+     "end": 0.514,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 0.554,
+     "end": 0.735,
+     "emphasis": false
+    },
+    {
+     "text": "gap",
+     "start": 0.775,
+     "end": 0.956,
+     "emphasis": false
+    },
+    {
+     "text": "GearCast",
+     "start": 0.996,
+     "end": 1.399,
+     "emphasis": true
+    },
+    {
+     "text": "patches.",
+     "start": 1.439,
+     "end": 2.018,
+     "emphasis": false
+    },
+    {
+     "text": "One",
+     "start": 2.058,
+     "end": 2.239,
+     "emphasis": false
+    },
+    {
+     "text": "platform",
+     "start": 2.279,
+     "end": 2.681,
+     "emphasis": false
+    },
+    {
+     "text": "for",
+     "start": 2.721,
+     "end": 2.902,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 2.942,
+     "end": 3.124,
+     "emphasis": false
+    },
+    {
+     "text": "people",
+     "start": 3.164,
+     "end": 3.477,
+     "emphasis": false
+    },
+    {
+     "text": "who",
+     "start": 3.517,
+     "end": 3.699,
+     "emphasis": false
+    },
+    {
+     "text": "keep",
+     "start": 3.739,
+     "end": 3.964,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 4.004,
+     "end": 4.141,
+     "emphasis": false
+    },
+    {
+     "text": "plant's",
+     "start": 4.181,
+     "end": 4.539,
+     "emphasis": false
+    },
+    {
+     "text": "wastewater",
+     "start": 4.579,
+     "end": 5.07,
+     "emphasis": false
+    },
+    {
+     "text": "line",
+     "start": 5.11,
+     "end": 5.335,
+     "emphasis": false
+    },
+    {
+     "text": "alive:",
+     "start": 5.375,
+     "end": 5.866,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 5.906,
+     "end": 6.087,
+     "emphasis": false
+    },
+    {
+     "text": "supervisor,",
+     "start": 6.127,
+     "end": 6.839,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 6.879,
+     "end": 7.06,
+     "emphasis": false
+    },
+    {
+     "text": "engineer,",
+     "start": 7.1,
+     "end": 7.724,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 7.764,
+     "end": 7.945,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 7.985,
+     "end": 8.166,
+     "emphasis": false
+    },
+    {
+     "text": "technicians",
+     "start": 8.206,
+     "end": 8.741,
+     "emphasis": false
+    },
+    {
+     "text": "on",
+     "start": 8.781,
+     "end": 8.918,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 8.958,
+     "end": 9.139,
+     "emphasis": false
+    },
+    {
+     "text": "floor.",
+     "start": 9.179,
+     "end": 9.67,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "02",
+   "audio": "audio/02.wav",
+   "durationSec": 12.4,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Lemuel,",
+     "start": 0.2,
+     "end": 0.902,
+     "emphasis": true
+    },
+    {
+     "text": "the",
+     "start": 0.942,
+     "end": 1.187,
+     "emphasis": false
+    },
+    {
+     "text": "plant",
+     "start": 1.227,
+     "end": 1.586,
+     "emphasis": false
+    },
+    {
+     "text": "supervisor,",
+     "start": 1.626,
+     "end": 2.556,
+     "emphasis": false
+    },
+    {
+     "text": "starts",
+     "start": 2.596,
+     "end": 3.012,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 3.052,
+     "end": 3.297,
+     "emphasis": false
+    },
+    {
+     "text": "day",
+     "start": 3.337,
+     "end": 3.582,
+     "emphasis": false
+    },
+    {
+     "text": "on",
+     "start": 3.622,
+     "end": 3.81,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 3.85,
+     "end": 4.096,
+     "emphasis": false
+    },
+    {
+     "text": "dashboard.",
+     "start": 4.136,
+     "end": 5.008,
+     "emphasis": false
+    },
+    {
+     "text": "Every",
+     "start": 5.048,
+     "end": 5.408,
+     "emphasis": false
+    },
+    {
+     "text": "asset,",
+     "start": 5.448,
+     "end": 6.092,
+     "emphasis": false
+    },
+    {
+     "text": "every",
+     "start": 6.132,
+     "end": 6.491,
+     "emphasis": false
+    },
+    {
+     "text": "PM,",
+     "start": 6.531,
+     "end": 7.005,
+     "emphasis": false
+    },
+    {
+     "text": "every",
+     "start": 7.045,
+     "end": 7.404,
+     "emphasis": false
+    },
+    {
+     "text": "spare",
+     "start": 7.444,
+     "end": 7.803,
+     "emphasis": false
+    },
+    {
+     "text": "in",
+     "start": 7.843,
+     "end": 8.031,
+     "emphasis": false
+    },
+    {
+     "text": "one",
+     "start": 8.071,
+     "end": 8.317,
+     "emphasis": false
+    },
+    {
+     "text": "view,",
+     "start": 8.357,
+     "end": 8.944,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 8.984,
+     "end": 9.229,
+     "emphasis": false
+    },
+    {
+     "text": "one",
+     "start": 9.269,
+     "end": 9.514,
+     "emphasis": false
+    },
+    {
+     "text": "pump",
+     "start": 9.554,
+     "end": 9.857,
+     "emphasis": false
+    },
+    {
+     "text": "already",
+     "start": 9.897,
+     "end": 10.37,
+     "emphasis": false
+    },
+    {
+     "text": "flagged:",
+     "start": 10.41,
+     "end": 11.168,
+     "emphasis": false
+    },
+    {
+     "text": "P-101B.",
+     "start": 11.208,
+     "end": 11.91,
+     "emphasis": true
+    }
+   ]
+  },
+  {
+   "id": "03",
+   "audio": "audio/03.wav",
+   "durationSec": 12.32,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "On",
+     "start": 0.2,
+     "end": 0.38,
+     "emphasis": false
+    },
+    {
+     "text": "rounds,",
+     "start": 0.42,
+     "end": 1.096,
+     "emphasis": false
+    },
+    {
+     "text": "technician",
+     "start": 1.136,
+     "end": 1.756,
+     "emphasis": false
+    },
+    {
+     "text": "Mia",
+     "start": 1.796,
+     "end": 2.032,
+     "emphasis": true
+    },
+    {
+     "text": "scans",
+     "start": 2.072,
+     "end": 2.417,
+     "emphasis": false
+    },
+    {
+     "text": "its",
+     "start": 2.457,
+     "end": 2.692,
+     "emphasis": false
+    },
+    {
+     "text": "QR",
+     "start": 2.732,
+     "end": 2.912,
+     "emphasis": false
+    },
+    {
+     "text": "tag.",
+     "start": 2.952,
+     "end": 3.463,
+     "emphasis": false
+    },
+    {
+     "text": "Status,",
+     "start": 3.503,
+     "end": 4.178,
+     "emphasis": false
+    },
+    {
+     "text": "work",
+     "start": 4.218,
+     "end": 4.509,
+     "emphasis": false
+    },
+    {
+     "text": "orders,",
+     "start": 4.549,
+     "end": 5.224,
+     "emphasis": false
+    },
+    {
+     "text": "readings,",
+     "start": 5.264,
+     "end": 6.05,
+     "emphasis": false
+    },
+    {
+     "text": "past",
+     "start": 6.09,
+     "end": 6.38,
+     "emphasis": false
+    },
+    {
+     "text": "failures:",
+     "start": 6.42,
+     "end": 7.206,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 7.246,
+     "end": 7.481,
+     "emphasis": false
+    },
+    {
+     "text": "pump's",
+     "start": 7.521,
+     "end": 7.922,
+     "emphasis": false
+    },
+    {
+     "text": "whole",
+     "start": 7.962,
+     "end": 8.307,
+     "emphasis": false
+    },
+    {
+     "text": "history",
+     "start": 8.347,
+     "end": 8.802,
+     "emphasis": false
+    },
+    {
+     "text": "in",
+     "start": 8.842,
+     "end": 9.023,
+     "emphasis": false
+    },
+    {
+     "text": "one",
+     "start": 9.063,
+     "end": 9.298,
+     "emphasis": false
+    },
+    {
+     "text": "scan.",
+     "start": 9.338,
+     "end": 9.903,
+     "emphasis": false
+    },
+    {
+     "text": "And",
+     "start": 9.943,
+     "end": 10.179,
+     "emphasis": false
+    },
+    {
+     "text": "vibration",
+     "start": 10.219,
+     "end": 10.784,
+     "emphasis": false
+    },
+    {
+     "text": "is",
+     "start": 10.824,
+     "end": 11.004,
+     "emphasis": false
+    },
+    {
+     "text": "climbing.",
+     "start": 11.044,
+     "end": 11.83,
+     "emphasis": true
+    }
+   ]
+  },
+  {
+   "id": "04",
+   "audio": "audio/04.wav",
+   "durationSec": 14.56,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Jun,",
+     "start": 0.2,
+     "end": 0.648,
+     "emphasis": true
+    },
+    {
+     "text": "the",
+     "start": 0.688,
+     "end": 0.892,
+     "emphasis": false
+    },
+    {
+     "text": "engineer,",
+     "start": 0.932,
+     "end": 1.624,
+     "emphasis": false
+    },
+    {
+     "text": "opens",
+     "start": 1.664,
+     "end": 1.966,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 2.006,
+     "end": 2.21,
+     "emphasis": false
+    },
+    {
+     "text": "3D",
+     "start": 2.25,
+     "end": 2.405,
+     "emphasis": true
+    },
+    {
+     "text": "plant",
+     "start": 2.445,
+     "end": 2.747,
+     "emphasis": false
+    },
+    {
+     "text": "overview",
+     "start": 2.787,
+     "end": 3.235,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 3.275,
+     "end": 3.479,
+     "emphasis": false
+    },
+    {
+     "text": "asks,",
+     "start": 3.519,
+     "end": 4.016,
+     "emphasis": false
+    },
+    {
+     "text": "\"what",
+     "start": 4.056,
+     "end": 4.357,
+     "emphasis": false
+    },
+    {
+     "text": "if",
+     "start": 4.397,
+     "end": 4.553,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 4.593,
+     "end": 4.748,
+     "emphasis": false
+    },
+    {
+     "text": "fails?\"",
+     "start": 4.788,
+     "end": 5.187,
+     "emphasis": false
+    },
+    {
+     "text": "The",
+     "start": 5.227,
+     "end": 5.431,
+     "emphasis": false
+    },
+    {
+     "text": "pump",
+     "start": 5.471,
+     "end": 5.724,
+     "emphasis": false
+    },
+    {
+     "text": "turns",
+     "start": 5.764,
+     "end": 6.066,
+     "emphasis": false
+    },
+    {
+     "text": "red,",
+     "start": 6.106,
+     "end": 6.554,
+     "emphasis": true
+    },
+    {
+     "text": "the",
+     "start": 6.594,
+     "end": 6.798,
+     "emphasis": false
+    },
+    {
+     "text": "process",
+     "start": 6.838,
+     "end": 7.237,
+     "emphasis": false
+    },
+    {
+     "text": "line",
+     "start": 7.277,
+     "end": 7.53,
+     "emphasis": false
+    },
+    {
+     "text": "shows",
+     "start": 7.57,
+     "end": 7.872,
+     "emphasis": false
+    },
+    {
+     "text": "exactly",
+     "start": 7.912,
+     "end": 8.311,
+     "emphasis": false
+    },
+    {
+     "text": "which",
+     "start": 8.351,
+     "end": 8.652,
+     "emphasis": false
+    },
+    {
+     "text": "stage",
+     "start": 8.692,
+     "end": 8.994,
+     "emphasis": false
+    },
+    {
+     "text": "goes",
+     "start": 9.034,
+     "end": 9.287,
+     "emphasis": false
+    },
+    {
+     "text": "critical,",
+     "start": 9.327,
+     "end": 10.019,
+     "emphasis": true
+    },
+    {
+     "text": "and",
+     "start": 10.059,
+     "end": 10.263,
+     "emphasis": false
+    },
+    {
+     "text": "GearCast",
+     "start": 10.303,
+     "end": 10.751,
+     "emphasis": true
+    },
+    {
+     "text": "puts",
+     "start": 10.791,
+     "end": 11.044,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 11.084,
+     "end": 11.239,
+     "emphasis": false
+    },
+    {
+     "text": "price",
+     "start": 11.279,
+     "end": 11.581,
+     "emphasis": true
+    },
+    {
+     "text": "on",
+     "start": 11.621,
+     "end": 11.776,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 11.816,
+     "end": 12.02,
+     "emphasis": false
+    },
+    {
+     "text": "shutdown",
+     "start": 12.06,
+     "end": 12.508,
+     "emphasis": false
+    },
+    {
+     "text": "before",
+     "start": 12.548,
+     "end": 12.899,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 12.939,
+     "end": 13.094,
+     "emphasis": false
+    },
+    {
+     "text": "ever",
+     "start": 13.134,
+     "end": 13.387,
+     "emphasis": false
+    },
+    {
+     "text": "happens.",
+     "start": 13.427,
+     "end": 14.07,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "05",
+   "audio": "audio/05.wav",
+   "durationSec": 14.56,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Back",
+     "start": 0.2,
+     "end": 0.433,
+     "emphasis": false
+    },
+    {
+     "text": "on",
+     "start": 0.473,
+     "end": 0.615,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 0.655,
+     "end": 0.842,
+     "emphasis": false
+    },
+    {
+     "text": "floor,",
+     "start": 0.882,
+     "end": 1.387,
+     "emphasis": false
+    },
+    {
+     "text": "Mia",
+     "start": 1.427,
+     "end": 1.615,
+     "emphasis": true
+    },
+    {
+     "text": "asks",
+     "start": 1.655,
+     "end": 1.887,
+     "emphasis": false
+    },
+    {
+     "text": "Caster,",
+     "start": 1.927,
+     "end": 2.478,
+     "emphasis": true
+    },
+    {
+     "text": "the",
+     "start": 2.518,
+     "end": 2.706,
+     "emphasis": false
+    },
+    {
+     "text": "GearCast",
+     "start": 2.746,
+     "end": 3.16,
+     "emphasis": true
+    },
+    {
+     "text": "assistant.",
+     "start": 3.2,
+     "end": 3.888,
+     "emphasis": false
+    },
+    {
+     "text": "Caster",
+     "start": 3.928,
+     "end": 4.251,
+     "emphasis": true
+    },
+    {
+     "text": "calls",
+     "start": 4.291,
+     "end": 4.569,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 4.609,
+     "end": 4.797,
+     "emphasis": false
+    },
+    {
+     "text": "plant's",
+     "start": 4.837,
+     "end": 5.206,
+     "emphasis": false
+    },
+    {
+     "text": "own",
+     "start": 5.246,
+     "end": 5.433,
+     "emphasis": false
+    },
+    {
+     "text": "tools:",
+     "start": 5.473,
+     "end": 5.979,
+     "emphasis": false
+    },
+    {
+     "text": "asset",
+     "start": 6.019,
+     "end": 6.297,
+     "emphasis": false
+    },
+    {
+     "text": "data,",
+     "start": 6.337,
+     "end": 6.797,
+     "emphasis": false
+    },
+    {
+     "text": "troubleshooting,",
+     "start": 6.837,
+     "end": 7.797,
+     "emphasis": false
+    },
+    {
+     "text": "spare",
+     "start": 7.837,
+     "end": 8.115,
+     "emphasis": false
+    },
+    {
+     "text": "stock.",
+     "start": 8.155,
+     "end": 8.661,
+     "emphasis": false
+    },
+    {
+     "text": "It",
+     "start": 8.701,
+     "end": 8.842,
+     "emphasis": false
+    },
+    {
+     "text": "answers",
+     "start": 8.882,
+     "end": 9.252,
+     "emphasis": false
+    },
+    {
+     "text": "with",
+     "start": 9.292,
+     "end": 9.524,
+     "emphasis": false
+    },
+    {
+     "text": "steps",
+     "start": 9.564,
+     "end": 9.842,
+     "emphasis": false
+    },
+    {
+     "text": "from",
+     "start": 9.882,
+     "end": 10.115,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 10.155,
+     "end": 10.342,
+     "emphasis": false
+    },
+    {
+     "text": "plant's",
+     "start": 10.382,
+     "end": 10.752,
+     "emphasis": false
+    },
+    {
+     "text": "manuals,",
+     "start": 10.792,
+     "end": 11.388,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 11.428,
+     "end": 11.615,
+     "emphasis": false
+    },
+    {
+     "text": "parts",
+     "start": 11.655,
+     "end": 11.933,
+     "emphasis": false
+    },
+    {
+     "text": "needed,",
+     "start": 11.973,
+     "end": 12.524,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 12.564,
+     "end": 12.752,
+     "emphasis": false
+    },
+    {
+     "text": "where",
+     "start": 12.792,
+     "end": 13.07,
+     "emphasis": false
+    },
+    {
+     "text": "they're",
+     "start": 13.11,
+     "end": 13.479,
+     "emphasis": false
+    },
+    {
+     "text": "stored.",
+     "start": 13.519,
+     "end": 14.07,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "06",
+   "audio": "audio/06.wav",
+   "durationSec": 8.56,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Grease",
+     "start": 0.2,
+     "end": 0.516,
+     "emphasis": false
+    },
+    {
+     "text": "is",
+     "start": 0.556,
+     "end": 0.693,
+     "emphasis": false
+    },
+    {
+     "text": "an",
+     "start": 0.733,
+     "end": 0.871,
+     "emphasis": false
+    },
+    {
+     "text": "accessory,",
+     "start": 0.911,
+     "end": 1.582,
+     "emphasis": false
+    },
+    {
+     "text": "so",
+     "start": 1.622,
+     "end": 1.76,
+     "emphasis": false
+    },
+    {
+     "text": "Mia",
+     "start": 1.8,
+     "end": 1.982,
+     "emphasis": true
+    },
+    {
+     "text": "deploys",
+     "start": 2.022,
+     "end": 2.382,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 2.422,
+     "end": 2.56,
+     "emphasis": false
+    },
+    {
+     "text": "on",
+     "start": 2.6,
+     "end": 2.737,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 2.777,
+     "end": 2.96,
+     "emphasis": false
+    },
+    {
+     "text": "spot.",
+     "start": 3,
+     "end": 3.448,
+     "emphasis": false
+    },
+    {
+     "text": "The",
+     "start": 3.488,
+     "end": 3.671,
+     "emphasis": false
+    },
+    {
+     "text": "bearing",
+     "start": 3.711,
+     "end": 4.071,
+     "emphasis": false
+    },
+    {
+     "text": "kit",
+     "start": 4.111,
+     "end": 4.293,
+     "emphasis": false
+    },
+    {
+     "text": "is",
+     "start": 4.333,
+     "end": 4.471,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 4.511,
+     "end": 4.648,
+     "emphasis": false
+    },
+    {
+     "text": "major",
+     "start": 4.688,
+     "end": 4.959,
+     "emphasis": false
+    },
+    {
+     "text": "spare.",
+     "start": 4.999,
+     "end": 5.493,
+     "emphasis": false
+    },
+    {
+     "text": "That",
+     "start": 5.533,
+     "end": 5.759,
+     "emphasis": false
+    },
+    {
+     "text": "goes",
+     "start": 5.799,
+     "end": 6.026,
+     "emphasis": false
+    },
+    {
+     "text": "to",
+     "start": 6.066,
+     "end": 6.204,
+     "emphasis": false
+    },
+    {
+     "text": "Lemuel,",
+     "start": 6.244,
+     "end": 6.781,
+     "emphasis": true
+    },
+    {
+     "text": "approved",
+     "start": 6.821,
+     "end": 7.226,
+     "emphasis": true
+    },
+    {
+     "text": "in",
+     "start": 7.266,
+     "end": 7.403,
+     "emphasis": false
+    },
+    {
+     "text": "one",
+     "start": 7.443,
+     "end": 7.626,
+     "emphasis": false
+    },
+    {
+     "text": "tap.",
+     "start": 7.666,
+     "end": 8.07,
+     "emphasis": true
+    }
+   ]
+  },
+  {
+   "id": "07",
+   "audio": "audio/07.wav",
+   "durationSec": 14.96,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Mia",
+     "start": 0.2,
+     "end": 0.381,
+     "emphasis": true
+    },
+    {
+     "text": "snaps",
+     "start": 0.421,
+     "end": 0.69,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 0.73,
+     "end": 0.867,
+     "emphasis": false
+    },
+    {
+     "text": "photo",
+     "start": 0.907,
+     "end": 1.176,
+     "emphasis": true
+    },
+    {
+     "text": "and",
+     "start": 1.216,
+     "end": 1.397,
+     "emphasis": false
+    },
+    {
+     "text": "tells",
+     "start": 1.437,
+     "end": 1.706,
+     "emphasis": false
+    },
+    {
+     "text": "Caster",
+     "start": 1.746,
+     "end": 2.059,
+     "emphasis": true
+    },
+    {
+     "text": "to",
+     "start": 2.099,
+     "end": 2.236,
+     "emphasis": false
+    },
+    {
+     "text": "write",
+     "start": 2.276,
+     "end": 2.545,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 2.585,
+     "end": 2.722,
+     "emphasis": false
+    },
+    {
+     "text": "up.",
+     "start": 2.762,
+     "end": 3.119,
+     "emphasis": false
+    },
+    {
+     "text": "Seconds",
+     "start": 3.159,
+     "end": 3.517,
+     "emphasis": false
+    },
+    {
+     "text": "later:",
+     "start": 3.557,
+     "end": 4.047,
+     "emphasis": false
+    },
+    {
+     "text": "an",
+     "start": 4.087,
+     "end": 4.223,
+     "emphasis": false
+    },
+    {
+     "text": "incident",
+     "start": 4.263,
+     "end": 4.665,
+     "emphasis": true
+    },
+    {
+     "text": "report",
+     "start": 4.705,
+     "end": 5.018,
+     "emphasis": false
+    },
+    {
+     "text": "on",
+     "start": 5.058,
+     "end": 5.195,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 5.235,
+     "end": 5.416,
+     "emphasis": false
+    },
+    {
+     "text": "plant's",
+     "start": 5.456,
+     "end": 5.813,
+     "emphasis": false
+    },
+    {
+     "text": "own",
+     "start": 5.853,
+     "end": 6.034,
+     "emphasis": false
+    },
+    {
+     "text": "form.",
+     "start": 6.074,
+     "end": 6.52,
+     "emphasis": false
+    },
+    {
+     "text": "The",
+     "start": 6.56,
+     "end": 6.741,
+     "emphasis": false
+    },
+    {
+     "text": "photo",
+     "start": 6.781,
+     "end": 7.05,
+     "emphasis": true
+    },
+    {
+     "text": "sits",
+     "start": 7.09,
+     "end": 7.315,
+     "emphasis": false
+    },
+    {
+     "text": "beside",
+     "start": 7.355,
+     "end": 7.668,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 7.708,
+     "end": 7.889,
+     "emphasis": false
+    },
+    {
+     "text": "summary,",
+     "start": 7.929,
+     "end": 8.508,
+     "emphasis": false
+    },
+    {
+     "text": "with",
+     "start": 8.548,
+     "end": 8.773,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 8.813,
+     "end": 8.949,
+     "emphasis": false
+    },
+    {
+     "text": "trend",
+     "start": 8.989,
+     "end": 9.258,
+     "emphasis": false
+    },
+    {
+     "text": "of",
+     "start": 9.298,
+     "end": 9.435,
+     "emphasis": false
+    },
+    {
+     "text": "every",
+     "start": 9.475,
+     "end": 9.744,
+     "emphasis": false
+    },
+    {
+     "text": "reading",
+     "start": 9.784,
+     "end": 10.142,
+     "emphasis": false
+    },
+    {
+     "text": "before",
+     "start": 10.182,
+     "end": 10.495,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 10.535,
+     "end": 10.716,
+     "emphasis": false
+    },
+    {
+     "text": "fault,",
+     "start": 10.756,
+     "end": 11.246,
+     "emphasis": false
+    },
+    {
+     "text": "from",
+     "start": 11.286,
+     "end": 11.511,
+     "emphasis": false
+    },
+    {
+     "text": "1",
+     "start": 11.551,
+     "end": 11.688,
+     "emphasis": true
+    },
+    {
+     "text": "week",
+     "start": 11.727,
+     "end": 11.953,
+     "emphasis": false
+    },
+    {
+     "text": "to",
+     "start": 11.992,
+     "end": 12.129,
+     "emphasis": false
+    },
+    {
+     "text": "1",
+     "start": 12.169,
+     "end": 12.306,
+     "emphasis": true
+    },
+    {
+     "text": "year,",
+     "start": 12.346,
+     "end": 12.792,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 12.832,
+     "end": 13.012,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 13.052,
+     "end": 13.233,
+     "emphasis": false
+    },
+    {
+     "text": "failure",
+     "start": 13.273,
+     "end": 13.631,
+     "emphasis": false
+    },
+    {
+     "text": "date",
+     "start": 13.671,
+     "end": 13.896,
+     "emphasis": false
+    },
+    {
+     "text": "marked.",
+     "start": 13.936,
+     "end": 14.47,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "08",
+   "audio": "audio/08.wav",
+   "durationSec": 11.84,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Repair",
+     "start": 0.2,
+     "end": 0.548,
+     "emphasis": false
+    },
+    {
+     "text": "or",
+     "start": 0.588,
+     "end": 0.741,
+     "emphasis": false
+    },
+    {
+     "text": "replace?",
+     "start": 0.781,
+     "end": 1.419,
+     "emphasis": false
+    },
+    {
+     "text": "GearCast's",
+     "start": 1.459,
+     "end": 2.001,
+     "emphasis": false
+    },
+    {
+     "text": "XGBoost",
+     "start": 2.041,
+     "end": 2.437,
+     "emphasis": true
+    },
+    {
+     "text": "model",
+     "start": 2.477,
+     "end": 2.776,
+     "emphasis": false
+    },
+    {
+     "text": "weighs",
+     "start": 2.816,
+     "end": 3.163,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 3.203,
+     "end": 3.406,
+     "emphasis": false
+    },
+    {
+     "text": "pump's",
+     "start": 3.446,
+     "end": 3.793,
+     "emphasis": false
+    },
+    {
+     "text": "age,",
+     "start": 3.833,
+     "end": 4.278,
+     "emphasis": false
+    },
+    {
+     "text": "its",
+     "start": 4.318,
+     "end": 4.52,
+     "emphasis": false
+    },
+    {
+     "text": "failures,",
+     "start": 4.56,
+     "end": 5.246,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 5.286,
+     "end": 5.489,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 5.529,
+     "end": 5.731,
+     "emphasis": false
+    },
+    {
+     "text": "costs.",
+     "start": 5.771,
+     "end": 6.312,
+     "emphasis": false
+    },
+    {
+     "text": "And",
+     "start": 6.352,
+     "end": 6.554,
+     "emphasis": false
+    },
+    {
+     "text": "if",
+     "start": 6.594,
+     "end": 6.748,
+     "emphasis": false
+    },
+    {
+     "text": "it's",
+     "start": 6.788,
+     "end": 7.039,
+     "emphasis": false
+    },
+    {
+     "text": "replace,",
+     "start": 7.079,
+     "end": 7.717,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 7.757,
+     "end": 7.911,
+     "emphasis": false
+    },
+    {
+     "text": "names",
+     "start": 7.951,
+     "end": 8.25,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 8.29,
+     "end": 8.492,
+     "emphasis": false
+    },
+    {
+     "text": "brand,",
+     "start": 8.532,
+     "end": 9.073,
+     "emphasis": true
+    },
+    {
+     "text": "the",
+     "start": 9.113,
+     "end": 9.315,
+     "emphasis": false
+    },
+    {
+     "text": "supplier,",
+     "start": 9.355,
+     "end": 10.042,
+     "emphasis": true
+    },
+    {
+     "text": "and",
+     "start": 10.082,
+     "end": 10.284,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 10.324,
+     "end": 10.526,
+     "emphasis": false
+    },
+    {
+     "text": "lead",
+     "start": 10.566,
+     "end": 10.817,
+     "emphasis": true
+    },
+    {
+     "text": "time.",
+     "start": 10.857,
+     "end": 11.35,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "09",
+   "audio": "audio/09.wav",
+   "durationSec": 6.32,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Need",
+     "start": 0.2,
+     "end": 0.418,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 0.458,
+     "end": 0.633,
+     "emphasis": false
+    },
+    {
+     "text": "procedure?",
+     "start": 0.673,
+     "end": 1.32,
+     "emphasis": false
+    },
+    {
+     "text": "Jun",
+     "start": 1.36,
+     "end": 1.535,
+     "emphasis": true
+    },
+    {
+     "text": "searches",
+     "start": 1.575,
+     "end": 1.964,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 2.004,
+     "end": 2.179,
+     "emphasis": false
+    },
+    {
+     "text": "knowledge",
+     "start": 2.219,
+     "end": 2.651,
+     "emphasis": false
+    },
+    {
+     "text": "base",
+     "start": 2.691,
+     "end": 2.909,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 2.949,
+     "end": 3.124,
+     "emphasis": false
+    },
+    {
+     "text": "opens",
+     "start": 3.164,
+     "end": 3.425,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 3.465,
+     "end": 3.639,
+     "emphasis": false
+    },
+    {
+     "text": "exact",
+     "start": 3.679,
+     "end": 3.94,
+     "emphasis": true
+    },
+    {
+     "text": "manual",
+     "start": 3.98,
+     "end": 4.284,
+     "emphasis": false
+    },
+    {
+     "text": "page",
+     "start": 4.324,
+     "end": 4.541,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 4.581,
+     "end": 4.756,
+     "emphasis": false
+    },
+    {
+     "text": "answer",
+     "start": 4.796,
+     "end": 5.1,
+     "emphasis": false
+    },
+    {
+     "text": "came",
+     "start": 5.14,
+     "end": 5.358,
+     "emphasis": false
+    },
+    {
+     "text": "from.",
+     "start": 5.398,
+     "end": 5.83,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "10",
+   "audio": "audio/10.wav",
+   "durationSec": 6.48,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Jun",
+     "start": 0.2,
+     "end": 0.384,
+     "emphasis": true
+    },
+    {
+     "text": "updates",
+     "start": 0.424,
+     "end": 0.788,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 0.828,
+     "end": 1.012,
+     "emphasis": false
+    },
+    {
+     "text": "pump",
+     "start": 1.052,
+     "end": 1.281,
+     "emphasis": false
+    },
+    {
+     "text": "area",
+     "start": 1.321,
+     "end": 1.55,
+     "emphasis": false
+    },
+    {
+     "text": "layout.",
+     "start": 1.59,
+     "end": 2.133,
+     "emphasis": false
+    },
+    {
+     "text": "Engineers",
+     "start": 2.173,
+     "end": 2.627,
+     "emphasis": false
+    },
+    {
+     "text": "propose,",
+     "start": 2.667,
+     "end": 3.254,
+     "emphasis": false
+    },
+    {
+     "text": "supervisors",
+     "start": 3.294,
+     "end": 3.837,
+     "emphasis": false
+    },
+    {
+     "text": "approve,",
+     "start": 3.877,
+     "end": 4.465,
+     "emphasis": true
+    },
+    {
+     "text": "and",
+     "start": 4.505,
+     "end": 4.689,
+     "emphasis": false
+    },
+    {
+     "text": "Lemuel",
+     "start": 4.729,
+     "end": 5.048,
+     "emphasis": true
+    },
+    {
+     "text": "signs",
+     "start": 5.088,
+     "end": 5.362,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 5.402,
+     "end": 5.542,
+     "emphasis": false
+    },
+    {
+     "text": "off.",
+     "start": 5.582,
+     "end": 5.99,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "11",
+   "audio": "audio/11.wav",
+   "durationSec": 11.52,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "The",
+     "start": 0.2,
+     "end": 0.397,
+     "emphasis": false
+    },
+    {
+     "text": "follow-up",
+     "start": 0.437,
+     "end": 0.919,
+     "emphasis": false
+    },
+    {
+     "text": "PM",
+     "start": 0.959,
+     "end": 1.109,
+     "emphasis": false
+    },
+    {
+     "text": "goes",
+     "start": 1.149,
+     "end": 1.394,
+     "emphasis": false
+    },
+    {
+     "text": "to",
+     "start": 1.434,
+     "end": 1.584,
+     "emphasis": false
+    },
+    {
+     "text": "Ken.",
+     "start": 1.624,
+     "end": 2.059,
+     "emphasis": true
+    },
+    {
+     "text": "On",
+     "start": 2.099,
+     "end": 2.249,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 2.289,
+     "end": 2.438,
+     "emphasis": false
+    },
+    {
+     "text": "tablet,",
+     "start": 2.478,
+     "end": 3.056,
+     "emphasis": false
+    },
+    {
+     "text": "Ken",
+     "start": 3.096,
+     "end": 3.293,
+     "emphasis": true
+    },
+    {
+     "text": "works",
+     "start": 3.333,
+     "end": 3.625,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 3.665,
+     "end": 3.862,
+     "emphasis": false
+    },
+    {
+     "text": "checklist,",
+     "start": 3.902,
+     "end": 4.622,
+     "emphasis": false
+    },
+    {
+     "text": "logs",
+     "start": 4.662,
+     "end": 4.907,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 4.947,
+     "end": 5.144,
+     "emphasis": false
+    },
+    {
+     "text": "readings,",
+     "start": 5.184,
+     "end": 5.856,
+     "emphasis": false
+    },
+    {
+     "text": "adds",
+     "start": 5.896,
+     "end": 6.141,
+     "emphasis": false
+    },
+    {
+     "text": "photos,",
+     "start": 6.181,
+     "end": 6.758,
+     "emphasis": false
+    },
+    {
+     "text": "and",
+     "start": 6.798,
+     "end": 6.995,
+     "emphasis": false
+    },
+    {
+     "text": "files.",
+     "start": 7.035,
+     "end": 7.565,
+     "emphasis": false
+    },
+    {
+     "text": "Jun",
+     "start": 7.605,
+     "end": 7.802,
+     "emphasis": true
+    },
+    {
+     "text": "approves,",
+     "start": 7.842,
+     "end": 8.514,
+     "emphasis": true
+    },
+    {
+     "text": "and",
+     "start": 8.554,
+     "end": 8.752,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 8.792,
+     "end": 8.989,
+     "emphasis": false
+    },
+    {
+     "text": "maintenance",
+     "start": 9.029,
+     "end": 9.606,
+     "emphasis": false
+    },
+    {
+     "text": "record",
+     "start": 9.646,
+     "end": 9.986,
+     "emphasis": false
+    },
+    {
+     "text": "updates",
+     "start": 10.026,
+     "end": 10.413,
+     "emphasis": false
+    },
+    {
+     "text": "itself.",
+     "start": 10.453,
+     "end": 11.03,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "12",
+   "audio": "audio/12.wav",
+   "durationSec": 7.76,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "Plant",
+     "start": 0.2,
+     "end": 0.479,
+     "emphasis": false
+    },
+    {
+     "text": "2",
+     "start": 0.519,
+     "end": 0.661,
+     "emphasis": true
+    },
+    {
+     "text": "is",
+     "start": 0.701,
+     "end": 0.844,
+     "emphasis": false
+    },
+    {
+     "text": "short",
+     "start": 0.884,
+     "end": 1.163,
+     "emphasis": false
+    },
+    {
+     "text": "a",
+     "start": 1.203,
+     "end": 1.345,
+     "emphasis": false
+    },
+    {
+     "text": "technician",
+     "start": 1.385,
+     "end": 1.892,
+     "emphasis": false
+    },
+    {
+     "text": "tonight.",
+     "start": 1.932,
+     "end": 2.53,
+     "emphasis": false
+    },
+    {
+     "text": "Lemuel",
+     "start": 2.57,
+     "end": 2.895,
+     "emphasis": true
+    },
+    {
+     "text": "grants",
+     "start": 2.935,
+     "end": 3.259,
+     "emphasis": false
+    },
+    {
+     "text": "Rico",
+     "start": 3.299,
+     "end": 3.533,
+     "emphasis": true
+    },
+    {
+     "text": "temporary",
+     "start": 3.573,
+     "end": 4.034,
+     "emphasis": false
+    },
+    {
+     "text": "access,",
+     "start": 4.074,
+     "end": 4.627,
+     "emphasis": false
+    },
+    {
+     "text": "with",
+     "start": 4.667,
+     "end": 4.9,
+     "emphasis": false
+    },
+    {
+     "text": "an",
+     "start": 4.94,
+     "end": 5.082,
+     "emphasis": false
+    },
+    {
+     "text": "expiry,",
+     "start": 5.122,
+     "end": 5.675,
+     "emphasis": true
+    },
+    {
+     "text": "so",
+     "start": 5.715,
+     "end": 5.857,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 5.897,
+     "end": 6.039,
+     "emphasis": false
+    },
+    {
+     "text": "closes",
+     "start": 6.079,
+     "end": 6.404,
+     "emphasis": false
+    },
+    {
+     "text": "on",
+     "start": 6.444,
+     "end": 6.586,
+     "emphasis": false
+    },
+    {
+     "text": "its",
+     "start": 6.626,
+     "end": 6.814,
+     "emphasis": false
+    },
+    {
+     "text": "own.",
+     "start": 6.854,
+     "end": 7.27,
+     "emphasis": false
+    }
+   ]
+  },
+  {
+   "id": "13",
+   "audio": "audio/13.wav",
+   "durationSec": 7.44,
+   "tailSec": 0.5,
+   "words": [
+    {
+     "text": "One",
+     "start": 0.2,
+     "end": 0.397,
+     "emphasis": false
+    },
+    {
+     "text": "pump,",
+     "start": 0.437,
+     "end": 0.92,
+     "emphasis": false
+    },
+    {
+     "text": "caught",
+     "start": 0.96,
+     "end": 1.3,
+     "emphasis": false
+    },
+    {
+     "text": "early.",
+     "start": 1.34,
+     "end": 1.869,
+     "emphasis": true
+    },
+    {
+     "text": "₱5.9",
+     "start": 1.909,
+     "end": 2.154,
+     "emphasis": true
+    },
+    {
+     "text": "million",
+     "start": 2.194,
+     "end": 2.582,
+     "emphasis": false
+    },
+    {
+     "text": "that",
+     "start": 2.622,
+     "end": 2.867,
+     "emphasis": false
+    },
+    {
+     "text": "stayed",
+     "start": 2.907,
+     "end": 3.246,
+     "emphasis": true
+    },
+    {
+     "text": "in",
+     "start": 3.286,
+     "end": 3.436,
+     "emphasis": false
+    },
+    {
+     "text": "the",
+     "start": 3.476,
+     "end": 3.674,
+     "emphasis": false
+    },
+    {
+     "text": "plant.",
+     "start": 3.714,
+     "end": 4.243,
+     "emphasis": false
+    },
+    {
+     "text": "GearCast:",
+     "start": 4.283,
+     "end": 4.956,
+     "emphasis": true
+    },
+    {
+     "text": "maintenance",
+     "start": 4.996,
+     "end": 5.573,
+     "emphasis": false
+    },
+    {
+     "text": "that",
+     "start": 5.613,
+     "end": 5.858,
+     "emphasis": false
+    },
+    {
+     "text": "sees",
+     "start": 5.898,
+     "end": 6.143,
+     "emphasis": false
+    },
+    {
+     "text": "it",
+     "start": 6.183,
+     "end": 6.333,
+     "emphasis": false
+    },
+    {
+     "text": "coming.",
+     "start": 6.373,
+     "end": 6.95,
+     "emphasis": false
+    }
+   ]
+  }
+ ]
+}

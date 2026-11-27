@@ -1,0 +1,152 @@
+{
+  "note": "Replacement brands and suppliers per replaceable asset class, mined from GearCast_Data_v3.6_F (Equipment_Register manufacturer/model/source_id, Suppliers name/supplies/supplier_type, Cost_Reference unit items, Spare_Parts_Inventory part numbers) and GearCast_Guide_v3.6_F (Sources, Batch2_Guide). Supplier contact and lead time are read from the Suppliers sheet at build time; only F&N Engineering (SRC-20) is not on that sheet. No brand-specific price exists for alternative brands: their cost is the same-duty budget from Cost_Reference until quoted.",
+  "sources": {
+    "SRC-17": { "description": "Meeting with plant engineer (Franklin Baker), Nov 2026 – group minutes", "link": null },
+    "SRC-18": { "description": "KSB – Sewatec/Sewabloc Type Series Booklet (impeller types, size range, 60 Hz)", "link": "https://storage.mtender.gov.md/get/1a19cb6e-8fe4-4886-ad9f-00f8e3a5f738-1770188241000" },
+    "SRC-19": { "description": "KSB – Sewabloc K 65-250 data sheet", "link": "https://siurbliai.lt/wp-content/uploads/2023/03/Sewb-K65-250-tech.-duomenys.pdf" },
+    "SRC-20": { "description": "F&N Engineering – Tsurumi 100B42.2 product listing (4\" discharge, 2.2 kW, max head 16 m)", "link": "https://fnengineering.com/en/product/tsurumi-band-submersible-pump-52" },
+    "SRC-21": { "description": "Tsurumi – B-series submersible sewage pumps catalog", "link": "https://pdf.directindustry.com/pdf/tsurumi-manufacturing-co-ltd/b-ia100-a/30418-1066078.html" },
+    "SRC-22": { "description": "KSB Philippines, Inc. – contact (Pasig; +63 2 8845 0391; salesph@ksb.com)", "link": "https://www.ksb.com/en-ph/data-privacy" },
+    "SRC-23": { "description": "KSB Philippines – company page (after-sales service workshop since 2018)", "link": "https://www.ksb.com/en-ph/company" },
+    "SRC-24": { "description": "EagleBurgmann Philippines, Inc. – exclusive PH distributor of EagleBurgmann seals", "link": "https://www.eagleburgmann.com/en/portal/philippines/" },
+    "SRC-25": { "description": "SKF Philippines – head office Makati, Davao branch", "link": "https://ph.jobstreet.com/companies/skf-168555382065806" },
+    "SRC-26": { "description": "RS Components PH – RS PRO 7.5 kW IE3 4-pole motor, PHP 60,593 exc. VAT", "link": "https://ph.rs-online.com/web/p/ac-motors/1879889" },
+    "SRC-28": { "description": "Grundfos Pumps Philippines – Davao office (Damosa Business Center)", "link": "https://www.grundfos.com/ph/about-us/grundfos-in-the-phillipines" },
+    "SRC-29": { "description": "Gotesco – pumps distributor with Davao branch and service center", "link": "https://www.filbuild.com/b2b/gotesco" },
+    "SRC-30": { "description": "WEG 10 HP (7.5 kW) 4-pole 60 Hz motor – 12.2 A at 460 V (US listing)", "link": "https://witmermotor.com/products/01018et3ehw215t-s-weg-10hp-hydrowash-electric-motor-1800rpm" },
+    "SRC-32": { "description": "AquaEnergy Expo – Ebara Pumps Philippines, Inc. (Cabuyao, Laguna; +63-49-549-1806)", "link": "https://aquaenergyexpo.com/view_company/918/Ebara_Corporation?page=4" },
+    "SRC-34": { "description": "TSCA Electrical Group – electro-mechanical and engineering services, Mindanao", "link": "https://www.tsca.com.ph/?p=12286" },
+    "SRC-35": { "description": "AEMT – Newton Electrical Equipment Co. Inc. (24/7 emergency motor repair, PH)", "link": "https://www.theaemt.com/full-member/newton-electrical-equipment-co-inc.html" },
+    "ASSUMED": { "description": "Assumed by the project team (no plant data available)", "link": null }
+  },
+  "extra_suppliers": [
+    {
+      "supplier_id": "SRC-20",
+      "supplier_name": "F&N Engineering (Tsurumi reseller listing)",
+      "supplies": "Lists the Tsurumi 100B42.2 submersible (product page cited for the pump model)",
+      "location": "(see website)", "phone": "(see website)", "email": "(see website)",
+      "typical_lead_time_days": null, "supplier_type": "Tsurumi reseller – to confirm",
+      "basis": "Source listing (not on Suppliers sheet)", "source_id": "SRC-20"
+    }
+  ],
+  "classes": [
+    {
+      "id": "transfer_pump", "label": "KSB EQ transfer pump (50 m³/h, ~22 m)",
+      "assets": ["P-101A", "P-101B", "SP-P01"],
+      "options": [
+        { "kind": "Installed brand (like-for-like)", "brand": "KSB", "model": "Sewatec K 080-250 (size to verify)", "suppliers": ["SUP-01"],
+          "cost": { "cost_id": "CR-01" }, "sources": ["SRC-18", "SRC-22", "SRC-23"],
+          "found_in": ["Equipment_Register.manufacturer/model", "Cost_Reference CR-01 'New KSB transfer pump (bare)'", "Suppliers SUP-01.supplies 'KSB pumps, OEM spares'"],
+          "why": "Same pump as installed: KSB OEM spares in store (SPP-005..008) and the spare SP-P01 stay interchangeable." },
+        { "kind": "Alternative brand", "brand": "Grundfos", "model": "Wastewater pump matched to duty", "suppliers": ["SUP-06"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-28"],
+          "found_in": ["Suppliers SUP-06 'Alternative wastewater pumps, emergency pump supply' (Pumps – alternative)"],
+          "why": "Davao office, shortest lead time on file; listed for emergency pump supply." },
+        { "kind": "Alternative brand", "brand": "Ebara", "model": "Pump matched to duty", "suppliers": ["SUP-10"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-32"],
+          "found_in": ["Suppliers SUP-10 'Pumps … (alternative pump brand)' (Pumps – alternative)"],
+          "why": "Alternative pump brand with sales and after-sales service." },
+        { "kind": "Local distributor (brand per stock)", "brand": null, "model": "Wastewater pump matched to duty; rental pump as stop-gap", "suppliers": ["SUP-05"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-29"],
+          "found_in": ["Suppliers SUP-05 'Wastewater pumps, pump service, rental pumps' (Pumps – local)"],
+          "why": "Davao branch; can rent a pump while the new unit is on order." }
+      ],
+      "services": [
+        { "kind": "OEM repair / overhaul", "suppliers": ["SUP-01"], "note": "KSB after-sales workshop (SRC-23)" },
+        { "kind": "Local pump service", "suppliers": ["SUP-05"], "note": "Gotesco Davao service center (SRC-29)" }
+      ]
+    },
+    {
+      "id": "transfer_pump_placeholder", "label": "Pump-area transfer pump (placeholder, 50 m³/h)",
+      "assets": ["P-301A", "P-301B", "P-401A", "P-401B", "P-501A", "P-501B"],
+      "placeholder": true,
+      "options": [
+        { "kind": "Standardise on plant brand", "brand": "KSB", "model": "Sewatec K (size to duty – same family as P-101A/B)", "suppliers": ["SUP-01"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-18", "SRC-22"],
+          "found_in": ["Equipment_Register P-101A/B (same 50 m³/h transfer duty)", "Cost_Reference CR-01"],
+          "why": "Same family as the EQ transfer pumps: shared spares and procedures." },
+        { "kind": "Alternative brand", "brand": "Grundfos", "model": "Wastewater pump matched to duty", "suppliers": ["SUP-06"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-28"],
+          "found_in": ["Suppliers SUP-06 (Pumps – alternative)"], "why": "Davao office, shortest lead time on file." },
+        { "kind": "Alternative brand", "brand": "Ebara", "model": "Pump matched to duty", "suppliers": ["SUP-10"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-32"],
+          "found_in": ["Suppliers SUP-10 (Pumps – alternative)"], "why": "Alternative pump brand with after-sales service." },
+        { "kind": "Local distributor (brand per stock)", "brand": null, "model": "Wastewater pump matched to duty; rental pump as stop-gap", "suppliers": ["SUP-05"],
+          "cost": { "budget_cost_id": "CR-01" }, "sources": ["SRC-29"],
+          "found_in": ["Suppliers SUP-05 (Pumps – local)"], "why": "Davao branch; rental pumps." }
+      ],
+      "services": [
+        { "kind": "Local pump service", "suppliers": ["SUP-05"], "note": "Gotesco Davao service center (SRC-29)" }
+      ]
+    },
+    {
+      "id": "sump_pump", "label": "Tsurumi raw-water sump submersible (2.2 kW)",
+      "assets": ["P-201A", "P-201B", "SP-P02"],
+      "options": [
+        { "kind": "Installed brand (like-for-like)", "brand": "Tsurumi", "model": "100B42.2", "suppliers": ["SUP-07", "SRC-20"],
+          "cost": { "cost_id": "CR-03" }, "sources": ["SRC-20", "SRC-21"],
+          "found_in": ["Equipment_Register.manufacturer/model", "Cost_Reference CR-03 'New Tsurumi 100B42.2 submersible'", "Suppliers SUP-07 'Tsurumi submersible pumps and spares'", "Guide Sources SRC-20 (F&N Engineering listing)"],
+          "why": "Same pump as installed: Tsurumi seal/impeller/cable spares (SPP-019..023) and SP-P02 stay interchangeable. PH dealer still to confirm (Batch2_Guide open item)." },
+        { "kind": "Alternative brand", "brand": "Grundfos", "model": "Submersible wastewater pump, ~50 m³/h at ~10 m", "suppliers": ["SUP-06"],
+          "cost": { "budget_cost_id": "CR-03" }, "sources": ["SRC-28"],
+          "found_in": ["Suppliers SUP-06 'Alternative wastewater pumps, emergency pump supply'"], "why": "Davao office, 7-day lead time on file." },
+        { "kind": "Alternative brand", "brand": "Ebara", "model": "Submersible pump, ~50 m³/h at ~10 m", "suppliers": ["SUP-10"],
+          "cost": { "budget_cost_id": "CR-03" }, "sources": ["SRC-32"],
+          "found_in": ["Suppliers SUP-10 (Pumps – alternative)"], "why": "Alternative pump brand with after-sales service." },
+        { "kind": "Local distributor (brand per stock)", "brand": null, "model": "Submersible wastewater pump; rental pump as stop-gap", "suppliers": ["SUP-05"],
+          "cost": { "budget_cost_id": "CR-03" }, "sources": ["SRC-29"],
+          "found_in": ["Suppliers SUP-05 'Wastewater pumps, pump service, rental pumps'"], "why": "Davao branch; rental pumps." }
+      ],
+      "services": [
+        { "kind": "Local pump service", "suppliers": ["SUP-05"], "note": "Gotesco Davao service center (SRC-29)" }
+      ]
+    },
+    {
+      "id": "motor", "label": "7.5 kW 4-pole IE3 TEFC motor (132M frame, 440 V)",
+      "assets": ["M-101A", "M-101B", "SP-M01"],
+      "options": [
+        { "kind": "Priced equivalent (installed spec)", "brand": "RS PRO", "model": "7.5 kW IE3 4-pole IEC motor", "suppliers": ["SUP-04"],
+          "cost": { "cost_id": "CR-02", "note": "PHP 60,593 exc. VAT on the RS listing (SRC-26)" }, "sources": ["SRC-26"],
+          "found_in": ["Equipment_Register M-101A/B source_id SRC-26", "Cost_Reference CR-02 'New 7.5 kW IE3 motor (incl. VAT)'", "Guide Sources SRC-26 'RS PRO 7.5 kW IE3 4-pole motor'"],
+          "why": "The only motor with a sourced price in the data; installed unit is a generic IEC 132M frame, so any IE3 132M 4-pole motor fits." },
+        { "kind": "Alternative brand", "brand": "WEG", "model": "10 HP (7.5 kW) 4-pole 60 Hz", "suppliers": [],
+          "cost": { "budget_cost_id": "CR-02" }, "sources": ["SRC-30"],
+          "found_in": ["Equipment_Register M-101A/B source_id SRC-30", "Guide Sources SRC-30 'WEG 10 HP (7.5 kW) 4-pole 60 Hz motor'", "Parameters PRM-145 full-load current"],
+          "why": "Reference motor for the full-load current (12.8 A); no Philippine WEG supplier in the data package." }
+      ],
+      "services": [
+        { "kind": "Rewind / emergency motor repair", "suppliers": ["SUP-11"], "cost_id": "CR-18", "note": "Newton Electrical, 24/7 (SRC-35)" },
+        { "kind": "Local electro-mechanical repair", "suppliers": ["SUP-09"], "cost_id": "CR-20", "note": "TSCA Electrical, Mindanao (SRC-34); drying-out CR-20" }
+      ]
+    },
+    {
+      "id": "screen", "label": "Linear vibrating screen 1000×2000 mm (SS mesh)",
+      "assets": ["SC-101A", "SC-101B"],
+      "options": [
+        { "kind": "Installed brand (like-for-like)", "brand": "Generic (CN import)", "model": "SZF-1020 type, 1000×2000 mm", "suppliers": ["SUP-08"],
+          "cost": { "cost_id": "CR-04" }, "sources": ["SRC-17"],
+          "found_in": ["Equipment_Register.manufacturer/model", "Cost_Reference CR-04 'New vibrating screen (installed)'", "Suppliers SUP-08 'Screen mesh panels, springs, vibrator motors' (Screens)"],
+          "why": "Same frame size keeps mesh panels SPP-024 and mounts SPP-025 interchangeable. 45-day import lead time." }
+      ],
+      "no_alternative_note": "No other screen brand or supplier is named in the data package – ask SUP-08 for the maker's name and get a local quote.",
+      "services": [
+        { "kind": "Local install / repair support", "suppliers": ["SUP-09"], "note": "TSCA Electrical (supplies the mesh clamps SPP-026)" }
+      ]
+    },
+    {
+      "id": "vibrator_motor", "label": "0.75 kW vibrator motor (screen exciter, 440 V)",
+      "assets": ["VM-101A", "VM-101B", "SP-VM01"],
+      "options": [
+        { "kind": "Installed brand (like-for-like)", "brand": "Generic (screen maker's)", "model": "0.75 kW vibrator motor", "suppliers": ["SUP-08"],
+          "cost": { "cost_id": "CR-05" }, "sources": ["ASSUMED"],
+          "found_in": ["Equipment_Register.manufacturer/model", "Cost_Reference CR-05 'New vibrator motor 0.75 kW'", "Suppliers SUP-08 'Screen mesh panels, springs, vibrator motors'"],
+          "why": "Sold with the screen; same mounting and eccentric weights (SPP-027/028)." }
+      ],
+      "no_alternative_note": "No vibrator-motor brand is named in the data package – RS Components (SUP-04, IEC motors) may quote an equivalent; confirm mounting and force rating.",
+      "services": [
+        { "kind": "Rewind", "suppliers": ["SUP-11"], "cost_id": "CR-19", "note": "Newton Electrical (SRC-35); RR-07 was a rewind" },
+        { "kind": "Local electro-mechanical repair", "suppliers": ["SUP-09"], "note": "TSCA Electrical, Mindanao (SRC-34)" }
+      ]
+    }
+  ]
+}

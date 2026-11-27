@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NOW_DATE, OPS } from '../data';
+import { NOW_DATE, OPS, roleWord } from '../data';
 import { openAsset } from '../shell/TopBar';
 import { useAuth, useCan } from '../store/authStore';
 import { pushAssignments } from '../api/assignments';
@@ -83,8 +83,9 @@ export function PmMonitoring() {
     pushAssignments(n);
     return n;
   });
-  // Technicians see only the tasks assigned to them (read-only assignment).
-  const rows = useMemo(() => (tech ? allRows.filter(r => assign[r.id] === me?.username) : allRows), [allRows, tech, assign, me?.username]);
+  // Technicians start on the tasks assigned to them and can switch to the whole schedule (view; assignment is read-only).
+  const [mineOnly, setMineOnly] = useState(true);
+  const rows = useMemo(() => (tech && mineOnly ? allRows.filter(r => assign[r.id] === me?.username) : allRows), [allRows, tech, mineOnly, assign, me?.username]);
 
   const counts = Object.fromEntries(BANDS.map(b => [b.id, rows.filter(r => r.band === b.id).length])) as Record<Band, number>;
   const byDay = useMemo(() => {
@@ -94,7 +95,7 @@ export function PmMonitoring() {
   }, [rows]);
   const ql = q.trim().toLowerCase();
   const shown = rows.filter(r => (!band || r.band === band) && (!day || r.due === day)
-    && (!ql || [r.task_id, r.task, r.asset_id, r.role, r.procs.join(' '), assign[r.id]].some(v => String(v ?? '').toLowerCase().includes(ql))));
+    && (!ql || [r.task_id, r.task, r.asset_id, roleWord(r.role), r.procs.join(' '), assign[r.id]].some(v => String(v ?? '').toLowerCase().includes(ql))));
 
   // Month grid, weeks starting Monday.
   const first = new Date(month);
@@ -106,8 +107,12 @@ export function PmMonitoring() {
   return (
     <div className="page pm-page">
       <header className="page-head">
-        <h1>{tech ? `My tasks · ${me?.username}` : 'PM Monitoring'}</h1>
-        <p>{tech ? 'Preventive maintenance tasks assigned to you.' : 'Preventive maintenance due dates and delegation.'} Today is {TODAY.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+        <h1>{tech && mineOnly ? `My tasks · ${me?.username}` : 'PM Monitoring'}</h1>
+        {tech && <div className="seg pm-scope" role="tablist" aria-label="Which tasks">
+          <button type="button" role="tab" aria-selected={mineOnly} className={mineOnly ? 'on' : ''} onClick={() => setMineOnly(true)}>My tasks</button>
+          <button type="button" role="tab" aria-selected={!mineOnly} className={!mineOnly ? 'on' : ''} onClick={() => setMineOnly(false)}>All PM tasks</button>
+        </div>}
+        <p>{tech ? (mineOnly ? 'Preventive maintenance tasks assigned to you. Record your findings on the tablet or upload the scanned job sheet.' : 'The whole PM schedule (view only; assignments are made by a Plant Supervisor or Engineer).') : 'Preventive maintenance due dates and delegation.'} Today is {TODAY.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.</p>
       </header>
 
       <div className="pm-top">
@@ -171,7 +176,7 @@ export function PmMonitoring() {
                   <td className="mono">{r.est_h != null ? `${r.est_h} h` : '—'}</td>
                   <td>{r.stop ? <span className="badge warn">Stop</span> : <span className="muted">No</span>}</td>
                   <td className="mono small">{r.procs.join(', ') || '—'}</td>
-                  <td className="small">{r.role === 'Operator' ? 'Supervisor' : r.role ?? '—'}</td>
+                  <td className="small">{roleWord(r.role) ?? '—'}</td>
                   <td>
                     <select className="pm-assign" disabled={!canAssign} value={assign[r.id] ?? ''} onChange={e => setTech(r.id, e.target.value)} aria-label={`Assign ${r.task_id} ${r.asset_id}`}>
                       {TECHS.map(t => <option key={t} value={t}>{t || 'Unassigned'}</option>)}
@@ -179,11 +184,11 @@ export function PmMonitoring() {
                   </td>
                   <td className="pm-find-cell">
                     {(() => { const a = latest.get(r.id); return a && <span className={`badge ap-${a.status}`} title={a.review_note ?? ''}>{STATUS_LABEL[a.status]}</span>; })()}
-                    {(!tech || assign[r.id] === me?.username) && <button type="button" className="btn ghost sm" onClick={() => setFiling(r)}>Record findings</button>}
+                    <button type="button" className="btn ghost sm" onClick={() => setFiling(r)}>Record findings</button>
                   </td>
                 </tr>
               ))}
-              {!shown.length && <tr><td colSpan={11} className="muted">{tech && !rows.length ? 'No tasks are assigned to you yet.' : 'No tasks match.'}</td></tr>}
+              {!shown.length && <tr><td colSpan={11} className="muted">{tech && mineOnly && !rows.length ? 'No tasks are assigned to you yet.' : 'No tasks match.'}</td></tr>}
             </tbody>
           </table>
         </div>

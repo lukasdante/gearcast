@@ -18,14 +18,18 @@ interface Prediction {
 }
 interface CaseRow { case: Record<string, any>; failure_mode?: string; prediction: Prediction; agrees_with_record: boolean }
 interface ModelInfo { name: string; kind: string; trained_on: string; features: string[] }
-interface Supplier { supplier_id: string; supplier_name: string; supplier_type: string; supplies: string; location: string; phone: string; email: string; lead_time_days: number | null; basis: string; why: string }
+interface Supplier { supplier_id: string; supplier_name: string; supplier_type: string; supplies: string; location: string; phone: string; email: string; lead_time_days: number | null; basis: string; why: string; source_id: string | null; website: string | null; contact: string | null }
+interface Source { id: string; description: string | null; link: string | null }
+interface OptCost { php: number; cost_id: string; item: string; basis: string; source_id: string; budget: boolean; note: string | null }
+interface Pick { kind: string; brand: string | null; model: string | null; supplier_name: string; lead_time_days: number | null; contact: string | null; website: string | null; new_unit_cost_php: number | null; cost_budget: boolean; text: string }
 interface Replacement {
-  asset_id: string; asset_type: string; note: string;
-  installed: { brand: string | null; model: string | null; new_unit_cost_php: number | null };
-  options: { kind: string; brand: string | null; model: string | null; suppliers: Supplier[] }[];
+  asset_id: string; asset_type: string; class_label: string | null; placeholder: boolean; note: string; no_alternative_note: string | null;
+  installed: { brand: string | null; model: string | null; duty: string | null; new_unit_cost_php: number | null; cost_basis: string | null; basis: string | null; sources: (Source | null)[] };
+  options: { kind: string; brand: string | null; model: string | null; why: string | null; found_in: string[]; sources: Source[]; new_unit_cost_php: number | null; cost: OptCost | null; suppliers: Supplier[] }[];
+  recommended: Pick | null; fastest_alternative: Pick | null;
+  services: { kind: string; note: string | null; cost_php: number | null; cost_item: string | null; cost_basis: string | null; suppliers: Supplier[] }[];
   parts: { part_id: string; part_name: string; part_number: string | null; qty_on_hand: number; min_qty: number; unit: string; unit_cost_php: number | null; lead_time_days: number | null; storage_location: string | null; supplier: string | null }[];
 }
-const contact = (s: Supplier) => [s.phone, s.email].filter(v => v && !/see website|online|to confirm/i.test(v)).join(' · ');
 
 const php = (n: number) => `PHP ${Math.round(n).toLocaleString('en-US')}`;
 const tone = (r: string) => (r.startsWith('Replace') ? 'bad' : r.includes('watch') ? 'warn' : 'ok');
@@ -123,6 +127,12 @@ export function RepairReplace() {
 function RrDetail({ p, title, assetId, actual }: { p: Prediction; title: string; assetId?: string; actual?: string }) {
   const max = Math.max(...p.factors.map(f => Math.abs(f.weight)), 0.01);
   const cmax = Math.max(p.costs.repair_3y_php, p.costs.replace_3y_php, 1);
+  const [rep, setRep] = useState<Replacement | null>(null);
+  useEffect(() => {
+    setRep(null);
+    if (assetId) getJSON<Replacement>(`/api/rr/replacement/${encodeURIComponent(assetId)}`).then(setRep).catch(() => setRep(null));
+  }, [assetId]);
+  const replace = p.recommendation.startsWith('Replace');
   return (
     <div className="card rr-detail">
       <div className="sym-head"><b>{title}</b>{assetId && <button type="button" className="btn ghost sm" onClick={() => openAsset(assetId)}>Open asset</button>}</div>
@@ -131,6 +141,17 @@ function RrDetail({ p, title, assetId, actual }: { p: Prediction; title: string;
         <div className="conf"><span className="muted small">Confidence</span><b className="mono">{(p.confidence * 100).toFixed(0)}%</b>
           <div className="conf-bar"><i style={{ width: `${p.confidence * 100}%` }} /></div></div>
       </div>
+      {rep?.recommended && (
+        <div className={`rr-replace-with${replace ? ' on' : ''}`}>
+          <span className="muted small">{replace ? 'Replace with' : 'If replaced'}</span>
+          <div><b>{rep.recommended.brand ?? 'Equivalent unit'}</b> {rep.recommended.model}</div>
+          <div className="small">from <b>{rep.recommended.supplier_name}</b>
+            {rep.recommended.lead_time_days != null && <> · ~{rep.recommended.lead_time_days} d lead time</>}
+            {rep.recommended.new_unit_cost_php ? <> · {rep.recommended.cost_budget ? 'budget ' : ''}{php(rep.recommended.new_unit_cost_php)}</> : null}
+            {rep.recommended.contact && <span className="muted"> · {rep.recommended.contact}</span>}</div>
+          {rep.fastest_alternative && <div className="small muted">Fastest alternative: {rep.fastest_alternative.text}</div>}
+        </div>
+      )}
       {actual && <p className="small muted">Recorded decision: {actual}</p>}
 
       <h4>Top factors <span className="muted small">(→ replace · ← repair)</span></h4>
@@ -166,35 +187,64 @@ function RrDetail({ p, title, assetId, actual }: { p: Prediction; title: string;
       <div className={`alert-box ${p.costs.savings_3y_php >= 0 ? 'ok' : 'warn'}`}>{p.costs.savings_note}</div>
       {p.downtime && <p className="small"><b>Downtime:</b> {p.downtime.note}</p>}
       <p className="small muted">Assumptions: {p.costs.assumptions.join(' · ')}</p>
-      {assetId && <ReplacementOptions assetId={assetId} />}
+      {rep && <ReplacementOptions r={rep} />}
     </div>
   );
 }
 
-/** Brands and suppliers for a replacement unit, plus the parts (and their suppliers) for a repair. */
-function ReplacementOptions({ assetId }: { assetId: string }) {
-  const [r, setR] = useState<Replacement | null>(null);
-  useEffect(() => { setR(null); getJSON<Replacement>(`/api/rr/replacement/${encodeURIComponent(assetId)}`).then(setR).catch(() => setR(null)); }, [assetId]);
-  if (!r) return null;
+const srcTitle = (x: Source) => [x.id, x.description].filter(Boolean).join(' – ');
+const SourceRefs = ({ list }: { list: (Source | null)[] }) => {
+  const xs = list.filter((x): x is Source => !!x);
+  if (!xs.length) return null;
+  return <>{xs.map((x, i) => <span key={x.id}>{i ? ', ' : ''}{x.link ? <a href={x.link} target="_blank" rel="noreferrer" title={srcTitle(x)}>{x.id}</a> : <span title={srcTitle(x)}>{x.id}</span>}</span>)}</>;
+};
+const SupplierLine = ({ s }: { s: Supplier }) => (
+  <div className="rr-sup small">
+    <b>{s.supplier_name}</b> <span className="muted">· {s.location}{s.lead_time_days != null ? ` · ~${s.lead_time_days} d lead time` : ' · lead time not on file'}</span>
+    <div className="muted">{s.supplies}
+      {s.contact ? ` · ${s.contact}` : ''}
+      {!s.contact && s.website ? <> · <a href={s.website} target="_blank" rel="noreferrer">website</a></> : null}
+      {s.basis !== 'Sourced' ? ` · (${/to confirm/i.test(s.supplier_name) ? 'to confirm' : s.basis})` : ''}</div>
+  </div>
+);
+
+/** Brands and suppliers for a replacement unit, repair services, plus the parts (and their suppliers) for a repair. */
+function ReplacementOptions({ r }: { r: Replacement }) {
   return (
     <>
       <h4>Replacement options · brands &amp; suppliers</h4>
-      <p className="small">Installed: <b>{r.installed.brand ?? '—'}</b> {r.installed.model ?? ''}{r.installed.new_unit_cost_php ? <span className="muted"> · new unit {php(r.installed.new_unit_cost_php)}</span> : null}</p>
+      {r.placeholder && <div className="alert-box warn small">Placeholder asset – brand, model and price to confirm with the raw data update. Options below are for the same 50 m³/h transfer duty.</div>}
+      <p className="small">Installed: <b>{r.installed.brand ?? '—'}</b> {r.installed.model ?? ''}
+        {r.installed.duty && <span className="muted"> · {r.installed.duty}</span>}
+        {r.installed.new_unit_cost_php ? <span className="muted"> · new unit {php(r.installed.new_unit_cost_php)}{r.installed.cost_basis ? ` (${r.installed.cost_basis})` : ''}</span> : null}
+        {r.installed.sources.some(Boolean) && <span className="muted"> · source <SourceRefs list={r.installed.sources} /></span>}</p>
       <div className="rr-opts">
         {r.options.map((o, i) => (
           <div key={i} className="rr-opt">
-            <div className="rr-opt-head"><span className="badge">{o.kind}</span><b>{o.brand ?? 'Any brand'}</b><span className="muted small">{o.model}</span></div>
-            {o.suppliers.map(s => (
-              <div key={s.supplier_id} className="rr-sup small">
-                <b>{s.supplier_name}</b> <span className="muted">· {s.location}{s.lead_time_days != null ? ` · ~${s.lead_time_days} d lead time` : ''}</span>
-                <div className="muted">{s.supplies}{contact(s) ? ` · ${contact(s)}` : ''}{s.basis === 'Assumed' ? ' · (to confirm)' : ''}</div>
-              </div>
-            ))}
-            {!o.suppliers.length && <div className="muted small">No supplier on file.</div>}
+            <div className="rr-opt-head"><span className="badge">{o.kind}</span><b>{o.brand ?? 'Brand per distributor stock'}</b><span className="muted small">{o.model}</span>
+              {o.cost && <span className="rr-opt-cost mono small" title={o.cost.note ?? undefined}>{o.cost.budget ? 'budget ' : ''}{php(o.cost.php)}</span>}</div>
+            {o.why && <div className="small">{o.why}</div>}
+            {o.suppliers.map(s => <SupplierLine key={s.supplier_id} s={s} />)}
+            {!o.suppliers.length && <div className="muted small">No Philippine supplier for this brand in the data package – request quotes.</div>}
+            <div className="muted small rr-basis">
+              {o.cost && <>Cost: {o.cost.item} ({o.cost.cost_id}, {o.cost.basis}){o.cost.budget ? ' – budget, no brand price on file' : ''}{o.cost.note && !o.cost.budget ? ` · ${o.cost.note}` : ''}. </>}
+              {o.sources.length > 0 && <>Source: <SourceRefs list={o.sources} />. </>}
+              {o.found_in.length > 0 && <>Found in: {o.found_in.join('; ')}.</>}
+            </div>
           </div>
         ))}
         {!r.options.length && <p className="muted small">No replacement brands on file for this asset type.</p>}
+        {r.no_alternative_note && <p className="muted small">{r.no_alternative_note}</p>}
       </div>
+      {r.services.length > 0 && <>
+        <h4>Repair services</h4>
+        <div className="rr-opts">{r.services.map((sv, i) => (
+          <div key={i} className="rr-opt">
+            <div className="rr-opt-head"><span className="badge">{sv.kind}</span>{sv.cost_php ? <span className="rr-opt-cost mono small">{php(sv.cost_php)}</span> : null}</div>
+            {sv.suppliers.map(s => <SupplierLine key={s.supplier_id} s={s} />)}
+            <div className="muted small rr-basis">{sv.note}{sv.cost_item ? ` · ${sv.cost_item} (${sv.cost_basis})` : ''}</div>
+          </div>))}</div>
+      </>}
       {r.parts.length > 0 && <>
         <h4>Parts for a repair</h4>
         <table className="tbl compact">

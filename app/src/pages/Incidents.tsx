@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PLANT } from '../data';
 import { downloadBlob, getJSON, postJSON, simPayload } from '../api/client';
-import { draftDocxBlob, draftPdfBlob, photoMeta, preparePhoto, reportPdfBlob, storeReportPdf, uploadReportPhotos, type ReportPhoto } from '../api/incidentDocs';
+import { draftDocxBlob, draftPdfBlob, fetchTrends, photoMeta, preparePhoto, reportDocxBlob, reportPdfBlob, saveReportTrend, storeReportPdf, uploadReportPhotos,
+  type ReportPhoto, type TrendIndicator, type TrendOpts } from '../api/incidentDocs';
 import { chartSvg, type TrendSpec } from '../../../worker/src/doc/chart';
 import { CostBreakdown, type CostEst } from '../overview/ShutdownCost';
 import { Icon } from '../shell/icons';
@@ -16,7 +17,7 @@ import '../styles/pages.css';
 interface Field { field_no: number; section: string; field: string; filled_by: string; allowed_values: string; value: string; source: 'data' | 'ai' | 'user' }
 interface Draft {
   report_id: string; asset_id: string; failure_at: string; shut_down: boolean; fields: Field[]; summary?: string; warnings: string[];
-  tables?: { trends?: TrendSpec[] };
+  tables?: { trends?: TrendSpec[] }; trend?: TrendOpts; trend_indicators?: TrendIndicator[];
   linked: { cost: CostEst;
     repair_or_replace: { recommendation: string; confidence: number }; standby: string; spare?: string; failure_event?: { event_id: string } | null };
   llm_used: boolean; [k: string]: unknown;
@@ -35,28 +36,100 @@ const MAX_PHOTOS = 4;
 const reporterDefault = () => { const u = useAuth.getState().user; return u?.role === 'technician' ? u.username : 'MT-02'; };
 
 const WINDOWS = [{ days: 7, label: '1 week' }, { days: 14, label: '2 weeks' }, { days: 30, label: '1 month' }, { days: 42, label: '6 weeks' }, { days: 182, label: '6 months' }, { days: 365, label: '1 year' }];
+const DEFAULT_TREND: TrendOpts = { days: 42, from: null, indicators: null };
+const sameTrend = (a?: TrendOpts | null, b?: TrendOpts | null) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
-/** Section 3 trend charts (same layout as the PDF), with the time range before the failure. */
-function TrendCharts({ trends, days, onDays, busy }: { trends: TrendSpec[]; days?: number; onDays?: (d: number) => void; busy?: boolean }) {
-  const picker = onDays && (
-    <div className="ir-trend-range no-print" role="group" aria-label="Time range before the failure">
-      <span className="muted small">Range before failure</span>
-      {WINDOWS.map(w => <button key={w.days} type="button" className={`btn sm${(days ?? 42) === w.days ? ' primary' : ' ghost'}`} disabled={busy} onClick={() => onDays(w.days)}>{w.label}</button>)}
-      {busy && <span className="spin" />}
-    </div>
-  );
-  if (!trends.length) return <>{picker}<p className="muted small">No condition readings recorded for this asset in this range (no trend chart).</p></>;
+/** Section 3 trend charts (same layout as the PDF/DOCX), with the time range before the failure (preset or custom start
+ *  date) and the indicators to chart. */
+function TrendPanel({ trends, trend, indicators, failureDate, onChange, busy, children }: {
+  trends: TrendSpec[]; trend: TrendOpts; indicators: TrendIndicator[]; failureDate?: string; onChange?: (o: TrendOpts) => void; busy?: boolean; children?: ReactNode;
+}) {
+  const avail = indicators.filter(i => i.available);
+  const sel = trend.indicators ?? [];
+  const toggle = (k: string) => {
+    const next = sel.includes(k) ? sel.filter(x => x !== k) : [...sel, k];
+    if (next.length) onChange?.({ ...trend, indicators: avail.map(i => i.key).filter(x => next.includes(x)) });
+  };
   return (
-    <>{picker}
-    <div className="ir-charts">
-      {trends.map((t, i) => (
-        <figure key={i} className="ir-chart">
-          <div className="ir-chart-svg" dangerouslySetInnerHTML={{ __html: chartSvg(t, 515, 165) }} />
-          <figcaption>{t.start_date} → {t.end_date} (failure){t.window_label ? ` · ${t.window_label}` : ''}: {t.summary}</figcaption>
-        </figure>
-      ))}
-    </div>
+    <>
+      {onChange && (
+        <div className="ir-trend-ctl no-print">
+          <div className="ir-trend-range" role="group" aria-label="Time range before the failure">
+            <span className="muted small">Range before failure</span>
+            {WINDOWS.map(w => <button key={w.days} type="button" className={`btn sm${!trend.from && trend.days === w.days ? ' primary' : ' ghost'}`} disabled={busy}
+              onClick={() => onChange({ ...trend, days: w.days, from: null })}>{w.label}</button>)}
+            <label className={`ir-trend-from small${trend.from ? ' on' : ''}`}>Custom from
+              <input type="date" value={trend.from ?? ''} max={failureDate} disabled={busy} aria-label="Custom start date"
+                onChange={e => onChange({ ...trend, from: e.target.value || null })} />
+            </label>
+            {busy && <span className="spin" />}
+          </div>
+          {avail.length > 0 && (
+            <div className="ir-trend-ind" role="group" aria-label="Indicators to chart">
+              <span className="muted small">Indicators</span>
+              {avail.map(i => (
+                <label key={i.key} className={`chip-check${sel.includes(i.key) ? ' on' : ''}`}>
+                  <input type="checkbox" checked={sel.includes(i.key)} disabled={busy || (sel.length === 1 && sel.includes(i.key))} onChange={() => toggle(i.key)} />{i.label}
+                </label>
+              ))}
+            </div>
+          )}
+          {children}
+        </div>
+      )}
+      {!trends.length
+        ? <p className="muted small">No condition readings recorded for this asset in this range (no trend chart).</p>
+        : (
+          <div className="ir-charts">
+            {trends.map((t, i) => (
+              <figure key={i} className="ir-chart">
+                <div className="ir-chart-svg" dangerouslySetInnerHTML={{ __html: chartSvg(t, 515, 165) }} />
+                <figcaption>{t.window_label ?? '6 weeks'} before the failure · {t.start_date} → {t.end_date}{t.agg ? ` · ${t.agg}` : ''}: {t.summary}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
     </>
+  );
+}
+
+/** Field 3 of a stored report (submitted or historical): change the range / indicators, preview, save to the report
+ *  (its PDF is re-rendered with the new charts). */
+function ReportTrend({ reportId, date }: { reportId: string; date: string }) {
+  const [view, setView] = useState<{ trend: TrendOpts; saved: TrendOpts | null; indicators: TrendIndicator[]; trends: TrendSpec[] } | null>(null);
+  const [busy, setBusy] = useState<'' | 'load' | 'save'>('load');
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    setView(null); setMsg(null); setBusy('load');
+    fetchTrends({ report_id: reportId }).then(v => { if (live) setView({ trend: v.trend, saved: v.saved ?? v.trend, indicators: v.indicators, trends: v.trends }); })
+      .catch(e => live && setMsg(e instanceof Error ? e.message : 'Could not load the trend')).finally(() => live && setBusy(''));
+    return () => { live = false; };
+  }, [reportId]);
+  const change = async (o: TrendOpts) => {
+    setBusy('load'); setMsg(null);
+    try { const v = await fetchTrends({ report_id: reportId }, o); setView(w => (w ? { ...w, trend: v.trend, trends: v.trends } : w)); }
+    catch (e) { setMsg(e instanceof Error ? e.message : 'Could not load the trend'); } finally { setBusy(''); }
+  };
+  const save = async () => {
+    if (!view) return;
+    setBusy('save'); setMsg(null);
+    try { const v = await saveReportTrend(reportId, view.trend); setView(w => (w ? { ...w, saved: v.trend, trend: v.trend, trends: v.trends } : w)); setMsg('Saved – the report PDF and DOCX now use this range.'); }
+    catch (e) { setMsg(e instanceof Error ? e.message : 'Could not save'); } finally { setBusy(''); }
+  };
+  if (!view) return <div className="ir-report-trend">{busy ? <span className="spin" /> : <p className="muted small">{msg}</p>}</div>;
+  const dirty = !sameTrend(view.trend, view.saved);
+  return (
+    <div className="ir-report-trend">
+      <h4>Readings before the failure</h4>
+      <TrendPanel trends={view.trends} trend={view.trend} indicators={view.indicators} failureDate={date.slice(0, 10)} onChange={change} busy={busy !== ''}>
+        <div className="q-actions">
+          <button type="button" className="btn sm primary" disabled={!dirty || busy !== ''} onClick={save}>{busy === 'save' ? 'Saving…' : 'Save range to report'}</button>
+          {dirty && <button type="button" className="btn sm ghost" disabled={busy !== ''} onClick={() => view.saved && change(view.saved)}>Revert</button>}
+          {msg && <span className="muted small">{msg}</span>}
+        </div>
+      </TrendPanel>
+    </div>
   );
 }
 
@@ -115,13 +188,15 @@ export function Incidents() {
   const [done, setDone] = useState<{ report_id: string; shut_down: boolean; asset_id: string } | null>(null);
   const [photos, setPhotos] = useState<ReportPhoto[]>([]);
   const [trendBusy, setTrendBusy] = useState(false);
-  const [trendDays, setTrendDays] = useState(42);
-  const changeTrend = async (days: number) => {
+  /** Field 3 range + indicators: kept across re-drafts, stored with the report on submit (draft.trend). */
+  const [trend, setTrend] = useState<TrendOpts>(DEFAULT_TREND);
+  const changeTrend = async (o: TrendOpts) => {
     if (!draft) return;
-    setTrendBusy(true); setTrendDays(days);
+    setTrendBusy(true);
     try {
-      const r = await getJSON<{ trends: TrendSpec[] }>(`/api/incidents/trends?asset_id=${encodeURIComponent(draft.asset_id)}&failure_at=${encodeURIComponent(draft.failure_at)}&days=${days}`);
-      setDraft(d => (d ? { ...d, tables: { ...(d.tables ?? {}), trends: r.trends } } : d));
+      const r = await fetchTrends({ asset_id: draft.asset_id, failure_at: draft.failure_at }, o);
+      setTrend(r.trend);
+      setDraft(d => (d ? { ...d, trend: r.trend, trend_indicators: r.indicators, tables: { ...(d.tables ?? {}), trends: r.trends } } : d));
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load the trend'); } finally { setTrendBusy(false); }
   };
   const intent = useIntent(s => s.incident);
@@ -133,6 +208,10 @@ export function Incidents() {
     try {
       downloadBlob(await reportPdfBlob(id), `${id}.pdf`);
     } catch (e) { pdfFail(e); } finally { setBusy(''); }
+  };
+  const downloadDocx = async (id: string) => {
+    setBusy('docx'); setErr(null);
+    try { downloadBlob(await reportDocxBlob(id), `${id}.docx`); } catch (e) { setErr(e instanceof Error ? e.message : 'Render failed'); } finally { setBusy(''); }
   };
   const downloadDraftPdf = async () => {
     if (!draft) return;
@@ -155,8 +234,12 @@ export function Incidents() {
   const generate = async (f: typeof form = form) => {
     setBusy('draft'); setErr(null); setDone(null);
     try {
-      const body = { ...f, failure_at: f.failure_at.replace('T', ' '), downtime_h: f.downtime_h === '' ? null : Number(f.downtime_h), trend_days: trendDays, sim: simPayload() };
-      setDraft(await postJSON<Draft>('/api/incidents/draft', body));
+      // a different asset has other indicators: keep the range, let the server pick its default indicators
+      const keep = draft && draft.asset_id === f.asset_id ? trend : { ...trend, indicators: null };
+      const body = { ...f, failure_at: f.failure_at.replace('T', ' '), downtime_h: f.downtime_h === '' ? null : Number(f.downtime_h), trend: keep, sim: simPayload() };
+      const d = await postJSON<Draft>('/api/incidents/draft', body);
+      if (d.trend) setTrend(d.trend);
+      setDraft(d);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Draft failed'); } finally { setBusy(''); }
   };
   const editField = (no: number, value: string) => setDraft(d => d && ({ ...d, fields: d.fields.map(f => (f.field_no === no ? { ...f, value, source: 'user' } : f)) }));
@@ -245,7 +328,9 @@ export function Incidents() {
                 <div className="q-actions">
                   <button type="button" className="btn sm" onClick={() => openAsset(selected.asset_id)}><Icon name="plant" size={13} />Open {selected.asset_id}</button>
                   <button type="button" className="btn sm" disabled={busy === 'pdf'} onClick={() => downloadPdf(selected.report_id)}><Icon name="download" size={13} />{busy === 'pdf' ? 'Preparing…' : 'Download PDF'}</button>
+                  <button type="button" className="btn sm" disabled={busy === 'docx'} onClick={() => downloadDocx(selected.report_id)}><Icon name="download" size={13} />{busy === 'docx' ? 'Preparing…' : 'DOCX'}</button>
                 </div>
+                <ReportTrend reportId={selected.report_id} date={selected.date} />
               </div>
             </aside>
           )}
@@ -335,7 +420,8 @@ export function Incidents() {
                       <textarea className="ir-value" value={f.value ?? ''} rows={Math.min(6, Math.max(1, String(f.value ?? '').split('\n').length + Math.floor(String(f.value ?? '').length / 90)))}
                         onChange={e => editField(f.field_no, e.target.value)} aria-label={f.field} />
                       <div className="print-only ir-print-val">{f.value}</div>
-                      {f.field_no === 12 && <TrendCharts trends={draft.tables?.trends ?? []} days={draft.tables?.trends?.[0]?.window_days ?? trendDays} onDays={changeTrend} busy={trendBusy} />}
+                      {f.field_no === 12 && <TrendPanel trends={draft.tables?.trends ?? []} trend={draft.trend ?? trend} indicators={draft.trend_indicators ?? []}
+                        failureDate={draft.failure_at?.slice(0, 10)} onChange={changeTrend} busy={trendBusy} />}
                       {f.field_no === 35 && <PhotoPicker photos={photos} setPhotos={setPhotos} onError={setErr} />}
                     </div>
                   ))}

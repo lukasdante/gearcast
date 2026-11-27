@@ -1,0 +1,2475 @@
+{
+ "model": "medium.en",
+ "clips": {
+  "00": {
+   "text": "Six in the morning, pump P-101A trips. The standby, P-101B, skipped its rotation six weeks ago. It doesn't start. Ten hours later, three production lines are down, and the bill is 5.9 million pesos, all from one missed check.",
+   "words": [
+    {
+     "text": "Six",
+     "start": 0.0,
+     "end": 0.52,
+     "prob": 0.616
+    },
+    {
+     "text": "in",
+     "start": 0.52,
+     "end": 0.68,
+     "prob": 0.996
+    },
+    {
+     "text": "the",
+     "start": 0.68,
+     "end": 0.78,
+     "prob": 0.999
+    },
+    {
+     "text": "morning,",
+     "start": 0.78,
+     "end": 1.14,
+     "prob": 0.997
+    },
+    {
+     "text": "pump",
+     "start": 1.62,
+     "end": 1.78,
+     "prob": 0.544
+    },
+    {
+     "text": "P",
+     "start": 1.78,
+     "end": 2.14,
+     "prob": 0.957
+    },
+    {
+     "text": "-101A",
+     "start": 2.14,
+     "end": 2.82,
+     "prob": 0.739
+    },
+    {
+     "text": "trips.",
+     "start": 2.82,
+     "end": 3.26,
+     "prob": 0.985
+    },
+    {
+     "text": "The",
+     "start": 3.78,
+     "end": 3.9,
+     "prob": 0.993
+    },
+    {
+     "text": "standby,",
+     "start": 3.9,
+     "end": 4.3,
+     "prob": 0.935
+    },
+    {
+     "text": "P",
+     "start": 4.86,
+     "end": 5.0,
+     "prob": 0.997
+    },
+    {
+     "text": "-101B,",
+     "start": 5.0,
+     "end": 5.84,
+     "prob": 0.994
+    },
+    {
+     "text": "skipped",
+     "start": 6.34,
+     "end": 6.5,
+     "prob": 0.997
+    },
+    {
+     "text": "its",
+     "start": 6.5,
+     "end": 6.7,
+     "prob": 0.97
+    },
+    {
+     "text": "rotation",
+     "start": 6.7,
+     "end": 7.14,
+     "prob": 0.935
+    },
+    {
+     "text": "six",
+     "start": 7.14,
+     "end": 7.52,
+     "prob": 0.971
+    },
+    {
+     "text": "weeks",
+     "start": 7.52,
+     "end": 7.78,
+     "prob": 0.999
+    },
+    {
+     "text": "ago.",
+     "start": 7.78,
+     "end": 8.16,
+     "prob": 0.999
+    },
+    {
+     "text": "It",
+     "start": 8.7,
+     "end": 8.8,
+     "prob": 0.995
+    },
+    {
+     "text": "doesn't",
+     "start": 8.8,
+     "end": 9.04,
+     "prob": 0.999
+    },
+    {
+     "text": "start.",
+     "start": 9.04,
+     "end": 9.46,
+     "prob": 1.0
+    },
+    {
+     "text": "Ten",
+     "start": 10.02,
+     "end": 10.14,
+     "prob": 0.804
+    },
+    {
+     "text": "hours",
+     "start": 10.14,
+     "end": 10.42,
+     "prob": 0.998
+    },
+    {
+     "text": "later,",
+     "start": 10.42,
+     "end": 10.84,
+     "prob": 0.999
+    },
+    {
+     "text": "three",
+     "start": 11.28,
+     "end": 11.42,
+     "prob": 0.985
+    },
+    {
+     "text": "production",
+     "start": 11.42,
+     "end": 11.9,
+     "prob": 0.998
+    },
+    {
+     "text": "lines",
+     "start": 11.9,
+     "end": 12.18,
+     "prob": 1.0
+    },
+    {
+     "text": "are",
+     "start": 12.18,
+     "end": 12.32,
+     "prob": 0.999
+    },
+    {
+     "text": "down,",
+     "start": 12.32,
+     "end": 12.72,
+     "prob": 0.999
+    },
+    {
+     "text": "and",
+     "start": 12.9,
+     "end": 13.18,
+     "prob": 0.996
+    },
+    {
+     "text": "the",
+     "start": 13.18,
+     "end": 13.36,
+     "prob": 0.999
+    },
+    {
+     "text": "bill",
+     "start": 13.36,
+     "end": 13.56,
+     "prob": 0.998
+    },
+    {
+     "text": "is",
+     "start": 13.56,
+     "end": 13.8,
+     "prob": 0.999
+    },
+    {
+     "text": "5",
+     "start": 13.8,
+     "end": 14.2,
+     "prob": 0.871
+    },
+    {
+     "text": ".9",
+     "start": 14.2,
+     "end": 14.88,
+     "prob": 0.997
+    },
+    {
+     "text": "million",
+     "start": 14.88,
+     "end": 15.32,
+     "prob": 0.988
+    },
+    {
+     "text": "pesos,",
+     "start": 15.32,
+     "end": 16.0,
+     "prob": 0.987
+    },
+    {
+     "text": "all",
+     "start": 16.3,
+     "end": 16.7,
+     "prob": 0.998
+    },
+    {
+     "text": "from",
+     "start": 16.7,
+     "end": 17.0,
+     "prob": 0.999
+    },
+    {
+     "text": "one",
+     "start": 17.0,
+     "end": 17.38,
+     "prob": 0.994
+    },
+    {
+     "text": "missed",
+     "start": 17.38,
+     "end": 17.66,
+     "prob": 0.561
+    },
+    {
+     "text": "check.",
+     "start": 17.66,
+     "end": 18.02,
+     "prob": 0.976
+    }
+   ]
+  },
+  "01": {
+   "text": "That's the GAP GearCast Patches, one platform for the people who keep a plant's wastewater line alive, the supervisor, the engineer, and the technicians on the floor.",
+   "words": [
+    {
+     "text": "That's",
+     "start": 0.0,
+     "end": 0.5,
+     "prob": 0.976
+    },
+    {
+     "text": "the",
+     "start": 0.5,
+     "end": 0.6,
+     "prob": 0.977
+    },
+    {
+     "text": "GAP",
+     "start": 0.6,
+     "end": 0.86,
+     "prob": 0.763
+    },
+    {
+     "text": "GearCast",
+     "start": 0.86,
+     "end": 1.44,
+     "prob": 0.672
+    },
+    {
+     "text": "Patches,",
+     "start": 1.44,
+     "end": 2.02,
+     "prob": 0.801
+    },
+    {
+     "text": "one",
+     "start": 2.62,
+     "end": 2.78,
+     "prob": 0.992
+    },
+    {
+     "text": "platform",
+     "start": 2.78,
+     "end": 3.28,
+     "prob": 0.998
+    },
+    {
+     "text": "for",
+     "start": 3.28,
+     "end": 3.58,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 3.58,
+     "end": 3.7,
+     "prob": 0.986
+    },
+    {
+     "text": "people",
+     "start": 3.7,
+     "end": 3.9,
+     "prob": 1.0
+    },
+    {
+     "text": "who",
+     "start": 3.9,
+     "end": 4.08,
+     "prob": 0.998
+    },
+    {
+     "text": "keep",
+     "start": 4.08,
+     "end": 4.26,
+     "prob": 0.998
+    },
+    {
+     "text": "a",
+     "start": 4.26,
+     "end": 4.46,
+     "prob": 0.996
+    },
+    {
+     "text": "plant's",
+     "start": 4.46,
+     "end": 4.84,
+     "prob": 0.977
+    },
+    {
+     "text": "wastewater",
+     "start": 4.84,
+     "end": 5.2,
+     "prob": 0.948
+    },
+    {
+     "text": "line",
+     "start": 5.2,
+     "end": 5.54,
+     "prob": 0.994
+    },
+    {
+     "text": "alive,",
+     "start": 5.54,
+     "end": 5.96,
+     "prob": 0.997
+    },
+    {
+     "text": "the",
+     "start": 6.48,
+     "end": 6.6,
+     "prob": 0.993
+    },
+    {
+     "text": "supervisor,",
+     "start": 6.6,
+     "end": 7.12,
+     "prob": 0.973
+    },
+    {
+     "text": "the",
+     "start": 7.5,
+     "end": 7.6,
+     "prob": 0.998
+    },
+    {
+     "text": "engineer,",
+     "start": 7.6,
+     "end": 8.08,
+     "prob": 0.998
+    },
+    {
+     "text": "and",
+     "start": 8.54,
+     "end": 8.66,
+     "prob": 0.997
+    },
+    {
+     "text": "the",
+     "start": 8.66,
+     "end": 8.78,
+     "prob": 0.985
+    },
+    {
+     "text": "technicians",
+     "start": 8.78,
+     "end": 9.22,
+     "prob": 0.999
+    },
+    {
+     "text": "on",
+     "start": 9.22,
+     "end": 9.52,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 9.52,
+     "end": 9.62,
+     "prob": 0.999
+    },
+    {
+     "text": "floor.",
+     "start": 9.62,
+     "end": 9.9,
+     "prob": 1.0
+    }
+   ]
+  },
+  "02": {
+   "text": "Lemuel, the plant supervisor, starts the day on the dashboard. Every asset, every PM, every spare in one view, and one pump already flagged, P101A.",
+   "words": [
+    {
+     "text": "Lemuel,",
+     "start": 0.0,
+     "end": 0.6,
+     "prob": 0.944
+    },
+    {
+     "text": "the",
+     "start": 0.9,
+     "end": 1.02,
+     "prob": 0.977
+    },
+    {
+     "text": "plant",
+     "start": 1.02,
+     "end": 1.26,
+     "prob": 0.897
+    },
+    {
+     "text": "supervisor,",
+     "start": 1.26,
+     "end": 1.82,
+     "prob": 0.991
+    },
+    {
+     "text": "starts",
+     "start": 2.2,
+     "end": 2.52,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 2.52,
+     "end": 2.7,
+     "prob": 0.998
+    },
+    {
+     "text": "day",
+     "start": 2.7,
+     "end": 2.84,
+     "prob": 1.0
+    },
+    {
+     "text": "on",
+     "start": 2.84,
+     "end": 2.98,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 2.98,
+     "end": 3.12,
+     "prob": 0.996
+    },
+    {
+     "text": "dashboard.",
+     "start": 3.12,
+     "end": 3.52,
+     "prob": 0.989
+    },
+    {
+     "text": "Every",
+     "start": 4.28,
+     "end": 4.52,
+     "prob": 0.992
+    },
+    {
+     "text": "asset,",
+     "start": 4.52,
+     "end": 5.0,
+     "prob": 0.98
+    },
+    {
+     "text": "every",
+     "start": 5.48,
+     "end": 5.66,
+     "prob": 0.989
+    },
+    {
+     "text": "PM,",
+     "start": 5.66,
+     "end": 6.04,
+     "prob": 0.871
+    },
+    {
+     "text": "every",
+     "start": 6.62,
+     "end": 6.8,
+     "prob": 0.991
+    },
+    {
+     "text": "spare",
+     "start": 6.8,
+     "end": 7.2,
+     "prob": 0.97
+    },
+    {
+     "text": "in",
+     "start": 7.2,
+     "end": 7.44,
+     "prob": 0.965
+    },
+    {
+     "text": "one",
+     "start": 7.44,
+     "end": 7.76,
+     "prob": 0.988
+    },
+    {
+     "text": "view,",
+     "start": 7.76,
+     "end": 8.12,
+     "prob": 0.997
+    },
+    {
+     "text": "and",
+     "start": 8.5,
+     "end": 8.68,
+     "prob": 0.992
+    },
+    {
+     "text": "one",
+     "start": 8.68,
+     "end": 8.96,
+     "prob": 0.994
+    },
+    {
+     "text": "pump",
+     "start": 8.96,
+     "end": 9.28,
+     "prob": 0.999
+    },
+    {
+     "text": "already",
+     "start": 9.28,
+     "end": 9.64,
+     "prob": 0.998
+    },
+    {
+     "text": "flagged,",
+     "start": 9.64,
+     "end": 10.14,
+     "prob": 0.999
+    },
+    {
+     "text": "P101A.",
+     "start": 10.66,
+     "end": 11.86,
+     "prob": 0.916
+    }
+   ]
+  },
+  "03": {
+   "text": "On rounds, Technician Mia scans its QR tag, status, work orders, readings, past failures, the pump's whole history in one scan, and vibration is climbing.",
+   "words": [
+    {
+     "text": "On",
+     "start": 0.0,
+     "end": 0.3,
+     "prob": 0.949
+    },
+    {
+     "text": "rounds,",
+     "start": 0.3,
+     "end": 0.76,
+     "prob": 0.895
+    },
+    {
+     "text": "Technician",
+     "start": 1.08,
+     "end": 1.42,
+     "prob": 0.586
+    },
+    {
+     "text": "Mia",
+     "start": 1.42,
+     "end": 1.72,
+     "prob": 0.863
+    },
+    {
+     "text": "scans",
+     "start": 1.72,
+     "end": 2.2,
+     "prob": 0.997
+    },
+    {
+     "text": "its",
+     "start": 2.2,
+     "end": 2.38,
+     "prob": 0.951
+    },
+    {
+     "text": "QR",
+     "start": 2.38,
+     "end": 2.7,
+     "prob": 0.992
+    },
+    {
+     "text": "tag,",
+     "start": 2.7,
+     "end": 3.16,
+     "prob": 0.949
+    },
+    {
+     "text": "status,",
+     "start": 3.78,
+     "end": 4.2,
+     "prob": 0.975
+    },
+    {
+     "text": "work",
+     "start": 4.68,
+     "end": 4.84,
+     "prob": 0.997
+    },
+    {
+     "text": "orders,",
+     "start": 4.84,
+     "end": 5.26,
+     "prob": 0.993
+    },
+    {
+     "text": "readings,",
+     "start": 5.8,
+     "end": 6.1,
+     "prob": 0.996
+    },
+    {
+     "text": "past",
+     "start": 6.72,
+     "end": 6.92,
+     "prob": 0.99
+    },
+    {
+     "text": "failures,",
+     "start": 6.92,
+     "end": 7.46,
+     "prob": 0.997
+    },
+    {
+     "text": "the",
+     "start": 8.12,
+     "end": 8.2,
+     "prob": 0.974
+    },
+    {
+     "text": "pump's",
+     "start": 8.2,
+     "end": 8.64,
+     "prob": 0.95
+    },
+    {
+     "text": "whole",
+     "start": 8.64,
+     "end": 8.84,
+     "prob": 0.994
+    },
+    {
+     "text": "history",
+     "start": 8.84,
+     "end": 9.32,
+     "prob": 1.0
+    },
+    {
+     "text": "in",
+     "start": 9.32,
+     "end": 9.58,
+     "prob": 0.993
+    },
+    {
+     "text": "one",
+     "start": 9.58,
+     "end": 9.86,
+     "prob": 0.992
+    },
+    {
+     "text": "scan,",
+     "start": 9.86,
+     "end": 10.38,
+     "prob": 0.999
+    },
+    {
+     "text": "and",
+     "start": 10.94,
+     "end": 11.02,
+     "prob": 0.998
+    },
+    {
+     "text": "vibration",
+     "start": 11.02,
+     "end": 11.48,
+     "prob": 0.989
+    },
+    {
+     "text": "is",
+     "start": 11.48,
+     "end": 11.66,
+     "prob": 0.998
+    },
+    {
+     "text": "climbing.",
+     "start": 11.66,
+     "end": 12.02,
+     "prob": 0.998
+    }
+   ]
+  },
+  "04": {
+   "text": "June, the engineer, opens the 3D plant overview and asks, what if it fails? The pump turns red, the process line shows exactly which stage goes critical, and GearCast puts a price on the shutdown before it ever happens.",
+   "words": [
+    {
+     "text": "June,",
+     "start": 0.0,
+     "end": 0.54,
+     "prob": 0.785
+    },
+    {
+     "text": "the",
+     "start": 0.82,
+     "end": 0.96,
+     "prob": 0.991
+    },
+    {
+     "text": "engineer,",
+     "start": 0.96,
+     "end": 1.36,
+     "prob": 0.956
+    },
+    {
+     "text": "opens",
+     "start": 1.9,
+     "end": 2.2,
+     "prob": 0.996
+    },
+    {
+     "text": "the",
+     "start": 2.2,
+     "end": 2.42,
+     "prob": 0.992
+    },
+    {
+     "text": "3D",
+     "start": 2.42,
+     "end": 2.84,
+     "prob": 0.953
+    },
+    {
+     "text": "plant",
+     "start": 2.84,
+     "end": 3.06,
+     "prob": 0.644
+    },
+    {
+     "text": "overview",
+     "start": 3.06,
+     "end": 3.52,
+     "prob": 0.996
+    },
+    {
+     "text": "and",
+     "start": 3.52,
+     "end": 3.76,
+     "prob": 0.978
+    },
+    {
+     "text": "asks,",
+     "start": 3.76,
+     "end": 4.12,
+     "prob": 0.998
+    },
+    {
+     "text": "what",
+     "start": 4.82,
+     "end": 4.98,
+     "prob": 0.124
+    },
+    {
+     "text": "if",
+     "start": 4.98,
+     "end": 5.1,
+     "prob": 0.996
+    },
+    {
+     "text": "it",
+     "start": 5.1,
+     "end": 5.22,
+     "prob": 0.997
+    },
+    {
+     "text": "fails?",
+     "start": 5.22,
+     "end": 5.68,
+     "prob": 0.998
+    },
+    {
+     "text": "The",
+     "start": 6.42,
+     "end": 6.52,
+     "prob": 0.986
+    },
+    {
+     "text": "pump",
+     "start": 6.52,
+     "end": 6.74,
+     "prob": 0.997
+    },
+    {
+     "text": "turns",
+     "start": 6.74,
+     "end": 7.06,
+     "prob": 0.998
+    },
+    {
+     "text": "red,",
+     "start": 7.06,
+     "end": 7.44,
+     "prob": 0.997
+    },
+    {
+     "text": "the",
+     "start": 7.76,
+     "end": 7.88,
+     "prob": 0.996
+    },
+    {
+     "text": "process",
+     "start": 7.88,
+     "end": 8.2,
+     "prob": 0.994
+    },
+    {
+     "text": "line",
+     "start": 8.2,
+     "end": 8.52,
+     "prob": 0.988
+    },
+    {
+     "text": "shows",
+     "start": 8.52,
+     "end": 8.8,
+     "prob": 0.995
+    },
+    {
+     "text": "exactly",
+     "start": 8.8,
+     "end": 9.42,
+     "prob": 0.993
+    },
+    {
+     "text": "which",
+     "start": 9.42,
+     "end": 9.66,
+     "prob": 0.995
+    },
+    {
+     "text": "stage",
+     "start": 9.66,
+     "end": 9.98,
+     "prob": 0.998
+    },
+    {
+     "text": "goes",
+     "start": 9.98,
+     "end": 10.26,
+     "prob": 0.997
+    },
+    {
+     "text": "critical,",
+     "start": 10.26,
+     "end": 10.7,
+     "prob": 0.999
+    },
+    {
+     "text": "and",
+     "start": 11.34,
+     "end": 11.34,
+     "prob": 0.998
+    },
+    {
+     "text": "GearCast",
+     "start": 11.34,
+     "end": 11.78,
+     "prob": 0.722
+    },
+    {
+     "text": "puts",
+     "start": 11.78,
+     "end": 12.04,
+     "prob": 0.996
+    },
+    {
+     "text": "a",
+     "start": 12.04,
+     "end": 12.18,
+     "prob": 0.997
+    },
+    {
+     "text": "price",
+     "start": 12.18,
+     "end": 12.46,
+     "prob": 1.0
+    },
+    {
+     "text": "on",
+     "start": 12.46,
+     "end": 12.66,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 12.66,
+     "end": 12.78,
+     "prob": 0.998
+    },
+    {
+     "text": "shutdown",
+     "start": 12.78,
+     "end": 13.12,
+     "prob": 0.883
+    },
+    {
+     "text": "before",
+     "start": 13.12,
+     "end": 13.6,
+     "prob": 0.99
+    },
+    {
+     "text": "it",
+     "start": 13.6,
+     "end": 13.76,
+     "prob": 0.999
+    },
+    {
+     "text": "ever",
+     "start": 13.76,
+     "end": 13.9,
+     "prob": 0.993
+    },
+    {
+     "text": "happens.",
+     "start": 13.9,
+     "end": 14.38,
+     "prob": 0.998
+    }
+   ]
+  },
+  "05": {
+   "text": "Back on the floor, Mia asks Caster, the GearCast assistant. Caster calls the plant's own tools, asset data, troubleshooting, spare stock. It answers with steps from the plant's manuals, the parts needed, and where they're stored.",
+   "words": [
+    {
+     "text": "Back",
+     "start": 0.0,
+     "end": 0.32,
+     "prob": 0.986
+    },
+    {
+     "text": "on",
+     "start": 0.32,
+     "end": 0.48,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 0.48,
+     "end": 0.62,
+     "prob": 0.999
+    },
+    {
+     "text": "floor,",
+     "start": 0.62,
+     "end": 1.0,
+     "prob": 0.999
+    },
+    {
+     "text": "Mia",
+     "start": 1.38,
+     "end": 1.5,
+     "prob": 0.966
+    },
+    {
+     "text": "asks",
+     "start": 1.5,
+     "end": 1.94,
+     "prob": 0.993
+    },
+    {
+     "text": "Caster,",
+     "start": 1.94,
+     "end": 2.44,
+     "prob": 0.796
+    },
+    {
+     "text": "the",
+     "start": 2.8,
+     "end": 2.9,
+     "prob": 0.997
+    },
+    {
+     "text": "GearCast",
+     "start": 2.9,
+     "end": 3.3,
+     "prob": 0.656
+    },
+    {
+     "text": "assistant.",
+     "start": 3.3,
+     "end": 3.74,
+     "prob": 0.667
+    },
+    {
+     "text": "Caster",
+     "start": 4.5,
+     "end": 4.78,
+     "prob": 0.998
+    },
+    {
+     "text": "calls",
+     "start": 4.78,
+     "end": 5.02,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 5.02,
+     "end": 5.22,
+     "prob": 0.996
+    },
+    {
+     "text": "plant's",
+     "start": 5.22,
+     "end": 5.54,
+     "prob": 0.841
+    },
+    {
+     "text": "own",
+     "start": 5.54,
+     "end": 5.72,
+     "prob": 0.997
+    },
+    {
+     "text": "tools,",
+     "start": 5.72,
+     "end": 6.2,
+     "prob": 0.998
+    },
+    {
+     "text": "asset",
+     "start": 6.6,
+     "end": 6.84,
+     "prob": 0.976
+    },
+    {
+     "text": "data,",
+     "start": 6.84,
+     "end": 7.24,
+     "prob": 0.996
+    },
+    {
+     "text": "troubleshooting,",
+     "start": 7.8,
+     "end": 8.38,
+     "prob": 0.986
+    },
+    {
+     "text": "spare",
+     "start": 8.88,
+     "end": 9.02,
+     "prob": 0.946
+    },
+    {
+     "text": "stock.",
+     "start": 9.02,
+     "end": 9.48,
+     "prob": 0.996
+    },
+    {
+     "text": "It",
+     "start": 10.02,
+     "end": 10.2,
+     "prob": 0.997
+    },
+    {
+     "text": "answers",
+     "start": 10.2,
+     "end": 10.46,
+     "prob": 0.998
+    },
+    {
+     "text": "with",
+     "start": 10.46,
+     "end": 10.68,
+     "prob": 0.997
+    },
+    {
+     "text": "steps",
+     "start": 10.68,
+     "end": 11.02,
+     "prob": 0.996
+    },
+    {
+     "text": "from",
+     "start": 11.02,
+     "end": 11.26,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 11.26,
+     "end": 11.4,
+     "prob": 0.997
+    },
+    {
+     "text": "plant's",
+     "start": 11.4,
+     "end": 11.74,
+     "prob": 0.975
+    },
+    {
+     "text": "manuals,",
+     "start": 11.74,
+     "end": 12.08,
+     "prob": 0.99
+    },
+    {
+     "text": "the",
+     "start": 12.58,
+     "end": 12.68,
+     "prob": 0.989
+    },
+    {
+     "text": "parts",
+     "start": 12.68,
+     "end": 12.9,
+     "prob": 0.998
+    },
+    {
+     "text": "needed,",
+     "start": 12.9,
+     "end": 13.22,
+     "prob": 0.998
+    },
+    {
+     "text": "and",
+     "start": 13.56,
+     "end": 13.72,
+     "prob": 0.999
+    },
+    {
+     "text": "where",
+     "start": 13.72,
+     "end": 13.84,
+     "prob": 0.999
+    },
+    {
+     "text": "they're",
+     "start": 13.84,
+     "end": 14.04,
+     "prob": 0.972
+    },
+    {
+     "text": "stored.",
+     "start": 14.04,
+     "end": 14.34,
+     "prob": 0.999
+    }
+   ]
+  },
+  "06": {
+   "text": "Grease is an accessory, so Mia deploys it on the spot. The bearing kit is a major spare. That goes to Lemuel, approved in one tap.",
+   "words": [
+    {
+     "text": "Grease",
+     "start": 0.0,
+     "end": 0.56,
+     "prob": 0.939
+    },
+    {
+     "text": "is",
+     "start": 0.56,
+     "end": 0.72,
+     "prob": 0.997
+    },
+    {
+     "text": "an",
+     "start": 0.72,
+     "end": 0.84,
+     "prob": 0.996
+    },
+    {
+     "text": "accessory,",
+     "start": 0.84,
+     "end": 1.38,
+     "prob": 0.999
+    },
+    {
+     "text": "so",
+     "start": 1.8,
+     "end": 1.88,
+     "prob": 0.997
+    },
+    {
+     "text": "Mia",
+     "start": 1.88,
+     "end": 2.1,
+     "prob": 0.491
+    },
+    {
+     "text": "deploys",
+     "start": 2.1,
+     "end": 2.58,
+     "prob": 0.998
+    },
+    {
+     "text": "it",
+     "start": 2.58,
+     "end": 2.66,
+     "prob": 0.998
+    },
+    {
+     "text": "on",
+     "start": 2.66,
+     "end": 2.78,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 2.78,
+     "end": 2.88,
+     "prob": 0.989
+    },
+    {
+     "text": "spot.",
+     "start": 2.88,
+     "end": 3.24,
+     "prob": 0.999
+    },
+    {
+     "text": "The",
+     "start": 3.9,
+     "end": 3.98,
+     "prob": 0.995
+    },
+    {
+     "text": "bearing",
+     "start": 3.98,
+     "end": 4.18,
+     "prob": 0.898
+    },
+    {
+     "text": "kit",
+     "start": 4.18,
+     "end": 4.48,
+     "prob": 0.998
+    },
+    {
+     "text": "is",
+     "start": 4.48,
+     "end": 4.62,
+     "prob": 0.999
+    },
+    {
+     "text": "a",
+     "start": 4.62,
+     "end": 4.74,
+     "prob": 0.997
+    },
+    {
+     "text": "major",
+     "start": 4.74,
+     "end": 5.1,
+     "prob": 0.996
+    },
+    {
+     "text": "spare.",
+     "start": 5.1,
+     "end": 5.58,
+     "prob": 0.984
+    },
+    {
+     "text": "That",
+     "start": 6.04,
+     "end": 6.16,
+     "prob": 0.995
+    },
+    {
+     "text": "goes",
+     "start": 6.16,
+     "end": 6.36,
+     "prob": 0.999
+    },
+    {
+     "text": "to",
+     "start": 6.36,
+     "end": 6.58,
+     "prob": 0.984
+    },
+    {
+     "text": "Lemuel,",
+     "start": 6.58,
+     "end": 6.96,
+     "prob": 0.983
+    },
+    {
+     "text": "approved",
+     "start": 7.22,
+     "end": 7.52,
+     "prob": 0.995
+    },
+    {
+     "text": "in",
+     "start": 7.52,
+     "end": 7.72,
+     "prob": 0.999
+    },
+    {
+     "text": "one",
+     "start": 7.72,
+     "end": 7.98,
+     "prob": 0.964
+    },
+    {
+     "text": "tap.",
+     "start": 7.98,
+     "end": 8.34,
+     "prob": 0.989
+    }
+   ]
+  },
+  "07": {
+   "text": "Mia snaps a photo and tells Caster to write it up. Seconds later, an incident report on the plant's own form. The photo sits beside the summary, with a trend of every reading before the fault, from one week to one year, and the failure date marked.",
+   "words": [
+    {
+     "text": "Mia",
+     "start": 0.0,
+     "end": 0.38,
+     "prob": 0.965
+    },
+    {
+     "text": "snaps",
+     "start": 0.38,
+     "end": 0.72,
+     "prob": 0.998
+    },
+    {
+     "text": "a",
+     "start": 0.72,
+     "end": 0.92,
+     "prob": 0.997
+    },
+    {
+     "text": "photo",
+     "start": 0.92,
+     "end": 1.18,
+     "prob": 0.999
+    },
+    {
+     "text": "and",
+     "start": 1.18,
+     "end": 1.48,
+     "prob": 0.98
+    },
+    {
+     "text": "tells",
+     "start": 1.48,
+     "end": 1.72,
+     "prob": 0.999
+    },
+    {
+     "text": "Caster",
+     "start": 1.72,
+     "end": 2.08,
+     "prob": 0.718
+    },
+    {
+     "text": "to",
+     "start": 2.08,
+     "end": 2.28,
+     "prob": 0.998
+    },
+    {
+     "text": "write",
+     "start": 2.28,
+     "end": 2.46,
+     "prob": 0.993
+    },
+    {
+     "text": "it",
+     "start": 2.46,
+     "end": 2.58,
+     "prob": 0.999
+    },
+    {
+     "text": "up.",
+     "start": 2.58,
+     "end": 2.94,
+     "prob": 0.999
+    },
+    {
+     "text": "Seconds",
+     "start": 3.46,
+     "end": 3.68,
+     "prob": 0.982
+    },
+    {
+     "text": "later,",
+     "start": 3.68,
+     "end": 4.12,
+     "prob": 0.999
+    },
+    {
+     "text": "an",
+     "start": 4.4,
+     "end": 4.5,
+     "prob": 0.992
+    },
+    {
+     "text": "incident",
+     "start": 4.5,
+     "end": 4.88,
+     "prob": 0.993
+    },
+    {
+     "text": "report",
+     "start": 4.88,
+     "end": 5.28,
+     "prob": 0.997
+    },
+    {
+     "text": "on",
+     "start": 5.28,
+     "end": 5.46,
+     "prob": 0.997
+    },
+    {
+     "text": "the",
+     "start": 5.46,
+     "end": 5.6,
+     "prob": 0.998
+    },
+    {
+     "text": "plant's",
+     "start": 5.6,
+     "end": 5.96,
+     "prob": 0.975
+    },
+    {
+     "text": "own",
+     "start": 5.96,
+     "end": 6.14,
+     "prob": 0.999
+    },
+    {
+     "text": "form.",
+     "start": 6.14,
+     "end": 6.6,
+     "prob": 0.995
+    },
+    {
+     "text": "The",
+     "start": 7.3,
+     "end": 7.38,
+     "prob": 0.996
+    },
+    {
+     "text": "photo",
+     "start": 7.38,
+     "end": 7.58,
+     "prob": 0.985
+    },
+    {
+     "text": "sits",
+     "start": 7.58,
+     "end": 7.88,
+     "prob": 0.998
+    },
+    {
+     "text": "beside",
+     "start": 7.88,
+     "end": 8.22,
+     "prob": 0.995
+    },
+    {
+     "text": "the",
+     "start": 8.22,
+     "end": 8.42,
+     "prob": 0.998
+    },
+    {
+     "text": "summary,",
+     "start": 8.42,
+     "end": 8.76,
+     "prob": 0.997
+    },
+    {
+     "text": "with",
+     "start": 9.04,
+     "end": 9.18,
+     "prob": 0.998
+    },
+    {
+     "text": "a",
+     "start": 9.18,
+     "end": 9.34,
+     "prob": 0.787
+    },
+    {
+     "text": "trend",
+     "start": 9.34,
+     "end": 9.62,
+     "prob": 0.998
+    },
+    {
+     "text": "of",
+     "start": 9.62,
+     "end": 9.82,
+     "prob": 0.997
+    },
+    {
+     "text": "every",
+     "start": 9.82,
+     "end": 10.22,
+     "prob": 0.991
+    },
+    {
+     "text": "reading",
+     "start": 10.22,
+     "end": 10.62,
+     "prob": 1.0
+    },
+    {
+     "text": "before",
+     "start": 10.62,
+     "end": 10.9,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 10.9,
+     "end": 11.08,
+     "prob": 0.999
+    },
+    {
+     "text": "fault,",
+     "start": 11.08,
+     "end": 11.44,
+     "prob": 0.957
+    },
+    {
+     "text": "from",
+     "start": 11.68,
+     "end": 11.86,
+     "prob": 0.998
+    },
+    {
+     "text": "one",
+     "start": 11.86,
+     "end": 12.12,
+     "prob": 0.939
+    },
+    {
+     "text": "week",
+     "start": 12.12,
+     "end": 12.36,
+     "prob": 0.998
+    },
+    {
+     "text": "to",
+     "start": 12.36,
+     "end": 12.62,
+     "prob": 0.987
+    },
+    {
+     "text": "one",
+     "start": 12.62,
+     "end": 12.84,
+     "prob": 0.994
+    },
+    {
+     "text": "year,",
+     "start": 12.84,
+     "end": 13.18,
+     "prob": 0.999
+    },
+    {
+     "text": "and",
+     "start": 13.4,
+     "end": 13.72,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 13.72,
+     "end": 13.86,
+     "prob": 0.989
+    },
+    {
+     "text": "failure",
+     "start": 13.86,
+     "end": 14.12,
+     "prob": 0.996
+    },
+    {
+     "text": "date",
+     "start": 14.12,
+     "end": 14.38,
+     "prob": 0.999
+    },
+    {
+     "text": "marked.",
+     "start": 14.38,
+     "end": 14.7,
+     "prob": 0.998
+    }
+   ]
+  },
+  "08": {
+   "text": "Repair or replace. GearCast's XG Boost model weighs the pump's age, its failures, and the costs. And if it's replace, it names the brand, the supplier, and the lead time.",
+   "words": [
+    {
+     "text": "Repair",
+     "start": 0.0,
+     "end": 0.58,
+     "prob": 0.945
+    },
+    {
+     "text": "or",
+     "start": 0.58,
+     "end": 0.96,
+     "prob": 0.985
+    },
+    {
+     "text": "replace.",
+     "start": 0.96,
+     "end": 1.46,
+     "prob": 0.672
+    },
+    {
+     "text": "GearCast's",
+     "start": 2.2,
+     "end": 2.86,
+     "prob": 0.768
+    },
+    {
+     "text": "XG",
+     "start": 2.86,
+     "end": 3.26,
+     "prob": 0.822
+    },
+    {
+     "text": "Boost",
+     "start": 3.26,
+     "end": 3.44,
+     "prob": 0.801
+    },
+    {
+     "text": "model",
+     "start": 3.44,
+     "end": 3.84,
+     "prob": 0.851
+    },
+    {
+     "text": "weighs",
+     "start": 3.84,
+     "end": 4.14,
+     "prob": 0.961
+    },
+    {
+     "text": "the",
+     "start": 4.14,
+     "end": 4.4,
+     "prob": 0.997
+    },
+    {
+     "text": "pump's",
+     "start": 4.4,
+     "end": 4.76,
+     "prob": 0.958
+    },
+    {
+     "text": "age,",
+     "start": 4.76,
+     "end": 5.12,
+     "prob": 0.997
+    },
+    {
+     "text": "its",
+     "start": 5.52,
+     "end": 5.58,
+     "prob": 0.932
+    },
+    {
+     "text": "failures,",
+     "start": 5.58,
+     "end": 6.02,
+     "prob": 0.991
+    },
+    {
+     "text": "and",
+     "start": 6.44,
+     "end": 6.54,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 6.54,
+     "end": 6.66,
+     "prob": 0.977
+    },
+    {
+     "text": "costs.",
+     "start": 6.66,
+     "end": 7.08,
+     "prob": 0.962
+    },
+    {
+     "text": "And",
+     "start": 7.66,
+     "end": 7.72,
+     "prob": 0.944
+    },
+    {
+     "text": "if",
+     "start": 7.72,
+     "end": 7.82,
+     "prob": 0.98
+    },
+    {
+     "text": "it's",
+     "start": 7.82,
+     "end": 8.0,
+     "prob": 0.951
+    },
+    {
+     "text": "replace,",
+     "start": 8.0,
+     "end": 8.36,
+     "prob": 0.898
+    },
+    {
+     "text": "it",
+     "start": 8.84,
+     "end": 8.88,
+     "prob": 0.996
+    },
+    {
+     "text": "names",
+     "start": 8.88,
+     "end": 9.1,
+     "prob": 0.994
+    },
+    {
+     "text": "the",
+     "start": 9.1,
+     "end": 9.3,
+     "prob": 0.998
+    },
+    {
+     "text": "brand,",
+     "start": 9.3,
+     "end": 9.7,
+     "prob": 0.995
+    },
+    {
+     "text": "the",
+     "start": 10.02,
+     "end": 10.06,
+     "prob": 0.989
+    },
+    {
+     "text": "supplier,",
+     "start": 10.06,
+     "end": 10.5,
+     "prob": 1.0
+    },
+    {
+     "text": "and",
+     "start": 10.86,
+     "end": 10.98,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 10.98,
+     "end": 11.12,
+     "prob": 0.997
+    },
+    {
+     "text": "lead",
+     "start": 11.12,
+     "end": 11.26,
+     "prob": 1.0
+    },
+    {
+     "text": "time.",
+     "start": 11.26,
+     "end": 11.58,
+     "prob": 0.992
+    }
+   ]
+  },
+  "09": {
+   "text": "Need the procedure? JIN searches the knowledge base and opens the exact manual page the answer came from.",
+   "words": [
+    {
+     "text": "Need",
+     "start": 0.0,
+     "end": 0.26,
+     "prob": 0.941
+    },
+    {
+     "text": "the",
+     "start": 0.26,
+     "end": 0.4,
+     "prob": 0.998
+    },
+    {
+     "text": "procedure?",
+     "start": 0.4,
+     "end": 0.78,
+     "prob": 0.994
+    },
+    {
+     "text": "JIN",
+     "start": 1.78,
+     "end": 1.98,
+     "prob": 0.339
+    },
+    {
+     "text": "searches",
+     "start": 1.98,
+     "end": 2.28,
+     "prob": 0.996
+    },
+    {
+     "text": "the",
+     "start": 2.28,
+     "end": 2.52,
+     "prob": 0.998
+    },
+    {
+     "text": "knowledge",
+     "start": 2.52,
+     "end": 2.78,
+     "prob": 0.877
+    },
+    {
+     "text": "base",
+     "start": 2.78,
+     "end": 3.12,
+     "prob": 0.982
+    },
+    {
+     "text": "and",
+     "start": 3.12,
+     "end": 3.32,
+     "prob": 0.963
+    },
+    {
+     "text": "opens",
+     "start": 3.32,
+     "end": 3.62,
+     "prob": 0.997
+    },
+    {
+     "text": "the",
+     "start": 3.62,
+     "end": 3.84,
+     "prob": 0.998
+    },
+    {
+     "text": "exact",
+     "start": 3.84,
+     "end": 4.3,
+     "prob": 0.996
+    },
+    {
+     "text": "manual",
+     "start": 4.3,
+     "end": 4.72,
+     "prob": 0.997
+    },
+    {
+     "text": "page",
+     "start": 4.72,
+     "end": 5.08,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 5.08,
+     "end": 5.3,
+     "prob": 0.994
+    },
+    {
+     "text": "answer",
+     "start": 5.3,
+     "end": 5.54,
+     "prob": 0.999
+    },
+    {
+     "text": "came",
+     "start": 5.54,
+     "end": 5.76,
+     "prob": 0.999
+    },
+    {
+     "text": "from.",
+     "start": 5.76,
+     "end": 6.12,
+     "prob": 0.999
+    }
+   ]
+  },
+  "10": {
+   "text": "June updates the pump area layout. Engineers propose, supervisors approve, and Lemuel signs it off.",
+   "words": [
+    {
+     "text": "June",
+     "start": 0.0,
+     "end": 0.44,
+     "prob": 0.909
+    },
+    {
+     "text": "updates",
+     "start": 0.44,
+     "end": 0.88,
+     "prob": 0.996
+    },
+    {
+     "text": "the",
+     "start": 0.88,
+     "end": 1.12,
+     "prob": 0.997
+    },
+    {
+     "text": "pump",
+     "start": 1.12,
+     "end": 1.28,
+     "prob": 0.923
+    },
+    {
+     "text": "area",
+     "start": 1.28,
+     "end": 1.56,
+     "prob": 0.975
+    },
+    {
+     "text": "layout.",
+     "start": 1.56,
+     "end": 2.02,
+     "prob": 0.998
+    },
+    {
+     "text": "Engineers",
+     "start": 2.38,
+     "end": 2.72,
+     "prob": 0.979
+    },
+    {
+     "text": "propose,",
+     "start": 2.72,
+     "end": 3.26,
+     "prob": 0.966
+    },
+    {
+     "text": "supervisors",
+     "start": 3.78,
+     "end": 4.2,
+     "prob": 0.856
+    },
+    {
+     "text": "approve,",
+     "start": 4.2,
+     "end": 4.7,
+     "prob": 0.99
+    },
+    {
+     "text": "and",
+     "start": 5.26,
+     "end": 5.26,
+     "prob": 0.999
+    },
+    {
+     "text": "Lemuel",
+     "start": 5.26,
+     "end": 5.56,
+     "prob": 0.973
+    },
+    {
+     "text": "signs",
+     "start": 5.56,
+     "end": 5.88,
+     "prob": 0.985
+    },
+    {
+     "text": "it",
+     "start": 5.88,
+     "end": 6.02,
+     "prob": 0.994
+    },
+    {
+     "text": "off.",
+     "start": 6.02,
+     "end": 6.28,
+     "prob": 1.0
+    }
+   ]
+  },
+  "11": {
+   "text": "The follow-up PM goes to Ken. On a tablet, Ken works the checklist, logs the readings, adds photos and files. June approves and the maintenance record updates itself.",
+   "words": [
+    {
+     "text": "The",
+     "start": 0.0,
+     "end": 0.24,
+     "prob": 0.886
+    },
+    {
+     "text": "follow",
+     "start": 0.24,
+     "end": 0.5,
+     "prob": 0.982
+    },
+    {
+     "text": "-up",
+     "start": 0.5,
+     "end": 0.72,
+     "prob": 0.8
+    },
+    {
+     "text": "PM",
+     "start": 0.72,
+     "end": 0.98,
+     "prob": 0.581
+    },
+    {
+     "text": "goes",
+     "start": 0.98,
+     "end": 1.34,
+     "prob": 0.998
+    },
+    {
+     "text": "to",
+     "start": 1.34,
+     "end": 1.58,
+     "prob": 0.999
+    },
+    {
+     "text": "Ken.",
+     "start": 1.58,
+     "end": 1.78,
+     "prob": 0.98
+    },
+    {
+     "text": "On",
+     "start": 2.38,
+     "end": 2.5,
+     "prob": 0.995
+    },
+    {
+     "text": "a",
+     "start": 2.5,
+     "end": 2.66,
+     "prob": 0.996
+    },
+    {
+     "text": "tablet,",
+     "start": 2.66,
+     "end": 3.06,
+     "prob": 0.992
+    },
+    {
+     "text": "Ken",
+     "start": 3.52,
+     "end": 3.64,
+     "prob": 0.996
+    },
+    {
+     "text": "works",
+     "start": 3.64,
+     "end": 3.9,
+     "prob": 0.998
+    },
+    {
+     "text": "the",
+     "start": 3.9,
+     "end": 4.14,
+     "prob": 0.997
+    },
+    {
+     "text": "checklist,",
+     "start": 4.14,
+     "end": 4.54,
+     "prob": 0.985
+    },
+    {
+     "text": "logs",
+     "start": 4.98,
+     "end": 5.2,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 5.2,
+     "end": 5.42,
+     "prob": 0.993
+    },
+    {
+     "text": "readings,",
+     "start": 5.42,
+     "end": 5.74,
+     "prob": 0.99
+    },
+    {
+     "text": "adds",
+     "start": 6.18,
+     "end": 6.4,
+     "prob": 0.986
+    },
+    {
+     "text": "photos",
+     "start": 6.4,
+     "end": 6.86,
+     "prob": 0.999
+    },
+    {
+     "text": "and",
+     "start": 6.86,
+     "end": 7.34,
+     "prob": 0.51
+    },
+    {
+     "text": "files.",
+     "start": 7.34,
+     "end": 7.86,
+     "prob": 0.999
+    },
+    {
+     "text": "June",
+     "start": 8.54,
+     "end": 8.64,
+     "prob": 0.947
+    },
+    {
+     "text": "approves",
+     "start": 8.64,
+     "end": 9.02,
+     "prob": 0.991
+    },
+    {
+     "text": "and",
+     "start": 9.02,
+     "end": 9.68,
+     "prob": 0.557
+    },
+    {
+     "text": "the",
+     "start": 9.68,
+     "end": 9.82,
+     "prob": 0.999
+    },
+    {
+     "text": "maintenance",
+     "start": 9.82,
+     "end": 10.1,
+     "prob": 0.987
+    },
+    {
+     "text": "record",
+     "start": 10.1,
+     "end": 10.46,
+     "prob": 0.998
+    },
+    {
+     "text": "updates",
+     "start": 10.46,
+     "end": 10.9,
+     "prob": 0.999
+    },
+    {
+     "text": "itself.",
+     "start": 10.9,
+     "end": 11.32,
+     "prob": 0.998
+    }
+   ]
+  },
+  "12": {
+   "text": "Plant 2 is short a technician tonight. Lemuel grants Rico temporary access with an expiry so it closes on its own.",
+   "words": [
+    {
+     "text": "Plant",
+     "start": 0.0,
+     "end": 0.32,
+     "prob": 0.902
+    },
+    {
+     "text": "2",
+     "start": 0.32,
+     "end": 0.66,
+     "prob": 0.463
+    },
+    {
+     "text": "is",
+     "start": 0.66,
+     "end": 0.92,
+     "prob": 0.996
+    },
+    {
+     "text": "short",
+     "start": 0.92,
+     "end": 1.16,
+     "prob": 0.957
+    },
+    {
+     "text": "a",
+     "start": 1.16,
+     "end": 1.34,
+     "prob": 0.983
+    },
+    {
+     "text": "technician",
+     "start": 1.34,
+     "end": 1.7,
+     "prob": 0.995
+    },
+    {
+     "text": "tonight.",
+     "start": 1.7,
+     "end": 2.22,
+     "prob": 0.991
+    },
+    {
+     "text": "Lemuel",
+     "start": 2.84,
+     "end": 3.12,
+     "prob": 0.983
+    },
+    {
+     "text": "grants",
+     "start": 3.12,
+     "end": 3.48,
+     "prob": 0.986
+    },
+    {
+     "text": "Rico",
+     "start": 3.48,
+     "end": 3.78,
+     "prob": 0.666
+    },
+    {
+     "text": "temporary",
+     "start": 3.78,
+     "end": 4.38,
+     "prob": 0.992
+    },
+    {
+     "text": "access",
+     "start": 4.38,
+     "end": 4.94,
+     "prob": 0.999
+    },
+    {
+     "text": "with",
+     "start": 4.94,
+     "end": 5.34,
+     "prob": 0.942
+    },
+    {
+     "text": "an",
+     "start": 5.34,
+     "end": 5.44,
+     "prob": 0.997
+    },
+    {
+     "text": "expiry",
+     "start": 5.44,
+     "end": 6.04,
+     "prob": 0.989
+    },
+    {
+     "text": "so",
+     "start": 6.04,
+     "end": 6.48,
+     "prob": 0.597
+    },
+    {
+     "text": "it",
+     "start": 6.48,
+     "end": 6.62,
+     "prob": 0.996
+    },
+    {
+     "text": "closes",
+     "start": 6.62,
+     "end": 6.9,
+     "prob": 0.998
+    },
+    {
+     "text": "on",
+     "start": 6.9,
+     "end": 7.1,
+     "prob": 0.999
+    },
+    {
+     "text": "its",
+     "start": 7.1,
+     "end": 7.24,
+     "prob": 0.975
+    },
+    {
+     "text": "own.",
+     "start": 7.24,
+     "end": 7.5,
+     "prob": 0.999
+    }
+   ]
+  },
+  "13": {
+   "text": "One pump caught early. 5.9 million pesos that stayed in the plant. Gear cast, maintenance that sees it coming.",
+   "words": [
+    {
+     "text": "One",
+     "start": 0.0,
+     "end": 0.22,
+     "prob": 0.82
+    },
+    {
+     "text": "pump",
+     "start": 0.22,
+     "end": 0.52,
+     "prob": 0.992
+    },
+    {
+     "text": "caught",
+     "start": 0.52,
+     "end": 0.94,
+     "prob": 0.524
+    },
+    {
+     "text": "early.",
+     "start": 0.94,
+     "end": 1.36,
+     "prob": 0.999
+    },
+    {
+     "text": "5",
+     "start": 1.88,
+     "end": 2.1,
+     "prob": 0.939
+    },
+    {
+     "text": ".9",
+     "start": 2.1,
+     "end": 2.68,
+     "prob": 0.998
+    },
+    {
+     "text": "million",
+     "start": 2.68,
+     "end": 3.18,
+     "prob": 0.989
+    },
+    {
+     "text": "pesos",
+     "start": 3.18,
+     "end": 3.76,
+     "prob": 0.995
+    },
+    {
+     "text": "that",
+     "start": 3.76,
+     "end": 3.9,
+     "prob": 0.992
+    },
+    {
+     "text": "stayed",
+     "start": 3.9,
+     "end": 4.16,
+     "prob": 0.995
+    },
+    {
+     "text": "in",
+     "start": 4.16,
+     "end": 4.3,
+     "prob": 0.999
+    },
+    {
+     "text": "the",
+     "start": 4.3,
+     "end": 4.4,
+     "prob": 0.999
+    },
+    {
+     "text": "plant.",
+     "start": 4.4,
+     "end": 4.7,
+     "prob": 0.999
+    },
+    {
+     "text": "Gear",
+     "start": 5.26,
+     "end": 5.38,
+     "prob": 0.977
+    },
+    {
+     "text": "cast,",
+     "start": 5.38,
+     "end": 5.76,
+     "prob": 0.647
+    },
+    {
+     "text": "maintenance",
+     "start": 6.1,
+     "end": 6.36,
+     "prob": 0.994
+    },
+    {
+     "text": "that",
+     "start": 6.36,
+     "end": 6.66,
+     "prob": 0.995
+    },
+    {
+     "text": "sees",
+     "start": 6.66,
+     "end": 6.84,
+     "prob": 0.996
+    },
+    {
+     "text": "it",
+     "start": 6.84,
+     "end": 7.0,
+     "prob": 0.999
+    },
+    {
+     "text": "coming.",
+     "start": 7.0,
+     "end": 7.2,
+     "prob": 0.999
+    }
+   ]
+  }
+ }
+}

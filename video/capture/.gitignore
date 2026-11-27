@@ -1,0 +1,12 @@
+# local demo state (D1 + R2 sqlite/blobs), built app, deps, logs, generated seed SQL
+.state/
+.dist/
+.gen/
+.cache/
+node_modules/
+*.log
+.dev.vars
+.server.pid
+.health.json
+.state*/
+.state*.pid

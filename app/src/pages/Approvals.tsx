@@ -5,8 +5,11 @@ import { OPS } from '../data';
 import { Modal, dialog } from '../shell/Modal';
 import { Icon } from '../shell/icons';
 import { useAuth, ROLE_LABEL } from '../store/authStore';
-import { fileUrl, useApprovals, STATUS_LABEL, type Approval, type Kind } from '../api/approvals';
+import { fileUrl, photoUrl, useApprovals, STATUS_LABEL, type Approval, type Kind } from '../api/approvals';
+import { preparePhoto, type ReportPhoto } from '../api/incidentDocs';
 import { REVIEWERS } from '../../../worker/src/rbac';
+import { LayoutChangeDetails } from '../overview/layoutPreview';
+import { useLayoutPreview } from '../overview/layoutDiff';
 import '../styles/pages.css';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -15,16 +18,48 @@ const nowLocal = () => { const d = new Date(); return `${d.getFullYear()}-${pad(
 export interface PmRowLite { id: string; task_id: string; task: string; asset_id: string; procs: string[]; est_h: number | null }
 type Result = 'ok' | 'not_ok' | 'na';
 
-/** Checklist from the task's procedure steps (acceptance criteria where given). */
-function checklistFor(procs: string[]) {
+interface CheckItem { item: string; photo: boolean; signoff: boolean; safety: string | null }
+/** Checklist from the task's procedure steps (acceptance criteria where given), flagged where the step asks for a
+ *  photo or a sign-off. */
+function checklistFor(procs: string[]): CheckItem[] {
   const steps = OPS.procedureSteps.filter(s => procs.includes(s.procedure_id)).sort((a, b) => a.procedure_id.localeCompare(b.procedure_id) || a.step_no - b.step_no);
-  const items = steps.map(s => `${s.procedure_id} ${s.step_no}. ${s.acceptance_criteria || s.instruction}`);
-  return (items.length ? items : ['Task done as per procedure', 'Unit returned to service / standby', 'Area clean, guards refitted']).slice(0, 20);
+  const items = steps.map(s => ({ item: `${s.procedure_id} ${s.step_no}. ${s.acceptance_criteria || s.instruction}`, photo: !!s.photo_required, signoff: !!s.sign_off_required, safety: s.safety_note ?? null }));
+  const generic = ['Task done as per procedure', 'Unit returned to service / standby', 'Area clean, guards refitted'].map(item => ({ item, photo: false, signoff: false, safety: null }));
+  return (items.length ? items : generic).slice(0, 30);
 }
+
+/** Readings taken during the PM, with the plant's alarm limits (PRM-141 vibration 4.5 mm/s, PRM-143 bearing 80 °C). */
+const READINGS: { label: string; unit: string; alarm?: number; low?: number; kinds: RegExp }[] = [
+  { label: 'Vibration DE', unit: 'mm/s', alarm: 4.5, kinds: /^(P|M|VM|SC)-/ },
+  { label: 'Vibration NDE', unit: 'mm/s', alarm: 4.5, kinds: /^(P|M|VM)-/ },
+  { label: 'Bearing temperature', unit: '°C', alarm: 80, kinds: /^(P|M|VM)-/ },
+  { label: 'Motor current', unit: 'A', kinds: /^(P|M|VM|SC)-/ },
+  { label: 'Insulation resistance', unit: 'MΩ', low: 1, kinds: /^(P|M|VM)-/ },
+  { label: 'Discharge pressure', unit: 'bar', kinds: /^P-/ },
+];
+const readingsFor = (asset: string) => READINGS.filter(r => r.kinds.test(asset));
+const outOfLimit = (label: string, v: number | null) => {
+  const r = READINGS.find(x => x.label === label);
+  return v != null && !!r && ((r.alarm != null && v >= r.alarm) || (r.low != null && v < r.low));
+};
+const MAX_PHOTOS = 6;
 
 export function FindingsModal({ row, onClose, onFiled }: { row: PmRowLite; onClose: () => void; onFiled: (a: Approval) => void }) {
   const file = useApprovals(s => s.file);
   const items = useMemo(() => checklistFor(row.procs), [row.procs]);
+  const rdefs = useMemo(() => readingsFor(row.asset_id), [row.asset_id]);
+  const [reads, setReads] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<ReportPhoto[]>([]);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setPhotoBusy(true); setErr(null);
+    try {
+      const add: ReportPhoto[] = [];
+      for (const f of [...files].slice(0, MAX_PHOTOS - photos.length)) add.push(await preparePhoto(f));
+      setPhotos(ps => [...ps, ...add].slice(0, MAX_PHOTOS));
+    } catch { setErr('Could not read that image (JPEG or PNG).'); } finally { setPhotoBusy(false); }
+  };
   const [mode, setMode] = useState<'form' | 'scan'>('form');
   const [doneAt, setDoneAt] = useState(nowLocal());
   const [hours, setHours] = useState(row.est_h != null ? String(row.est_h) : '');
@@ -39,23 +74,30 @@ export function FindingsModal({ row, onClose, onFiled }: { row: PmRowLite; onClo
   const [err, setErr] = useState<string | null>(null);
   const setCheck = (i: number, p: Partial<{ result: Result; note: string }>) => setChecks(cs => cs.map((c, j) => (j === i ? { ...c, ...p } : c)));
   const notOk = checks.filter(c => c.result === 'not_ok').length;
+  const done = checks.filter(c => c.result !== 'na').length;
+  const readings = rdefs.map(r => ({ label: r.label, unit: r.unit, value: reads[r.label]?.trim() ? Number(reads[r.label]) : null }));
+  const alarms = readings.filter(r => outOfLimit(r.label, r.value)).length;
+  const photoNeeded = mode === 'form' && items.some(it => it.photo) && !photos.length;
 
   const submit = async () => {
     if (mode === 'scan' && !scan) { setErr('Attach the scanned job sheet (PDF or photo).'); return; }
     if (mode === 'form' && !findings.trim() && !notOk) { setErr('Write the findings (or "No abnormal findings").'); return; }
+    if (readings.some(r => r.value != null && !Number.isFinite(r.value))) { setErr('Readings must be numbers.'); return; }
+    if (photoNeeded && !(await dialog.confirm({ title: 'No photo attached', action: 'File without photo', body: <p>Some steps of this procedure ask for a photo. File the findings without one?</p> }))) return;
     setBusy(true); setErr(null);
     try {
       const a = await file('pm_findings', {
         status_id: row.id, task_id: row.task_id, asset_id: row.asset_id, task: row.task, done_at: doneAt.replace('T', ' '), mode, hours: hours ? Number(hours) : null,
-        checklist: mode === 'form' ? items.map((item, i) => ({ item, ...checks[i] })) : [],
-        measurements, findings, parts_used: parts, followup: followup || notOk > 0, followup_note: followupNote,
-      }, mode === 'scan' ? scan : null);
+        checklist: mode === 'form' ? items.map((it, i) => ({ item: it.item, ...checks[i] })) : [],
+        readings: readings.filter(r => r.value != null), photo_captions: photos.map(p => p.caption),
+        measurements, findings, parts_used: parts, followup: followup || notOk > 0 || alarms > 0, followup_note: followupNote,
+      }, mode === 'scan' ? scan : null, photos.map((p, i) => new File([p.bytes as BlobPart], `photo${i + 1}.jpg`, { type: 'image/jpeg' })));
       onFiled(a); onClose();
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not file the findings'); } finally { setBusy(false); }
   };
 
   return (
-    <Modal title={`PM findings · ${row.task_id} ${row.asset_id}`} onClose={onClose} width={640} footer={<>
+    <Modal title={`PM findings · ${row.task_id} ${row.asset_id}`} onClose={onClose} width={720} footer={<>
       <button type="button" className="btn" onClick={onClose}>Cancel</button>
       <button type="button" className="btn primary" disabled={busy} onClick={submit}>{busy ? 'Filing…' : 'File findings'}</button>
     </>}>
@@ -71,10 +113,13 @@ export function FindingsModal({ row, onClose, onFiled }: { row: PmRowLite; onClo
       </div>
       {mode === 'form' ? (
         <div className="pmf-checks">
-          <b className="small">Checklist</b>
+          <div className="pmf-checks-head"><b className="small">Checklist</b><span className="muted small">{done}/{items.length} checked{notOk ? ` · ${notOk} not OK` : ''}</span>
+            <button type="button" className="btn ghost sm" onClick={() => setChecks(cs => cs.map(c => ({ ...c, result: 'ok' })))}>All OK</button></div>
           {items.map((it, i) => (
             <div key={i} className={`pmf-check${checks[i].result === 'not_ok' ? ' bad' : ''}`}>
-              <span className="small">{it}</span>
+              <span className="small">{it.item}
+                {(it.photo || it.signoff) && <span className="pmf-tags">{it.photo && <em>PHOTO</em>}{it.signoff && <em>SIGN-OFF</em>}</span>}
+                {it.safety && <span className="pmf-safety"> ⚠ {it.safety}</span>}</span>
               <span className="pmf-res">
                 {(['ok', 'not_ok', 'na'] as Result[]).map(r => (
                   <button key={r} type="button" className={`btn sm ${checks[i].result === r ? (r === 'not_ok' ? 'danger solid' : 'primary') : 'ghost'}`} onClick={() => setCheck(i, { result: r })}>
@@ -94,12 +139,30 @@ export function FindingsModal({ row, onClose, onFiled }: { row: PmRowLite; onClo
             : <><b>Scan or photograph the signed job sheet</b><span className="muted small">PDF, JPEG or PNG, max 8 MB</span></>}
         </label>
       )}
+      {!!rdefs.length && <div className="pmf-reads">
+        <b className="small">Readings{alarms ? <span className="bad-t"> · {alarms} over the alarm limit</span> : null}</b>
+        <div className="pmf-reads-grid">{rdefs.map(r => (
+          <label key={r.label} className={outOfLimit(r.label, reads[r.label]?.trim() ? Number(reads[r.label]) : null) ? 'bad' : ''}>{r.label} <span className="muted">({r.unit}{r.alarm != null ? `, alarm ≥ ${r.alarm}` : r.low != null ? `, min ${r.low}` : ''})</span>
+            <input type="number" inputMode="decimal" step="any" value={reads[r.label] ?? ''} onChange={e => setReads(x => ({ ...x, [r.label]: e.target.value }))} /></label>))}</div>
+      </div>}
+      <div className="pmf-photos">
+        <b className="small">Photos <span className="muted">({photos.length}/{MAX_PHOTOS}{items.some(it => it.photo) ? ' · required by some steps' : ''})</span></b>
+        <div className="pmf-photo-row">
+          {photos.map((ph, i) => (
+            <figure key={ph.url} className="pmf-photo"><img src={ph.url} alt={`Photo ${i + 1}`} />
+              <input value={ph.caption} placeholder="Caption" onChange={e => setPhotos(ps => ps.map((x, j) => (j === i ? { ...x, caption: e.target.value } : x)))} />
+              <button type="button" className="icon-btn" aria-label={`Remove photo ${i + 1}`} onClick={() => setPhotos(ps => ps.filter((_, j) => j !== i))}><Icon name="trash" size={13} /></button></figure>))}
+          {photos.length < MAX_PHOTOS && <label className="kb-drop pmf-photo-add">
+            <input type="file" accept="image/*" capture="environment" multiple className="kb-file" onChange={e => { addPhotos(e.target.files); e.target.value = ''; }} />
+            <Icon name="plus" size={18} /><span className="small">{photoBusy ? 'Reading…' : 'Take / add photo'}</span></label>}
+        </div>
+      </div>
       <div className="form-grid pmf-grid">
-        <label className="span2">Measurements (vibration, temperature, current, insulation…)<textarea rows={2} value={measurements} onChange={e => setMeasurements(e.target.value)} /></label>
+        <label className="span2">Other measurements / notes<textarea rows={2} value={measurements} onChange={e => setMeasurements(e.target.value)} placeholder="e.g. clearance 0.4 mm, oil level OK, grease 30 g at DE" /></label>
         <label className="span2">Findings{mode === 'scan' ? ' (optional)' : ''}<textarea rows={3} value={findings} onChange={e => setFindings(e.target.value)} placeholder="What you saw, heard and measured. 'No abnormal findings' if all is well." /></label>
-        <label className="toggle pmf-follow"><input type="checkbox" checked={followup || notOk > 0} disabled={notOk > 0} onChange={e => setFollowup(e.target.checked)} />
-          <span><b>Follow-up needed</b>{notOk > 0 && <span className="muted small"> · {notOk} item(s) not OK</span>}</span></label>
-        {(followup || notOk > 0) && <label className="span2">Follow-up note<input value={followupNote} onChange={e => setFollowupNote(e.target.value)} placeholder="e.g. order seal kit, re-check in 7 days" /></label>}
+        <label className="toggle pmf-follow"><input type="checkbox" checked={followup || notOk > 0 || alarms > 0} disabled={notOk > 0 || alarms > 0} onChange={e => setFollowup(e.target.checked)} />
+          <span><b>Follow-up needed</b>{(notOk > 0 || alarms > 0) && <span className="muted small"> · {[notOk && `${notOk} item(s) not OK`, alarms && `${alarms} reading(s) over limit`].filter(Boolean).join(', ')}</span>}</span></label>
+        {(followup || notOk > 0 || alarms > 0) && <label className="span2">Follow-up note<input value={followupNote} onChange={e => setFollowupNote(e.target.value)} placeholder="e.g. order seal kit, re-check in 7 days" /></label>}
       </div>
       {err && <div className="alert-box bad">{err}</div>}
     </Modal>
@@ -112,12 +175,17 @@ function Details({ a }: { a: Approval }) {
   if (a.kind === 'pm_findings') return (
     <div className="ap-details small">
       <div><span className="muted">Done</span> {p.done_at}{p.hours ? ` · ${p.hours} h` : ''} · {p.mode === 'scan' ? 'scanned job sheet' : 'tablet form'}</div>
-      {!!p.checklist?.length && <ul className="ap-check">{p.checklist.map((c: { item: string; result: Result; note: string }, i: number) => (
-        <li key={i} className={c.result === 'not_ok' ? 'bad-t' : ''}><b>{c.result === 'ok' ? 'OK' : c.result === 'not_ok' ? 'NOT OK' : 'N/A'}</b> {c.item}{c.note ? ` — ${c.note}` : ''}</li>))}</ul>}
+      {!!p.checklist?.length && <ul className="ap-check">{p.checklist.map((c: { item: string | { item: string }; result: Result; note: string }, i: number) => (
+        <li key={i} className={c.result === 'not_ok' ? 'bad-t' : ''}><b>{c.result === 'ok' ? 'OK' : c.result === 'not_ok' ? 'NOT OK' : 'N/A'}</b> {typeof c.item === 'string' ? c.item : c.item?.item}{c.note ? ` — ${c.note}` : ''}</li>))}</ul>}
+      {!!p.readings?.length && <div className="ap-reads">{p.readings.map((r: { label: string; unit: string; value: number }) => (
+        <span key={r.label} className={`badge${outOfLimit(r.label, r.value) ? ' bad' : ''}`}>{r.label} <b>{r.value}</b> {r.unit}</span>))}</div>}
       {p.measurements && <div><span className="muted">Measurements</span> {p.measurements}</div>}
       {p.findings && <div><span className="muted">Findings</span> {p.findings}</div>}
       {p.parts_used && <div><span className="muted">Parts</span> {p.parts_used}</div>}
       {p.followup && <div className="warn-t">Follow-up needed{p.followup_note ? `: ${p.followup_note}` : ''}</div>}
+      {!!p.photos?.length && <div className="ap-photos">{p.photos.map((ph: { n: number; caption?: string }) => (
+        <a key={ph.n} href={photoUrl(a.id, ph.n)} target="_blank" rel="noopener" title={ph.caption || `Photo ${ph.n}`}>
+          <img src={photoUrl(a.id, ph.n)} alt={ph.caption || `Photo ${ph.n}`} loading="lazy" />{ph.caption && <span className="small">{ph.caption}</span>}</a>))}</div>}
     </div>
   );
   if (a.kind === 'spare_deploy') return (
@@ -126,11 +194,12 @@ function Details({ a }: { a: Approval }) {
       {p.reason && <div><span className="muted">Reason</span> {p.reason}</div>}
     </div>
   );
-  return <div className="ap-details small">{p.note || 'Layout edits to the plant model.'} <span className="muted">Approving publishes it to everyone.</span></div>;
+  return <LayoutChangeDetails a={a} />;
 }
 
-/** Approval queue. Reviewers see pending records they can approve; everyone sees their own recent records. */
-export function ApprovalQueue({ kinds, title = 'Approvals' }: { kinds: Kind[]; title?: string }) {
+/** Approval queue. Reviewers see pending records they can approve; everyone sees their own recent records
+ *  (`ownFilter` narrows those, e.g. only still-open ones on Plant Overview). */
+export function ApprovalQueue({ kinds, title = 'Approvals', ownFilter, className = '' }: { kinds: Kind[]; title?: string; ownFilter?: (a: Approval) => boolean; className?: string }) {
   const me = useAuth(s => s.user);
   const { items, refresh, review } = useApprovals();
   const [busy, setBusy] = useState('');
@@ -141,7 +210,7 @@ export function ApprovalQueue({ kinds, title = 'Approvals' }: { kinds: Kind[]; t
   const mine = (a: Approval) => kinds.includes(a.kind);
   const canReview = (a: Approval) => (REVIEWERS[a.kind] ?? []).includes(me.role);
   const pending = items.filter(a => mine(a) && a.status === 'pending' && canReview(a));
-  const own = items.filter(a => mine(a) && a.created_by === me.username && !(a.status === 'pending' && canReview(a))).slice(0, showDone ? 30 : 5);
+  const own = items.filter(a => mine(a) && a.created_by === me.username && !(a.status === 'pending' && canReview(a)) && (!ownFilter || ownFilter(a))).slice(0, showDone ? 30 : 5);
   if (!pending.length && !own.length) return null;
 
   const act = async (a: Approval, decision: 'approve' | 'reject') => {
@@ -152,7 +221,10 @@ export function ApprovalQueue({ kinds, title = 'Approvals' }: { kinds: Kind[]; t
       note = r;
     }
     setBusy(a.id); setErr(null);
-    try { await review(a.id, decision, note); } catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); } finally { setBusy(''); }
+    try {
+      await review(a.id, decision, note);
+      if (useLayoutPreview.getState().id === a.id) useLayoutPreview.getState().clear();
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); } finally { setBusy(''); }
   };
   const row = (a: Approval, actions: boolean) => (
     <div key={a.id} className={`ap-row s-${a.status}`}>
@@ -162,7 +234,7 @@ export function ApprovalQueue({ kinds, title = 'Approvals' }: { kinds: Kind[]; t
         <span className="muted small">{a.created_by} ({ROLE_LABEL[a.created_role as keyof typeof ROLE_LABEL] ?? a.created_role}) · {a.created_at}</span>
       </div>
       <Details a={a} />
-      {a.file && <a className="btn sm" href={fileUrl(a.id)} target="_blank" rel="noopener"><Icon name="file" size={12} />Open scan ({(a.file.bytes / 1024).toFixed(0)} kB)</a>}
+      {a.file && <a className="btn sm" href={fileUrl(a.id)} target="_blank" rel="noopener"><Icon name="file" size={12} />Open scanned job sheet ({(a.file.bytes / 1024).toFixed(0)} kB)</a>}
       {a.status !== 'pending' && a.reviewed_by && <div className="small muted">{a.status === 'approved' ? 'Approved' : 'Rejected'} by {a.reviewed_by} · {a.reviewed_at}{a.review_note ? ` — ${a.review_note}` : ''}</div>}
       {actions && (
         <div className="q-actions">
@@ -173,7 +245,7 @@ export function ApprovalQueue({ kinds, title = 'Approvals' }: { kinds: Kind[]; t
     </div>
   );
   return (
-    <div className="card ap-queue">
+    <div className={`card ap-queue ${className}`}>
       <div className="ap-queue-head"><b>{title}</b>{pending.length > 0 && <span className="badge warn">{pending.length} waiting for you</span>}
         <button type="button" className="btn ghost sm" onClick={() => refresh()}>Refresh</button></div>
       {err && <div className="alert-box bad">{err}</div>}

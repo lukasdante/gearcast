@@ -1,6 +1,7 @@
 import { Icon } from './icons';
 import { navigate, type Route } from '../store/route';
-import { useAuth } from '../store/authStore';
+import { useAuth, useCan } from '../store/authStore';
+import { useScan } from '../qr/scanStore';
 
 const NAV: { route: Route; label: string; icon: string; soon?: boolean }[] = [
   { route: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -16,7 +17,10 @@ const NAV: { route: Route; label: string; icon: string; soon?: boolean }[] = [
 
 export function Sidebar({ route }: { route: Route }) {
   const tech = useAuth(s => s.user?.role === 'technician');
-  const nav = tech ? NAV.map(n => (n.route === 'pm' ? { ...n, label: 'My tasks' } : n)) : NAV;
+  const labels = useCan('qr.labels');
+  const nav = [...(tech ? NAV.map(n => (n.route === 'pm' ? { ...n, label: 'My tasks' } : n)) : NAV),
+    ...(labels ? [{ route: 'labels' as Route, label: 'QR labels', icon: 'print' }] : [])];
+  const openScanner = useScan(s => s.openScanner);
   return (
     <nav className="sidebar" aria-label="Main">
       {nav.map(n => (
@@ -27,6 +31,10 @@ export function Sidebar({ route }: { route: Route }) {
           {n.soon && <em className="soon">soon</em>}
         </button>
       ))}
+      <button type="button" className="nav-item nav-scan" onClick={openScanner}>
+        <Icon name="qr" size={18} />
+        <span>Scan QR</span>
+      </button>
     </nav>
   );
 }

@@ -6,9 +6,9 @@ import * as rr from './rr';
 import { completeJson } from './llm';
 import { pmFor } from './tools';
 import { fmtComma, fmtInt, num, pct0, pick, pyFloat, pyStr, sortBy, strip, truthy } from './py';
-import { DAY, fmtDate, hourOf, parseDt, yearOf } from './time';
+import { DATA_CUTOFF, DAY, fmtDate, hourOf, parseDt, yearOf } from './time';
 import type { Env } from './env';
-import { trendsFor } from './trend';
+import { trendIndicators, trendOpts, trendsFor, withDefaults, type TrendFrame, type TrendOpts } from './trend';
 
 const PICK: Record<number, string[]> = {
   3: ['Minor', 'Major', 'Critical', 'Near miss'],
@@ -198,7 +198,7 @@ function pickVal(v: any, allowed: string[], def: string): string {
 const shiftName = (at: number) => { const h = hourOf(at); return h >= 6 && h < 14 ? 'Day' : h >= 14 && h < 22 ? 'Swing' : 'Night'; };
 
 export const DRAFT_KEYS = ['asset_id', 'failure_at', 'reported_by', 'shift', 'detected_by', 'operating_condition', 'observed', 'actions_taken',
-  'downtime_h', 'procedure_used', 'parts_used', 'spare_used', 'safety_injury', 'severity', 'shut_down', 'trend_days'];
+  'downtime_h', 'procedure_used', 'parts_used', 'spare_used', 'safety_injury', 'severity', 'shut_down', 'trend_days', 'trend'];
 
 export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Promise<any> {
   const aid = String(f.asset_id || '').toUpperCase();
@@ -226,6 +226,7 @@ export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Pro
     return { field_no: no, section: t.section, field: t.field, filled_by: t.filled_by, allowed_values: t.allowed_values, value, source };
   };
   const aiSrc = aiOn ? 'ai' : 'data';
+  const trend = withDefaults(aid, trendOpts(f.trend ?? { days: f.trend_days }));
   const fields = [
     F(1, rid, 'data'), F(2, f.report_date || fmtDate(nowStr(), true), 'data'),
     F(3, sev, f.severity ? 'user' : 'data'),
@@ -265,9 +266,9 @@ export async function buildDraft(env: Env, f: any, sim: any, useLlm = true): Pro
     F(37, 'Not recorded – pending repair', 'data'),
   ];
   return {
-    report_id: rid, asset_id: aid, failure_at: f.failure_at ?? null, shut_down: !!f.shut_down,
+    report_id: rid, asset_id: aid, failure_at: f.failure_at ?? null, shut_down: !!f.shut_down, trend, trend_indicators: trendIndicators(aid),
     inputs: f, fields, summary: ai.summary ?? null, warnings: validate(fields),
-    tables: { readings: g.readings, trends: trendsFor(aid, f.failure_at, f.trend_days ?? undefined), cost: costTable(c), actions, whys, capa,
+    tables: { readings: g.readings, trends: trendsFor(aid, f.failure_at, trend), cost: costTable(c), actions, whys, capa,
       parts: partsRows.map((p: any) => ({ part_id: p.part_id, name: p.name, qty: 1, cost_php: p.cost_php })), labour_php: c.labour, repair_php: c.repair },
     linked: { failure_event: g.failure_event, work_orders: g.work_orders, open_work_orders: g.open_work_orders, pm: g.pm, cost: c,
       repair_or_replace: pick(g.rr, ['recommendation', 'confidence', 'factors', 'costs']), standby: g.standby, spare: g.spare },
@@ -315,7 +316,8 @@ export async function submit(env: Env, draft: any): Promise<{ rec: any; out: any
   for (const fld of draft.fields || []) if (fld.field_no === 1) fld.value = rid;
   const byNo: Record<string, any> = {};
   for (const x of draft.fields || []) byNo[String(x.field_no)] = x;
-  const rec = { ...draft, report_id: rid, submitted_at: nowStr(), fields_by_no: byNo };
+  delete draft.trend_indicators; // picker metadata, not part of the report
+  const rec = { ...draft, report_id: rid, submitted_at: nowStr(), fields_by_no: byNo, ...(draft.trend ? { trend: trendOpts(draft.trend) } : {}) };
   await env.DB.prepare('INSERT INTO incidents (report_id, seq, rec) VALUES (?, ?, ?)').bind(rid, Date.now(), JSON.stringify(rec)).run();
   const out = { report_id: rid, shut_down: !!draft.shut_down, asset_id: draft.asset_id ?? null,
     status_change: draft.shut_down ? { asset_id: draft.asset_id ?? null, new_status: 'Shut Down', reason: `Shut down per incident report ${rid}` } : null };
@@ -323,7 +325,7 @@ export async function submit(env: Env, draft: any): Promise<{ rec: any; out: any
 }
 
 /** pdf.history_draft: map a historical record onto the 37 template fields so it prints on the same form. */
-export function historyDraft(h: any): any {
+export function historyDraft(h: any, trend: TrendOpts | null = null): any {
   const a = D.asset[h.asset_id] || {};
   const sev = pyStr(h.severity || '');
   const dash = (s: string) => s.replace(/^[ –]+|[ –]+$/g, '');
@@ -338,8 +340,46 @@ export function historyDraft(h: any): any {
     30: h.repair_or_replace || '', 32: h.expected_report_text || '', 36: 'No change',
   };
   const fields = D.irTemplate.map(t => ({ field_no: t.field_no, section: t.section, field: t.field, value: t.field_no in vals ? vals[t.field_no] : 'Not recorded' }));
-  return { report_id: h.report_id ?? null, asset_id: h.asset_id ?? null, fields, inputs: {}, linked: {},
-    tables: { repair_php: Number(h.repair_cost_php || 0), trends: h.asset_id ? trendsFor(h.asset_id, h.incident_date) : [],
+  return { report_id: h.report_id ?? null, asset_id: h.asset_id ?? null, failure_at: h.incident_date ?? null, fields, inputs: {}, linked: {},
+    ...(trend ? { trend } : {}),
+    tables: { repair_php: Number(h.repair_cost_php || 0), trends: h.asset_id && D.asset[h.asset_id] ? trendsFor(h.asset_id, h.incident_date, trend) : [],
       readings: h.asset_id && D.asset[h.asset_id] ? readingsFor(h.asset_id, parseDt(h.incident_date) ?? parseDt(CLOCK.asOf)!) : [] },
     summary: h.expected_report_text ?? null };
+}
+
+// --------------------------------------------------------------------------- Field 3 time range of stored reports
+const trendKey = (id: string) => `ir_trend:${id}`;
+/** Range + indicators saved for a historical report (they are read-only records, so the choice is kept in kv). */
+export async function historyTrend(env: Env, id: string): Promise<TrendOpts | null> {
+  const v = await env.DB.prepare('SELECT v FROM kv WHERE k = ?').bind(trendKey(id)).first<string>('v');
+  return v ? trendOpts(JSON.parse(v)) : null;
+}
+/** Clock frame of a submitted report (the date shift on the day it was submitted). */
+export function frameOf(rec: any): TrendFrame | undefined {
+  const t = parseDt(rec?.submitted_at);
+  return t === null ? undefined : { shiftMin: (Math.floor(t / DAY) - DATA_CUTOFF) * DAY, asOfMin: t };
+}
+/** Report → what its Field 3 charts are made from. */
+export async function trendSource(env: Env, id: string) {
+  const r = await getReport(env, id);
+  if (!r) return null;
+  if ('history' in r) {
+    const h = r.history;
+    return { report_id: id, source: 'history' as const, asset_id: h.asset_id as string, failure_at: h.incident_date as string, frame: undefined, trend: await historyTrend(env, id), rec: null };
+  }
+  return { report_id: id, source: 'submitted' as const, asset_id: r.asset_id as string, failure_at: r.failure_at as string, frame: frameOf(r), trend: r.trend ? trendOpts(r.trend) : null, rec: r };
+}
+/** Save the range + indicators with a report and re-chart it. Returns the saved options and the charts. */
+export async function setReportTrend(env: Env, id: string, raw: any) {
+  const src = await trendSource(env, id);
+  if (!src) return null;
+  const trend = src.asset_id && D.asset[src.asset_id] ? withDefaults(src.asset_id, trendOpts(raw)) : trendOpts(raw);
+  const trends = src.asset_id && D.asset[src.asset_id] ? trendsFor(src.asset_id, src.failure_at, trend, src.frame) : [];
+  if (src.rec) {
+    const rec = { ...src.rec, trend, tables: { ...(src.rec.tables || {}), trends } };
+    await env.DB.prepare('UPDATE incidents SET rec = ? WHERE report_id = ?').bind(JSON.stringify(rec), id).run();
+  } else {
+    await env.DB.prepare('INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind(trendKey(id), JSON.stringify(trend)).run();
+  }
+  return { trend, trends };
 }

@@ -20,6 +20,8 @@ import { useEffect } from 'react';
 import { useAuth } from './store/authStore';
 import { syncAssignments } from './api/assignments';
 import { syncPlants } from './api/plants';
+import { ScanHost } from './qr/ScanHost';
+import { Labels } from './qr/Labels';
 
 const TITLES = {
   assets: ['Assets', 'Asset register, history and procedures per unit.'],
@@ -48,10 +50,12 @@ export default function App() {
                   : route === 'pm' ? <PmMonitoring />
                     : route === 'assets' ? <Assets />
                     : route === 'spares' ? <SpareReadiness />
+                    : route === 'labels' ? <Labels />
                   : <Placeholder title={TITLES[route as keyof typeof TITLES][0]} text={TITLES[route as keyof typeof TITLES][1]} />}
       </main>
       <ChatLauncher />
       <Splash />
+      <ScanHost />
       <DialogHost />
     </div>
   );

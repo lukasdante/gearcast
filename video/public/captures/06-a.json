@@ -1,0 +1,251 @@
+{
+ "shot": "06-a",
+ "device": "tablet",
+ "viewport": {
+  "w": 1280,
+  "h": 800
+ },
+ "durationSec": 34.333,
+ "events": [
+  {
+   "t": 6.574,
+   "type": "click",
+   "x": 98,
+   "y": 229,
+   "label": "Spare Readiness",
+   "box": {
+    "x": 10,
+    "y": 211,
+    "w": 175,
+    "h": 35
+   },
+   "tap": true
+  },
+  {
+   "t": 8.747,
+   "type": "type",
+   "x": 601,
+   "y": 784,
+   "label": "Search grease",
+   "box": {
+    "x": 241,
+    "y": 768,
+    "w": 719,
+    "h": 32
+   }
+  },
+  {
+   "t": 10.208,
+   "type": "click",
+   "x": 813,
+   "y": 594,
+   "label": "SPP-018 details",
+   "box": {
+    "x": 787,
+    "y": 585,
+    "w": 52,
+    "h": 18
+   },
+   "tap": true
+  },
+  {
+   "t": 12.111,
+   "type": "click",
+   "x": 459,
+   "y": 671,
+   "label": "Deploy",
+   "box": {
+    "x": 419,
+    "y": 658,
+    "w": 80,
+    "h": 26
+   },
+   "tap": true
+  },
+  {
+   "t": 13.318,
+   "type": "click",
+   "x": 640,
+   "y": 436,
+   "label": "Install on M-101A",
+   "box": {
+    "x": 429,
+    "y": 420,
+    "w": 422,
+    "h": 32
+   },
+   "tap": true
+  },
+  {
+   "t": 13.939,
+   "type": "type",
+   "x": 640,
+   "y": 502,
+   "label": "Reason",
+   "box": {
+    "x": 429,
+    "y": 483,
+    "w": 422,
+    "h": 38
+   }
+  },
+  {
+   "t": 16.191,
+   "type": "click",
+   "x": 817,
+   "y": 565,
+   "label": "Deploy",
+   "box": {
+    "x": 783,
+    "y": 550,
+    "w": 68,
+    "h": 30
+   },
+   "tap": true
+  },
+  {
+   "t": 16.534,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": -1140,
+   "label": "Result"
+  },
+  {
+   "t": 20.63,
+   "type": "type",
+   "x": 601,
+   "y": 784,
+   "label": "Search pump bearing",
+   "box": {
+    "x": 241,
+    "y": 768,
+    "w": 719,
+    "h": 32
+   }
+  },
+  {
+   "t": 22.304,
+   "type": "click",
+   "x": 813,
+   "y": 601,
+   "label": "SPP-003 details",
+   "box": {
+    "x": 787,
+    "y": 592,
+    "w": 52,
+    "h": 18
+   },
+   "tap": true
+  },
+  {
+   "t": 24.202,
+   "type": "click",
+   "x": 459,
+   "y": 695,
+   "label": "Deploy",
+   "box": {
+    "x": 419,
+    "y": 682,
+    "w": 80,
+    "h": 26
+   },
+   "tap": true
+  },
+  {
+   "t": 25.429,
+   "type": "click",
+   "x": 640,
+   "y": 445,
+   "label": "Install on P-101A",
+   "box": {
+    "x": 429,
+    "y": 429,
+    "w": 422,
+    "h": 32
+   },
+   "tap": true
+  },
+  {
+   "t": 26.045,
+   "type": "type",
+   "x": 640,
+   "y": 510,
+   "label": "Reason",
+   "box": {
+    "x": 429,
+    "y": 491,
+    "w": 422,
+    "h": 38
+   }
+  },
+  {
+   "t": 28.37,
+   "type": "click",
+   "x": 786,
+   "y": 573,
+   "label": "Request approval",
+   "box": {
+    "x": 720,
+    "y": 558,
+    "w": 131,
+    "h": 30
+   },
+   "tap": true
+  },
+  {
+   "t": 28.726,
+   "type": "scroll",
+   "x": 738,
+   "y": 501,
+   "dy": -1074,
+   "label": "Result"
+  }
+ ],
+ "videoSize": {
+  "w": 2560,
+  "h": 1600
+ },
+ "trim": {
+  "inSec": 2.9,
+  "outSec": 33.74
+ },
+ "marks": [
+  {
+   "t": 2.699,
+   "name": "app-ready"
+  },
+  {
+   "t": 7.174,
+   "name": "spares-page"
+  },
+  {
+   "t": 10.525,
+   "name": "SPP-018-details"
+  },
+  {
+   "t": 12.449,
+   "name": "SPP-018-deploy-form"
+  },
+  {
+   "t": 17.434,
+   "name": "deployed"
+  },
+  {
+   "t": 22.625,
+   "name": "SPP-003-details"
+  },
+  {
+   "t": 24.53,
+   "name": "SPP-003-deploy-form"
+  },
+  {
+   "t": 29.626,
+   "name": "sent-for-approval"
+  },
+  {
+   "t": 32.242,
+   "name": "end-action"
+  }
+ ]
+}

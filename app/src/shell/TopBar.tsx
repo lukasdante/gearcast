@@ -7,6 +7,7 @@ import { useUi } from '../store/uiStore';
 import { navigate } from '../store/route';
 import { useAuth, ROLE_LABEL } from '../store/authStore';
 import { fmtDate, nowStamp } from '../domain/assetInfo';
+import { ScanButton } from '../qr/ScanHost';
 
 /** Live "data as of" clock (the dataset is shifted to today; see data/index.ts). */
 function AsOf() {
@@ -51,6 +52,7 @@ export function TopBar() {
         <AsOf />
       </div>
       <div className="topbar-right">
+        <ScanButton />
         <UserChip />
         <span className="sim-badge" title="Statuses are recorded / simulated from the workbook, not a live SCADA feed">
           <span className="dot" />Simulated status — not live SCADA

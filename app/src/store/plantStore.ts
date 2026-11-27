@@ -24,7 +24,8 @@ interface PlantState {
 const def = buildDefaultPlant();
 
 /** Add the pump-area pumps (and their pipes) to a saved copy of the seeded plant that predates them. */
-export function withPumpAreas(doc: LayoutDoc): LayoutDoc {
+export function withPumpAreas(raw: LayoutDoc): LayoutDoc {
+  const doc: LayoutDoc = { ...raw, items: raw.items ?? [], pipes: raw.pipes ?? [] };
   const ids = new Set(PUMP_AREAS.flatMap(([t]) => [`${t}A`, `${t}B`]));
   if (doc.items.some(i => i.assetId && ids.has(i.assetId))) return doc;
   const fresh = buildDefaultPlant();

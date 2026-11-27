@@ -1,0 +1,151 @@
+{
+ "shot": "10-a",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 24.566,
+ "trim": {
+  "inSec": 1.1,
+  "outSec": 23.82
+ },
+ "events": [
+  {
+   "t": 3.095,
+   "x": 1025,
+   "y": 713,
+   "type": "click",
+   "label": "P-101A"
+  },
+  {
+   "t": 7.046,
+   "x": 1851,
+   "y": 82,
+   "type": "click",
+   "label": "Edit layout",
+   "box": {
+    "x": 1796,
+    "y": 66,
+    "w": 110,
+    "h": 32
+   }
+  },
+  {
+   "t": 9.512,
+   "x": 273,
+   "y": 243,
+   "type": "click",
+   "label": "End-suction pump",
+   "box": {
+    "x": 221,
+    "y": 199,
+    "w": 104,
+    "h": 87
+   }
+  },
+  {
+   "t": 11.377,
+   "x": 1353,
+   "y": 982,
+   "type": "click",
+   "label": "Place pump on W05 pad"
+  },
+  {
+   "t": 14.049,
+   "x": 1454,
+   "y": 82,
+   "type": "click",
+   "label": "Done editing",
+   "box": {
+    "x": 1392,
+    "y": 66,
+    "w": 124,
+    "h": 32
+   }
+  },
+  {
+   "t": 16.088,
+   "x": 1268,
+   "y": 133,
+   "type": "click",
+   "label": "Submit for approval",
+   "box": {
+    "x": 1201,
+    "y": 120,
+    "w": 134,
+    "h": 26
+   }
+  },
+  {
+   "t": 17.494,
+   "x": 960,
+   "y": 611,
+   "type": "click",
+   "label": "What changed? field",
+   "box": {
+    "x": 759,
+    "y": 594,
+    "w": 402,
+    "h": 34
+   }
+  },
+  {
+   "t": 17.495,
+   "x": 960,
+   "y": 611,
+   "type": "type",
+   "label": "What changed?",
+   "box": {
+    "x": 759,
+    "y": 594,
+    "w": 402,
+    "h": 34
+   }
+  },
+  {
+   "t": 19.999,
+   "x": 1127,
+   "y": 672,
+   "type": "click",
+   "label": "Submit",
+   "box": {
+    "x": 1092,
+    "y": 657,
+    "w": 69,
+    "h": 30
+   }
+  },
+  {
+   "t": 21.325,
+   "x": 1058,
+   "y": 133,
+   "type": "hover",
+   "label": "Sent to supervisor",
+   "box": {
+    "x": 772,
+    "y": 112,
+    "w": 572,
+    "h": 42
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 8.335,
+   "name": "edit-mode"
+  },
+  {
+   "t": 12.967,
+   "name": "item-added"
+  },
+  {
+   "t": 20.388,
+   "name": "sent-to-supervisor"
+  }
+ ],
+ "frameStats": {
+  "frames": 903,
+  "firstFrameOffsetMs": 16
+ }
+}

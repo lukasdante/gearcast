@@ -13,7 +13,9 @@ export const MODEL_INFO = {
 const NEW_UNIT_FAILURES_PER_YEAR = 0.3;
 const HORIZON_Y = 3;
 const NEW_COST_BY_TYPE: [string, string][] = [['P-101', 'CR-01'], ['SP-P01', 'CR-01'], ['M-', 'CR-02'], ['SP-M01', 'CR-02'], ['P-201', 'CR-03'],
-  ['SP-P02', 'CR-03'], ['SC-', 'CR-04'], ['VM-', 'CR-05'], ['SP-VM01', 'CR-05']];
+  ['SP-P02', 'CR-03'], ['SC-', 'CR-04'], ['VM-', 'CR-05'], ['SP-VM01', 'CR-05'],
+  // pump-area transfer pumps (placeholders, same 50 m³/h duty as P-101A/B): indicative CR-01 until the raw data update
+  ['P-301', 'CR-01'], ['P-401', 'CR-01'], ['P-501', 'CR-01']];
 
 export function newUnitCost(aid: string): number {
   for (const [prefix, cr] of NEW_COST_BY_TYPE) if (aid.startsWith(prefix)) return num(D.costRef[cr].value, 0);
@@ -135,44 +137,143 @@ export function liveFeatures(aid: string, repairCostPhp: number | null = null, d
 }
 
 // --------------------------------------------------------------------------- replacement options (brands + suppliers)
-/** Supplier types that can supply a new unit of each asset type (Suppliers.supplier_type). */
+/** Supplier types that can supply a new unit of each asset type (Suppliers.supplier_type) – fallback for assets with no
+ *  class in ref/data_patches/replacement_brands.json. */
 const ALT_TYPES: Record<string, RegExp> = {
   pump: /^pumps/i, 'spare pump': /^pumps/i, motor: /electrical|motor repair|local service/i, 'spare motor': /electrical|motor repair|local service/i,
   'vibrator motor': /electrical|motor repair|local service/i, screen: /^screens/i,
 };
-const supplierOut = (s: any, why: string) => ({
-  supplier_id: s.supplier_id, supplier_name: s.supplier_name, supplier_type: s.supplier_type, supplies: s.supplies, location: s.location,
-  phone: s.phone, email: s.email, lead_time_days: s.typical_lead_time_days ?? null, basis: s.basis, why,
-});
+const SEE = /see website|online|to confirm/i;
+const sourceOf = (id: string | null | undefined) => {
+  const k = String(id ?? '').split(/;\s*/)[0];
+  const s = D.replacementBrands.sources?.[k];
+  return s ? { id: k, description: s.description, link: s.link ?? null } : (k ? { id: k, description: null, link: null } : null);
+};
+const supplierRow = (id: string): any => D.suppliers[id] ?? (D.replacementBrands.extra_suppliers ?? []).find((x: any) => x.supplier_id === id) ?? null;
+const supplierOut = (s: any, why: string) => {
+  const src = sourceOf(s.source_id);
+  return {
+    supplier_id: s.supplier_id, supplier_name: s.supplier_name, supplier_type: s.supplier_type, supplies: s.supplies, location: s.location,
+    phone: s.phone, email: s.email, lead_time_days: s.typical_lead_time_days ?? null, basis: s.basis, why,
+    source_id: s.source_id ?? null, website: src?.link ?? null,
+    contact: [s.phone, s.email].filter((v: any) => v && !SEE.test(String(v))).join(' · ') || null,
+  };
+};
+const php = (n: number) => `PHP ${fmtComma(n, 0)}`;
 
-/** Repair / Replace → "Replacement options": the installed brand/model, the OEM channel, alternative brands/suppliers,
- *  and the parts that fit the unit with their suppliers (Equipment_Register, Suppliers, Spare_Parts_Inventory). */
+/** Cost of one new unit for an option: the brand's own Cost_Reference item, or the same-duty item as a budget. */
+function optionCost(c: any, model: string | null) {
+  if (!c) return null;
+  const id = c.cost_id ?? c.budget_cost_id;
+  const cr = id ? D.costRef[id] : null;
+  if (!cr) return null;
+  const qty = /×\s*2(?!\d)/.test(String(model ?? '')) ? 2 : 1;
+  const value = num(cr.value, 0) * qty;
+  const budget = !c.cost_id;
+  return {
+    php: value, cost_id: id, item: `${qty > 1 ? `${qty} × ` : ''}${cr.item}`, basis: cr.basis, source_id: cr.source_id, budget,
+    note: budget ? `Budget only – no brand price in the data; same-duty ${cr.item} (${id}). Get a quote.` : (c.note ?? null),
+  };
+}
+
+/** Repair / Replace → "Replacement options": the installed brand/model, the like-for-like and alternative brands with their
+ *  suppliers (lead time, contact, indicative new-unit cost, source), repair services, and the parts that fit the unit.
+ *  Brands/suppliers per asset class: ref/data_patches/replacement_brands.json (mined from the data + guide workbooks);
+ *  supplier details: Suppliers sheet; costs: Cost_Reference. */
 export function replacementOptions(assetId: string) {
   const a = D.asset[assetId];
   if (!a) return null;
   const brand = String(a.manufacturer ?? '').trim();
   const generic = !brand || /^generic/i.test(brand);
-  const sups = Object.values(D.suppliers) as any[];
-  const oem = generic ? [] : sups.filter(s => `${s.supplier_name} ${s.supplies}`.toLowerCase().includes(brand.toLowerCase().split(' ')[0]));
-  const re = ALT_TYPES[String(a.asset_type ?? '').toLowerCase()];
-  const alt = re ? sups.filter(s => re.test(String(s.supplier_type ?? '')) && !oem.includes(s)) : [];
-  const brandOf = (s: any) => { const m = /^(Grundfos|Ebara|KSB|Tsurumi)/i.exec(s.supplier_name); return m ? m[1] : null; };
   const parts = D.spares.filter((p: any) => String(p.fits_assets ?? '').split(/;\s*/).includes(assetId)).map((p: any) => ({
     part_id: p.part_id, part_name: p.part_name, part_number: p.part_number, category: p.category, qty_on_hand: p.qty_on_hand, min_qty: p.min_qty,
     unit: p.unit, unit_cost_php: p.unit_cost_php, lead_time_days: p.lead_time_days, storage_location: p.storage_location, critical: !!p.critical,
     supplier: D.suppliers[p.supplier_id]?.supplier_name ?? null, supplier_id: p.supplier_id ?? null,
   }));
-  return {
-    asset_id: assetId, asset_type: a.asset_type,
-    installed: { brand: brand || null, model: a.model ?? null, rated_flow_m3h: a.rated_flow_m3h ?? null, rated_head_m: a.rated_head_m ?? null,
-      rated_power_kw: a.rated_power_kw ?? null, speed_rpm: a.speed_rpm ?? null, new_unit_cost_php: a.purchase_cost_php ?? null, basis: a.basis ?? null },
-    options: [
-      ...(!generic ? [{ kind: 'Like-for-like (OEM)', brand, model: a.model ?? null, suppliers: oem.map(s => supplierOut(s, `${brand} channel`)) }] : []),
-      ...alt.map(s => ({ kind: generic ? 'Equivalent unit' : 'Alternative brand', brand: brandOf(s) ?? (generic ? brand || null : null),
-        model: `Match duty: ${[a.rated_flow_m3h && `${a.rated_flow_m3h} m³/h`, a.rated_head_m && `${a.rated_head_m} m head`, a.rated_power_kw && `${a.rated_power_kw} kW`, a.speed_rpm && `${a.speed_rpm} rpm`].filter(Boolean).join(', ') || a.model || 'same rating'}`,
-        suppliers: [supplierOut(s, String(s.supplier_type))] })),
-    ],
-    parts,
-    note: 'Supplier list from the data package (Suppliers sheet); contacts marked "(see website)" or "to confirm" need checking before ordering.',
+  const duty = [a.rated_flow_m3h && `${a.rated_flow_m3h} m³/h`, a.rated_head_m && `${a.rated_head_m} m head`, a.rated_power_kw && `${a.rated_power_kw} kW`,
+    a.voltage_v && `${a.voltage_v} V`, a.speed_rpm && `${a.speed_rpm} rpm`].filter(Boolean).join(', ');
+  const cls = (D.replacementBrands.classes ?? []).find((c: any) => (c.assets ?? []).includes(assetId));
+  const own = cls?.options?.find((o: any) => o.cost?.cost_id);
+  const installedCost = a.purchase_cost_php ?? null;
+  const installed = {
+    brand: brand || null, model: a.model ?? null, rated_flow_m3h: a.rated_flow_m3h ?? null, rated_head_m: a.rated_head_m ?? null,
+    rated_power_kw: a.rated_power_kw ?? null, speed_rpm: a.speed_rpm ?? null, duty: duty || null,
+    new_unit_cost_php: installedCost, cost_basis: installedCost != null ? `Equipment_Register.purchase_cost_php (${a.basis ?? '—'})` : null,
+    basis: a.basis ?? null, sources: String(a.source_id ?? '').split(/;\s*/).filter(Boolean).map(sourceOf),
   };
+
+  let options: any[];
+  let services: any[] = [];
+  if (cls) {
+    options = cls.options.map((o: any) => {
+      const cost = optionCost(o.cost, o.kind.startsWith('Installed') ? a.model : o.model);
+      return {
+        kind: o.kind, brand: o.brand, model: o.model, why: o.why ?? null, found_in: o.found_in ?? [],
+        sources: (o.sources ?? []).map(sourceOf).filter(Boolean),
+        new_unit_cost_php: cost?.php ?? null, cost,
+        suppliers: (o.suppliers ?? []).map(supplierRow).filter(Boolean).map((s: any) => supplierOut(s, o.brand ? `${o.brand} channel` : String(s.supplier_type))),
+      };
+    });
+    services = (cls.services ?? []).map((sv: any) => {
+      const cr = sv.cost_id ? D.costRef[sv.cost_id] : null;
+      return { kind: sv.kind, note: sv.note ?? null, cost_php: cr ? num(cr.value, 0) : null, cost_item: cr?.item ?? null, cost_basis: cr?.basis ?? null,
+        suppliers: (sv.suppliers ?? []).map(supplierRow).filter(Boolean).map((s: any) => supplierOut(s, sv.kind)) };
+    });
+    if (installed.new_unit_cost_php == null && options[0]?.cost) {
+      installed.new_unit_cost_php = options[0].cost.php;
+      installed.cost_basis = `Indicative – ${options[0].cost.item} (${options[0].cost.cost_id}); no register price for this placeholder`;
+    } else if (own) {
+      const c = optionCost(own.cost, a.model);
+      if (c) installed.cost_basis = `${c.item} (${c.cost_id}, ${c.basis})`;
+    }
+  } else {
+    const sups = Object.values(D.suppliers) as any[];
+    const oem = generic ? [] : sups.filter(s => `${s.supplier_name} ${s.supplies}`.toLowerCase().includes(brand.toLowerCase().split(' ')[0]));
+    const re = ALT_TYPES[String(a.asset_type ?? '').toLowerCase()];
+    const alt = re ? sups.filter(s => re.test(String(s.supplier_type ?? '')) && !oem.includes(s)) : [];
+    const brandOf = (s: any) => { const m = /^(Grundfos|Ebara|KSB|Tsurumi)/i.exec(s.supplier_name); return m ? m[1] : null; };
+    options = [
+      ...(!generic ? [{ kind: 'Installed brand (like-for-like)', brand, model: a.model ?? null, new_unit_cost_php: installedCost, cost: null, sources: [], found_in: ['Equipment_Register'], why: null,
+        suppliers: oem.map(s => supplierOut(s, `${brand} channel`)) }] : []),
+      ...alt.map(s => ({ kind: generic ? 'Equivalent unit' : 'Alternative brand', brand: brandOf(s) ?? (generic ? brand || null : null),
+        model: `Match duty: ${duty || a.model || 'same rating'}`, new_unit_cost_php: null, cost: null, sources: [sourceOf(s.source_id)].filter(Boolean), found_in: ['Suppliers'], why: null,
+        suppliers: [supplierOut(s, String(s.supplier_type))] })),
+    ];
+  }
+
+  // The pick for a "Replace" decision: like-for-like (first option with a supplier), best-documented supplier first;
+  // plus the fastest other channel when it is quicker.
+  const lead = (s: any) => (s.lead_time_days == null ? 1e9 : s.lead_time_days);
+  const pickOpt = options.find(o => o.suppliers.length);
+  const pickSup = pickOpt ? [...pickOpt.suppliers].sort((x: any, y: any) => (x.basis === 'Sourced' ? 0 : 1) - (y.basis === 'Sourced' ? 0 : 1) || lead(x) - lead(y))[0] : null;
+  const summary = (o: any, s: any) => ({
+    kind: o.kind, brand: o.brand, model: o.model, supplier_id: s.supplier_id, supplier_name: s.supplier_name, location: s.location,
+    lead_time_days: s.lead_time_days, contact: s.contact, website: s.website, supplier_basis: s.basis,
+    new_unit_cost_php: o.new_unit_cost_php, cost_budget: !!o.cost?.budget,
+    text: `${o.brand ?? 'Equivalent unit'}${o.model ? ` ${o.model}` : ''} from ${s.supplier_name}`
+      + `${s.lead_time_days != null ? ` · ~${s.lead_time_days} d` : ''}${o.new_unit_cost_php ? ` · ${o.cost?.budget ? 'budget ' : ''}${php(o.new_unit_cost_php)}` : ''}`
+      + `${/to confirm/i.test(`${s.supplier_name} ${s.basis}`) || s.basis === 'Assumed' ? ' (supplier to confirm)' : ''}`,
+  });
+  const recommended = pickOpt && pickSup ? summary(pickOpt, pickSup) : null;
+  let fastest: any = null;
+  for (const o of options) for (const s of o.suppliers)
+    if (s.lead_time_days != null && (!fastest || s.lead_time_days < fastest.s.lead_time_days)) fastest = { o, s };
+  const quicker = fastest && recommended && fastest.s.supplier_id !== recommended.supplier_id
+    && fastest.s.lead_time_days < (recommended.lead_time_days ?? 1e9) ? summary(fastest.o, fastest.s) : null;
+
+  return {
+    asset_id: assetId, asset_type: a.asset_type, class_label: cls?.label ?? null, placeholder: !!cls?.placeholder || /placeholder/i.test(String(a.basis ?? '')),
+    installed, options, recommended, fastest_alternative: quicker, services, no_alternative_note: cls?.no_alternative_note ?? null,
+    parts,
+    note: 'Brands and suppliers from the data package (Equipment_Register, Suppliers, Cost_Reference, Spare_Parts_Inventory) and the guide’s Sources sheet. '
+      + 'Contacts marked "(see website)" or "to confirm" need checking before ordering; alternative-brand costs are budgets until quoted.',
+  };
+}
+
+/** One-line "replace with" for the RR decision and the Caster tool. */
+export function replaceWith(assetId: string) {
+  const r = replacementOptions(assetId);
+  if (!r?.recommended) return null;
+  return { text: r.recommended.text, fastest_alternative: r.fastest_alternative?.text ?? null,
+    brand: r.recommended.brand, supplier: r.recommended.supplier_name, lead_time_days: r.recommended.lead_time_days, new_unit_cost_php: r.recommended.new_unit_cost_php };
 }

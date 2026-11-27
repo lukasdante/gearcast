@@ -1,0 +1,38 @@
+{
+ "shot": "13-c",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 3.366,
+ "trim": {
+  "inSec": 0,
+  "outSec": 3.303
+ },
+ "events": [
+  {
+   "t": 1.407,
+   "x": 296,
+   "y": 288,
+   "type": "click",
+   "label": "Approve",
+   "box": {
+    "x": 252,
+    "y": 275,
+    "w": 88,
+    "h": 26
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 1.803,
+   "name": "toast-approved"
+  }
+ ],
+ "frameStats": {
+  "frames": 190,
+  "firstFrameOffsetMs": 13
+ }
+}

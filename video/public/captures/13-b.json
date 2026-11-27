@@ -1,0 +1,24 @@
+{
+ "shot": "13-b",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 10.833,
+ "trim": {
+  "inSec": 0.2,
+  "outSec": 10.43
+ },
+ "events": [],
+ "marks": [
+  {
+   "t": 0.001,
+   "name": "red-pumps"
+  }
+ ],
+ "frameStats": {
+  "frames": 204,
+  "firstFrameOffsetMs": 2
+ }
+}

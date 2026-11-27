@@ -23,19 +23,21 @@ export type Perm =
   | 'layout.edit'        // edit a plant layout (engineer: as a draft for approval)
   | 'layout.publish'     // save layout edits directly / approve an engineer's edits
   | 'plant.manage'       // create, rename, delete plant layouts
-  | 'access.grant';      // temporary access to other plants (emergencies)
+  | 'access.grant'       // temporary access to other plants (emergencies)
+  | 'qr.labels';         // print QR asset labels (everyone can scan)
 
 const GRANTS: Record<Role, Perm[]> = {
-  supervisor: ['kb.manage', 'incident.delete', 'pm.assign', 'approve', 'spare.add', 'spare.deploy.major', 'rr.edit', 'layout.edit', 'layout.publish', 'plant.manage', 'access.grant'],
-  engineer: ['kb.manage', 'incident.delete', 'pm.assign', 'approve', 'spare.add', 'spare.deploy.major', 'rr.edit', 'layout.edit'],
+  supervisor: ['kb.manage', 'incident.delete', 'pm.assign', 'approve', 'spare.add', 'spare.deploy.major', 'rr.edit', 'layout.edit', 'layout.publish', 'plant.manage', 'access.grant', 'qr.labels'],
+  engineer: ['kb.manage', 'incident.delete', 'pm.assign', 'approve', 'spare.add', 'spare.deploy.major', 'rr.edit', 'layout.edit', 'qr.labels'],
   technician: [],
 };
 export const can = (role: Role | null | undefined, p: Perm) => !!role && GRANTS[role].includes(p);
 
 /** Endpoints a role may not call (403). Finer checks (e.g. which approvals a role may review) are in the handlers. */
 export function blocked(role: Role, method: string, path: string): boolean {
-  if (path.startsWith('/api/admin/')) return true;
   const need = (p: Perm) => !can(role, p);
+  // seeding the built-in vectors: index maintenance (also needs ADMIN_TOKEN, checked in the handler)
+  if (path.startsWith('/api/admin/')) return need('kb.manage');
   if ((path === '/api/knowledge/upload' || (method === 'DELETE' && path.startsWith('/api/knowledge/')))) return need('kb.manage');
   if (method === 'DELETE' && path.startsWith('/api/incidents/')) return need('incident.delete');
   if (method === 'PUT' && path === '/api/pm/assignments') return need('pm.assign');

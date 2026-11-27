@@ -1,0 +1,101 @@
+{
+ "shot": "09-a",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 16.866,
+ "trim": {
+  "inSec": 1.06,
+  "outSec": 16.3
+ },
+ "events": [
+  {
+   "t": 3.055,
+   "x": 520,
+   "y": 263,
+   "type": "move",
+   "label": "Upload (not used)"
+  },
+  {
+   "t": 4.092,
+   "x": 1090,
+   "y": 218,
+   "type": "click",
+   "label": "pump bearing replacement procedure field",
+   "box": {
+    "x": 849,
+    "y": 202,
+    "w": 482,
+    "h": 32
+   }
+  },
+  {
+   "t": 4.101,
+   "x": 1090,
+   "y": 218,
+   "type": "type",
+   "label": "pump bearing replacement procedure",
+   "box": {
+    "x": 849,
+    "y": 202,
+    "w": 482,
+    "h": 32
+   }
+  },
+  {
+   "t": 6.329,
+   "x": 1373,
+   "y": 217,
+   "type": "click",
+   "label": "Search",
+   "box": {
+    "x": 1339,
+    "y": 202,
+    "w": 68,
+    "h": 30
+   }
+  },
+  {
+   "t": 8.838,
+   "x": 1137,
+   "y": 408,
+   "type": "hover",
+   "label": "WWTP Maintenance Manual p.17 · PR-06 Bearing replacement (drive end and non-drive end)",
+   "box": {
+    "x": 917,
+    "y": 389,
+    "w": 440,
+    "h": 38
+   }
+  },
+  {
+   "t": 10.613,
+   "x": 896,
+   "y": 498,
+   "type": "click",
+   "label": "Open p.17",
+   "box": {
+    "x": 849,
+    "y": 485,
+    "w": 94,
+    "h": 26
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 7.013,
+   "name": "results"
+  },
+  {
+   "t": 13.799,
+   "name": "manual-page"
+  }
+ ],
+ "frameStats": {
+  "frames": 664,
+  "firstFrameOffsetMs": 3
+ }
+}

@@ -1,0 +1,163 @@
+{
+ "shot": "04-a",
+ "device": "laptop",
+ "viewport": {
+  "w": 1920,
+  "h": 1200
+ },
+ "durationSec": 25.133,
+ "trim": {
+  "inSec": 1.36,
+  "outSec": 23.46
+ },
+ "events": [
+  {
+   "t": 3.361,
+   "x": 1025,
+   "y": 713,
+   "type": "click",
+   "label": "P-101A"
+  },
+  {
+   "t": 6.632,
+   "x": 1607,
+   "y": 886,
+   "type": "click",
+   "label": "Simulate fault",
+   "box": {
+    "x": 1547,
+    "y": 873,
+    "w": 120,
+    "h": 26
+   }
+  },
+  {
+   "t": 8.375,
+   "x": 1726,
+   "y": 1184,
+   "type": "hover",
+   "label": "Standby available – TOTAL PHP 0",
+   "box": {
+    "x": 1562,
+    "y": 1167,
+    "w": 327,
+    "h": 33
+   }
+  },
+  {
+   "t": 11.067,
+   "x": 783,
+   "y": 779,
+   "type": "click",
+   "label": "P-101B",
+   "box": {
+    "x": 735,
+    "y": 767,
+    "w": 96,
+    "h": 24
+   }
+  },
+  {
+   "t": 14.01,
+   "x": 1607,
+   "y": 834,
+   "type": "click",
+   "label": "Simulate fault",
+   "box": {
+    "x": 1547,
+    "y": 821,
+    "w": 120,
+    "h": 26
+   }
+  },
+  {
+   "t": 15.501,
+   "x": 381,
+   "y": 164,
+   "type": "hover",
+   "label": "Process stopped at W05",
+   "box": {
+    "x": 210,
+    "y": 136,
+    "w": 342,
+    "h": 56
+   }
+  },
+  {
+   "t": 18.005,
+   "x": 1726,
+   "y": 990,
+   "type": "move",
+   "label": "Shutdown cost"
+  },
+  {
+   "t": 19.614,
+   "x": 1725,
+   "y": 950,
+   "type": "click",
+   "label": "Expected outage 10 h field",
+   "box": {
+    "x": 1685,
+    "y": 936,
+    "w": 80,
+    "h": 28
+   }
+  },
+  {
+   "t": 19.635,
+   "x": 1725,
+   "y": 950,
+   "type": "type",
+   "label": "Expected outage 10 h",
+   "box": {
+    "x": 1685,
+    "y": 936,
+    "w": 80,
+    "h": 28
+   }
+  },
+  {
+   "t": 20.961,
+   "x": 1726,
+   "y": 1184,
+   "type": "hover",
+   "label": "PHP 5,907,405",
+   "box": {
+    "x": 1562,
+    "y": 1167,
+    "w": 327,
+    "h": 33
+   }
+  }
+ ],
+ "marks": [
+  {
+   "t": 3.771,
+   "name": "inspector-p101a"
+  },
+  {
+   "t": 7.014,
+   "name": "p101a-red"
+  },
+  {
+   "t": 7.42,
+   "name": "standby-covers-php0"
+  },
+  {
+   "t": 14.465,
+   "name": "both-red"
+  },
+  {
+   "t": 14.53,
+   "name": "w05-critical-banner"
+  },
+  {
+   "t": 19.914,
+   "name": "cost-5.9M"
+  }
+ ],
+ "frameStats": {
+  "frames": 427,
+  "firstFrameOffsetMs": 17
+ }
+}

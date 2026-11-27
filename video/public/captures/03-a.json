@@ -1,0 +1,111 @@
+{
+ "shot": "03-a",
+ "device": "phone",
+ "viewport": {
+  "w": 390,
+  "h": 844
+ },
+ "durationSec": 21.033,
+ "events": [
+  {
+   "t": 6.44,
+   "type": "click",
+   "x": 345,
+   "y": 725,
+   "label": "Scan QR",
+   "box": {
+    "x": 318,
+    "y": 698,
+    "w": 54,
+    "h": 54
+   },
+   "tap": true
+  },
+  {
+   "t": 9.676,
+   "type": "scroll",
+   "x": 195,
+   "y": 526,
+   "dy": 531,
+   "label": "Status history"
+  },
+  {
+   "t": 11.592,
+   "type": "scroll",
+   "x": 195,
+   "y": 526,
+   "dy": 984,
+   "label": "Work orders"
+  },
+  {
+   "t": 13.718,
+   "type": "scroll",
+   "x": 195,
+   "y": 526,
+   "dy": 359,
+   "label": "Failure"
+  },
+  {
+   "t": 15.628,
+   "type": "scroll",
+   "x": 195,
+   "y": 526,
+   "dy": 277,
+   "label": "Last readings"
+  }
+ ],
+ "videoSize": {
+  "w": 1170,
+  "h": 2532
+ },
+ "trim": {
+  "inSec": 3.1,
+  "outSec": 20.48
+ },
+ "marks": [
+  {
+   "t": 2.899,
+   "name": "app-ready"
+  },
+  {
+   "t": 6.942,
+   "name": "scanner-open"
+  },
+  {
+   "t": 7.163,
+   "name": "camera-on"
+  },
+  {
+   "t": 7.711,
+   "name": "qr-locked"
+  },
+  {
+   "t": 7.919,
+   "name": "quick-view"
+  },
+  {
+   "t": 10.376,
+   "name": "status"
+  },
+  {
+   "t": 12.292,
+   "name": "work-orders"
+  },
+  {
+   "t": 14.418,
+   "name": "failures"
+  },
+  {
+   "t": 16.328,
+   "name": "last-readings"
+  },
+  {
+   "t": 16.34,
+   "name": "vibration"
+  },
+  {
+   "t": 18.982,
+   "name": "end-action"
+  }
+ ]
+}

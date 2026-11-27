@@ -35,10 +35,12 @@ implementation) with the same paths and the same JSON and SSE shapes.
     `PUT /api/incidents/{id}/pdf`. Downloads then serve the stored file.
   - `GET /pdf` returns 409 while no file exists, and the app then renders it.
   - `?render=server` (and `POST /api/incidents/render`) still render in the Worker, for local dev or a paid plan.
-- **Login**: technicians MT-01..04 and operators OP-01..02.
+- **Login**: plant supervisors PS-01..02 (formerly operators OP-01..02), engineers EN-01..02, technicians MT-01..04.
   - Passwords are stored as PBKDF2 hashes in D1; the session is an HMAC-signed cookie.
-  - Technicians see My tasks (PM tasks assigned to them), Troubleshoot and Spare Readiness. They cannot upload or
-    delete documents, delete incidents or change assignments.
+  - Roles and permissions: `src/rbac.ts` (`blocked()` is enforced for every `/api/*` call; finer checks in
+    `approvals.ts` / `plants.ts`). Technicians use every page; they cannot index or delete documents, delete
+    incidents, assign PM, approve, publish layouts or grant plant access, and their PM findings and major spare
+    deployments wait for a Plant Supervisor or Engineer.
 
 ## Resources and secrets
 
@@ -58,7 +60,7 @@ grep '^DEEPSEEK_API_KEY=' ../backend/.env | cut -d= -f2- | npx wrangler secret p
 openssl rand -hex 32 | npx wrangler secret put AUTH_SECRET
 openssl rand -hex 16 | npx wrangler secret put ADMIN_TOKEN    # keep a copy for seeding
 npm run deploy                                       # vite build + wrangler deploy (custom domain)
-# seed the built-in vectors (Workers AI → R2 + Vectorize), with an operator session cookie:
+# seed the built-in vectors (Workers AI → R2 + Vectorize), with a Plant Supervisor or Engineer session cookie:
 curl -X POST -H "x-admin-token: $ADMIN_TOKEN" -b "gc_session=…" https://gearcast.engrlouis.dev/api/admin/seed
 # pre-render the historical incident PDFs:
 npx esbuild scripts/seed_pdfs.ts --bundle --platform=node --format=esm --outfile=.wrangler/seed_pdfs.mjs

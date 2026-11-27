@@ -86,13 +86,13 @@ for (const b of [{}, { query: 'seal' }, { query: 'P-101A' }, { query: 'sp-p01' }
 for (const a of [...ASSETS, 'nope']) await same('tools/failure_history', a, 'POST', '/api/tools/failure_history', { asset_id: a });
 for (const b of [...ASSETS.map(a => ({ asset_id: a })), ...Array.from({ length: 11 }, (_, i) => ({ case_id: `rr-${String(i + 1).padStart(2, '0')}` })),
   { asset_id: 'P-101A', repair_cost_php: 300000 }, { asset_id: 'SC-101A', repair_cost_php: 5000 }, { case_id: 'RR-99' }, {}])
-  await same('tools/repair_or_replace', JSON.stringify(b), 'POST', '/api/tools/repair_or_replace', b);
+  await same('tools/repair_or_replace', JSON.stringify(b), 'POST', '/api/tools/repair_or_replace', b, k => k === '.replace_with');
 await same('tools/unknown', 'x', 'POST', '/api/tools/nope', {});
 
 // ---------------------------------------------------------------- rr
 await same('rr/cases', 'all', 'GET', '/api/rr/cases');
 for (const a of ASSETS) for (const q of ['', '?repair_cost_php=250000', '?repair_cost_php=0'])
-  await same('rr/predict', a + q, 'GET', `/api/rr/predict/${a}${q}`);
+  await same('rr/predict', a + q, 'GET', `/api/rr/predict/${a}${q}`, k => k === '.replace_with');
 
 // ---------------------------------------------------------------- incidents list (+ get history record)
 await same('incidents/list', 'all', 'GET', '/api/incidents');
@@ -154,7 +154,7 @@ print(json.dumps({"as_of": AS_OF, "out": [incidents.build_draft(req(c["body"]), 
 for (const [i, d] of DRAFTS.entries()) {
   const w = await call(WK, 'POST', '/api/incidents/draft?no_llm=1', { ...d.body, sim: d.sim }, pyDrafts.as_of);
   // field 2 is "now" (minute resolution) in both; everything else must match exactly.
-  record('incidents/draft', `${d.body.asset_id}`, diff(pyDrafts.out[i], w.json, '', [], p => p === '.fields[1].value'));
+  record('incidents/draft', `${d.body.asset_id}`, diff(pyDrafts.out[i], w.json, '', [], p => p === '.fields[1].value' || ['.tables.trends', '.trend', '.trend_indicators', '.inputs.trend', '.inputs.trend_days'].includes(p)));
 }
 const bad = [await call(PY, 'POST', '/api/incidents/draft', { asset_id: 'ZZ-1' }), await call(WK, 'POST', '/api/incidents/draft?no_llm=1', { asset_id: 'ZZ-1' })];
 record('incidents/draft', 'unknown asset', diff(bad[0], bad[1]));
